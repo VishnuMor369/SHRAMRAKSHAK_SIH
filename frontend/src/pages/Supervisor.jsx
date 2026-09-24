@@ -27,6 +27,8 @@ import {
 import { 
   respondToAlert, 
   resolveAlert, 
+  markActionTaken,
+  verifyAlert,
   fetchAlertHistory,
   createPassport,
   verifyPassportControl,
@@ -41,8 +43,18 @@ export default function Supervisor({ stateData }) {
   const isConnected = stateData?.isConnected;
   const activePassport = status?.active_passport;
   
-  // All active alerts sorted by priority from backend
-  const activeAlerts = status?.active_alerts || (status?.active_alert ? [status.active_alert] : []);
+  // All active alerts sorted by priority from backend (Proximity Critical first)
+  const rawActiveAlerts = status?.active_alerts || (status?.active_alert ? [status.active_alert] : []);
+  const activeAlerts = [...rawActiveAlerts].sort((a, b) => {
+    const aIsProx = a.is_high_priority || a.type === 'Person–Vehicle Proximity' || (a.priority_score && a.priority_score >= 150);
+    const bIsProx = b.is_high_priority || b.type === 'Person–Vehicle Proximity' || (b.priority_score && b.priority_score >= 150);
+    if (aIsProx && !bIsProx) return -1;
+    if (!aIsProx && bIsProx) return 1;
+    const aPriority = a.priority_score ?? 80;
+    const bPriority = b.priority_score ?? 80;
+    if (bPriority !== aPriority) return bPriority - aPriority;
+    return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+  });
   
   // Navigation tabs: 'alerts', 'passport', 'history', 'status'
   const [currentTab, setCurrentTab] = useState('alerts');
@@ -50,8 +62,10 @@ export default function Supervisor({ stateData }) {
   // Selected alert for Detail View (null = Inbox View)
   const [selectedAlertId, setSelectedAlertId] = useState(null);
   
-  // Local submission states
+  // Local submission states & deduplication
   const [submitting, setSubmitting] = useState(false);
+  const [acknowledgedAlertIds, setAcknowledgedAlertIds] = useState(() => new Set());
+  const isRespondingRef = useRef(false);
   const [errorMsg, setErrorMsg] = useState(null);
   const [resolveSuccessMsg, setResolveSuccessMsg] = useState(null);
 
@@ -188,22 +202,39 @@ export default function Supervisor({ stateData }) {
     return () => clearInterval(timer);
   }, [selectedAlert]);
 
-  // Handle Supervisor "I'M RESPONDING"
+  // Handle Supervisor "ACKNOWLEDGE / I'M RESPONDING"
   const handleResponding = async (alertId) => {
+    if (!alertId) return;
+    if (isRespondingRef.current || submitting) return;
+    if (acknowledgedAlertIds.has(alertId)) return;
+    if (selectedAlert && selectedAlert.id === alertId && selectedAlert.status !== 'WAITING_FOR_RESPONSE' && selectedAlert.status !== 'ESCALATED') return;
+
     try {
+      isRespondingRef.current = true;
       setSubmitting(true);
       setErrorMsg(null);
+      // Optimistically record acknowledgement immediately to lock UI against duplicates
+      setAcknowledgedAlertIds(prev => new Set(prev).add(alertId));
       await respondToAlert('SUP-FIELD-01', 'Supervisor acknowledged alert and en route to zone', alertId);
     } catch (err) {
+      // Rollback optimistic acknowledgement on true failure so user can retry
+      setAcknowledgedAlertIds(prev => {
+        const next = new Set(prev);
+        next.delete(alertId);
+        return next;
+      });
       setErrorMsg('Failed to record response. Please check connection and retry.');
     } finally {
       setSubmitting(false);
+      isRespondingRef.current = false;
     }
   };
 
   // Handle Supervisor "FIXED / RESOLVED"
   const handleResolved = async (alert) => {
+    if (!alert || submitting || isRespondingRef.current) return;
     try {
+      isRespondingRef.current = true;
       setSubmitting(true);
       setErrorMsg(null);
       const isZone = alert?.type === 'Restricted Zone Entry';
@@ -221,6 +252,49 @@ export default function Supervisor({ stateData }) {
       setErrorMsg('Unable to resolve alert. Check connection and retry.');
     } finally {
       setSubmitting(false);
+      isRespondingRef.current = false;
+    }
+  };
+
+  // Handle Supervisor "ACTION TAKEN" (Phase 4 State Machine)
+  const handleMarkActionTaken = async (alert) => {
+    if (!alert || submitting || isRespondingRef.current) return;
+    try {
+      isRespondingRef.current = true;
+      setSubmitting(true);
+      setErrorMsg(null);
+      await markActionTaken('SUP-FIELD-01', 'Corrective action executed on-site', 'Action Taken', alert.id);
+      setResolveSuccessMsg('✓ Action marked COMPLETED — Awaiting safety verification');
+    } catch (err) {
+      setErrorMsg('Unable to record action. Please retry.');
+    } finally {
+      setSubmitting(false);
+      isRespondingRef.current = false;
+    }
+  };
+
+  // Handle Supervisor Formal Safety Verification (Phase 4 State Machine)
+  const handleVerifyAlert = async (alert, decision = 'VERIFIED', method = 'CCTV_VERIFIED') => {
+    if (!alert || submitting || isRespondingRef.current) return;
+    try {
+      isRespondingRef.current = true;
+      setSubmitting(true);
+      setErrorMsg(null);
+      await verifyAlert('SUP-FIELD-01', decision, method, `Verification: ${decision}`, alert.id);
+      if (decision === 'VERIFIED') {
+        setResolveSuccessMsg('✓ Safety problem VERIFIED & RESOLVED');
+        setSelectedAlertId(null);
+        loadHistory();
+      } else if (decision === 'FAILED') {
+        setErrorMsg('⚠ Verification FAILED: Corrective action reopened.');
+      } else {
+        setResolveSuccessMsg('✓ Forwarded for HSE Audit Review');
+      }
+    } catch (err) {
+      setErrorMsg('Unable to complete verification. Please retry.');
+    } finally {
+      setSubmitting(false);
+      isRespondingRef.current = false;
     }
   };
 
@@ -435,6 +509,8 @@ export default function Supervisor({ stateData }) {
                     <div className="font-bold text-slate-800 mt-0.5">
                       {selectedAlert.type === 'SAFETY PASSPORT BREACH'
                         ? `Lifting exclusion zone breached during active ${activePassport?.task_type || 'Mechanical Lifting'}`
+                        : (selectedAlert.type === 'Person–Vehicle Proximity' || selectedAlert.is_high_priority)
+                        ? `Person-Vehicle Proximity Breach: ${selectedAlert.person_id || 'Person #3'} within safety perimeter of ${selectedAlert.vehicle_id || 'Vehicle #1'} (${selectedAlert.vehicle_type || 'Vehicle'})`
                         : selectedAlert.type === 'Restricted Zone Entry'
                         ? `Person detected inside restricted perimeter: ${selectedAlert.location}`
                         : `${selectedAlert.person_count} worker(s) present without safety helmet in active zone`}
@@ -526,26 +602,106 @@ export default function Supervisor({ stateData }) {
                   </div>
                 )}
 
-                {/* Recommended Action Card */}
-                <div className="bg-slate-900 text-white rounded-xl p-3.5 shadow-sm space-y-1">
-                  <div className="text-[10px] font-black uppercase tracking-wider text-amber-400">
-                    Recommended Supervisor Action
+                {/* ==================================================== */}
+                {/* PHASE 5: SIF REASONING ("WHY SIF POTENTIAL?")        */}
+                {/* ==================================================== */}
+                <div className="bg-slate-900 text-white rounded-xl p-3.5 shadow-sm space-y-2.5 text-xs border border-slate-800">
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                    <div className="flex items-center space-x-1.5">
+                      <span className="text-base">🚨</span>
+                      <span className="font-black text-rose-400 uppercase tracking-wider text-[11px]">
+                        SIF POTENTIAL REASONING
+                      </span>
+                    </div>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-red-600 text-white">
+                      {selectedAlert.sif_level || 'HIGH'} PRIORITY
+                    </span>
                   </div>
-                  <p className="text-xs font-medium text-slate-200 leading-relaxed">
-                    {selectedAlert.type === 'SAFETY PASSPORT BREACH'
-                      ? 'Hold lifting activity and clear the exclusion zone.'
-                      : selectedAlert.type === 'Restricted Zone Entry'
-                      ? 'Approach worker immediately, direct evacuation of restricted zone, and verify area perimeter safety.'
-                      : `Locate ${selectedAlert.person_count} unequipped worker(s), enforce hard-hat donning, and verify secure fit.`}
-                  </p>
+
+                  {/* Evidence Matrix */}
+                  <div className="grid grid-cols-2 gap-2 pt-0.5">
+                    <div className="bg-slate-800/80 p-2 rounded-lg border border-slate-700/60 flex items-center justify-between">
+                      <span className="text-slate-300 font-medium text-[11px]">Person Exposure</span>
+                      <span className="text-emerald-400 font-black">✓</span>
+                    </div>
+                    <div className="bg-slate-800/80 p-2 rounded-lg border border-slate-700/60 flex items-center justify-between">
+                      <span className="text-slate-300 font-medium text-[11px]">Hazardous Activity</span>
+                      <span className="text-emerald-400 font-black">✓</span>
+                    </div>
+                    <div className="bg-slate-800/80 p-2 rounded-lg border border-slate-700/60">
+                      <span className="text-[9px] text-slate-400 uppercase font-bold block">Critical Barrier</span>
+                      <span className="font-bold text-amber-300 truncate block mt-0.5 text-[11px]">
+                        {selectedAlert.critical_barrier || 'Exclusion Zone Barrier'}
+                      </span>
+                    </div>
+                    <div className="bg-slate-800/80 p-2 rounded-lg border border-slate-700/60">
+                      <span className="text-[9px] text-slate-400 uppercase font-bold block">Barrier Condition</span>
+                      <span className="font-bold text-rose-400 truncate block mt-0.5 text-[11px]">
+                        {selectedAlert.barrier_condition || 'Violated'}
+                      </span>
+                    </div>
+                    <div className="bg-slate-800/80 p-2 rounded-lg border border-slate-700/60 col-span-2">
+                      <span className="text-[9px] text-slate-400 uppercase font-bold block">Potential Consequence</span>
+                      <span className="font-bold text-slate-100 block mt-0.5 text-[11px]">
+                        {selectedAlert.potential_consequence || 'Struck-by / line-of-fire from hazard'}
+                      </span>
+                    </div>
+                    <div className="bg-slate-800/80 p-2 rounded-lg border border-slate-700/60 col-span-2 flex items-center justify-between">
+                      <div>
+                        <span className="text-[9px] text-slate-400 uppercase font-bold block">Life-Saving Rule</span>
+                        <span className="font-bold text-amber-300 block mt-0.5 text-[11px]">
+                          {selectedAlert.life_saving_rule || 'Line of Fire'}
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-mono text-slate-400 font-semibold uppercase">IOGP STANDARD</span>
+                    </div>
+                  </div>
+
+                  {selectedAlert.sif_why && selectedAlert.sif_why.length > 0 && (
+                    <div className="pt-2 border-t border-slate-800">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                        Why SIF Potential?
+                      </span>
+                      <ul className="space-y-1 text-slate-300 text-[11px]">
+                        {selectedAlert.sif_why.map((w, idx) => (
+                          <li key={idx} className="flex items-start space-x-1.5">
+                            <span className="text-amber-400 font-bold shrink-0">•</span>
+                            <span>{w}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
 
                 {/* ==================================================== */}
-                {/* 2-STAGE RESPONSE / ACTION / ESCALATION WORKFLOW      */}
+                {/* PHASE 3: EVENT-SPECIFIC ACTION RECOMMENDATION LAYER   */}
+                {/* ==================================================== */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 space-y-1 shadow-xs">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-amber-800 block">
+                      IMMEDIATE ACTION
+                    </span>
+                    <p className="text-xs font-bold text-slate-900 leading-snug">
+                      {selectedAlert.immediate_action || 'Stop/hold the hazardous activity and clear the danger zone.'}
+                    </p>
+                  </div>
+                  <div className="bg-rose-50 border border-rose-200 rounded-xl p-3 space-y-1 shadow-xs">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-rose-800 block">
+                      IF ACTION IS NOT TAKEN
+                    </span>
+                    <p className="text-xs font-semibold text-slate-700 leading-snug">
+                      {selectedAlert.consequence_if_not_addressed || 'Continued exposure may result in serious injury or fatality.'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* ==================================================== */}
+                {/* PHASE 4: CORRECTIVE ACTION & VERIFICATION LIFECYCLE   */}
                 {/* ==================================================== */}
 
                 {/* Stage 1: WAITING_FOR_RESPONSE (20s SLA Timer) */}
-                {selectedAlert.status === 'WAITING_FOR_RESPONSE' && (
+                {selectedAlert.status === 'WAITING_FOR_RESPONSE' && !acknowledgedAlertIds.has(selectedAlert.id) && (
                   <div className="bg-white rounded-xl border-2 border-red-400 p-4 shadow-sm text-center space-y-3">
                     <div className="flex items-center justify-between text-xs font-bold text-red-700 border-b border-red-100 pb-2">
                       <span className="uppercase tracking-wider">Response Required</span>
@@ -556,11 +712,11 @@ export default function Supervisor({ stateData }) {
 
                     <button
                       onClick={() => handleResponding(selectedAlert.id)}
-                      disabled={submitting}
+                      disabled={submitting || acknowledgedAlertIds.has(selectedAlert.id)}
                       className="w-full py-3.5 px-4 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-black text-base rounded-xl shadow-lg shadow-red-600/30 transition-all flex items-center justify-center space-x-2 disabled:opacity-50"
                     >
                       <Activity className="w-5 h-5 animate-spin-slow" />
-                      <span>{submitting ? 'RECORDING...' : "I'M RESPONDING"}</span>
+                      <span>{submitting ? 'RECORDING...' : (acknowledgedAlertIds.has(selectedAlert.id) ? 'ACKNOWLEDGED' : "ACKNOWLEDGE / I'M RESPONDING")}</span>
                     </button>
                     <p className="text-[11px] text-slate-500">
                       Acknowledge alert within 20s to satisfy Stage 1 response SLA
@@ -568,8 +724,8 @@ export default function Supervisor({ stateData }) {
                   </div>
                 )}
 
-                {/* Stage 2: RESPONDING (60s Action Timer) */}
-                {selectedAlert.status === 'RESPONDING' && (
+                {/* Stage 2: RESPONDING (In Action, not yet completed) */}
+                {(selectedAlert.status === 'RESPONDING' || acknowledgedAlertIds.has(selectedAlert.id)) && selectedAlert.action_status !== 'COMPLETED' && (
                   <div className="bg-white rounded-xl border-2 border-amber-400 p-4 shadow-sm space-y-3">
                     <div className="flex items-center justify-between text-xs font-bold text-amber-800 border-b border-amber-100 pb-2">
                       <span className="uppercase tracking-wider">You Are Responding • Action Required</span>
@@ -578,62 +734,94 @@ export default function Supervisor({ stateData }) {
                       </span>
                     </div>
 
-                    {selectedAlert.type === 'SAFETY PASSPORT BREACH' ? (
-                      <>
-                        {(activePassport?.status === 'AWAITING_RESTORATION' || !status?.zone_violation) ? (
-                          <div className="space-y-3">
-                            <div className="p-3 bg-emerald-50 border border-emerald-300 rounded-lg text-emerald-950 text-xs">
-                              <div className="flex items-center space-x-1.5 font-black text-emerald-800 uppercase tracking-wide">
-                                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                                <span>Barrier condition restored — human verification required.</span>
-                              </div>
-                              <p className="text-[11px] text-emerald-700 mt-1 font-medium">
-                                AI CCTV indicates exclusion zone is clear. Supervisor physical verification is strictly required before lifting reactivation.
-                              </p>
-                            </div>
+                    <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-xs space-y-1">
+                      <span className="font-bold text-amber-900 block">ACTION STATUS: IN PROGRESS</span>
+                      <p className="text-[11px] text-amber-800">
+                        Execute immediate control on-site. Once completed, tap below to submit for safety verification.
+                      </p>
+                    </div>
 
-                            <button
-                              onClick={() => handleVerifyBarrierRestored(selectedAlert)}
-                              disabled={submitting}
-                              className="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-black text-base rounded-xl shadow-lg shadow-emerald-600/30 transition-all flex items-center justify-center space-x-2 disabled:opacity-50"
-                            >
-                              <Check className="w-5 h-5" />
-                              <span>{submitting ? 'VERIFYING...' : 'VERIFY BARRIER RESTORED'}</span>
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="space-y-3">
-                            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-950 text-xs">
-                              <div className="flex items-center space-x-1.5 font-black text-red-700 uppercase tracking-wide">
-                                <AlertTriangle className="w-4 h-4 text-red-600 animate-pulse" />
-                                <span>Exclusion Zone Currently Occupied</span>
-                              </div>
-                              <p className="text-[11px] text-red-700 mt-1">
-                                Direct all personnel to clear the exclusion zone immediately. Barrier verification unlocks once zone is clear.
-                              </p>
-                            </div>
-                            <button
-                              disabled
-                              className="w-full py-3 px-4 bg-slate-200 text-slate-500 font-bold text-xs rounded-xl flex items-center justify-center space-x-2 cursor-not-allowed"
-                            >
-                              <span>Awaiting Exclusion Zone Evacuation...</span>
-                            </button>
-                          </div>
-                        )}
-                      </>
-                    ) : (
-                      <button
-                        onClick={() => handleResolved(selectedAlert)}
-                        disabled={submitting}
-                        className="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-black text-base rounded-xl shadow-lg shadow-emerald-600/30 transition-all flex items-center justify-center space-x-2 disabled:opacity-50"
-                      >
-                        <CheckCircle2 className="w-5 h-5" />
-                        <span>{submitting ? 'RESOLVING...' : 'FIXED / RESOLVED'}</span>
-                      </button>
-                    )}
+                    <button
+                      onClick={() => handleMarkActionTaken(selectedAlert)}
+                      disabled={submitting}
+                      className="w-full py-3.5 px-4 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-slate-950 font-black text-sm rounded-xl shadow-md transition-all flex items-center justify-center space-x-2 disabled:opacity-50"
+                    >
+                      <Check className="w-5 h-5" />
+                      <span>{submitting ? 'RECORDING...' : 'ACTION TAKEN / PROCEED TO VERIFICATION'}</span>
+                    </button>
                     <p className="text-[11px] text-center text-slate-500">
-                      Tap once workplace safety is restored and PPE compliance verified
+                      Recording action taken transitions alert to Awaiting Verification
                     </p>
+                  </div>
+                )}
+
+                {/* Stage 3: AWAITING VERIFICATION (Phase 4 State Machine) */}
+                {(selectedAlert.verification_status === 'AWAITING_VERIFICATION' || selectedAlert.action_status === 'COMPLETED') && (
+                  <div className="bg-white rounded-xl border-2 border-purple-400 p-4 shadow-sm space-y-3">
+                    <div className="flex items-center justify-between text-xs font-bold text-purple-900 border-b border-purple-100 pb-2">
+                      <div className="flex items-center space-x-1.5">
+                        <ShieldCheck className="w-4 h-4 text-purple-600" />
+                        <span className="uppercase tracking-wider">Verification Required</span>
+                      </div>
+                      <span className="bg-purple-100 px-2 py-0.5 rounded text-purple-800 font-mono font-black text-[10px]">
+                        {selectedAlert.verification_type === 'CCTV_VERIFIABLE' ? 'CCTV VERIFIABLE' : 'FIELD HSE VERIFICATION'}
+                      </span>
+                    </div>
+
+                    <div className="p-3 bg-purple-50/70 border border-purple-200 rounded-lg text-xs space-y-1">
+                      <div className="flex justify-between text-slate-700">
+                        <span className="font-semibold">ACTION STATUS:</span>
+                        <span className="font-black text-emerald-700">Completed</span>
+                      </div>
+                      <div className="flex justify-between text-slate-700">
+                        <span className="font-semibold">VERIFICATION:</span>
+                        <span className="font-black text-purple-700">Pending Review</span>
+                      </div>
+                      <p className="text-[11px] text-slate-600 pt-1 border-t border-purple-100">
+                        {selectedAlert.verification_type === 'CCTV_VERIFIABLE'
+                          ? 'Physical clearance can be confirmed directly via live CCTV feed or supervisor inspection.'
+                          : 'Procedural/isolation controls require field physical verification or documentation review.'}
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {selectedAlert.verification_type === 'CCTV_VERIFIABLE' ? (
+                        <button
+                          onClick={() => handleVerifyAlert(selectedAlert, 'VERIFIED', 'CCTV_VERIFIED')}
+                          disabled={submitting}
+                          className="py-3 px-3 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-black text-xs rounded-xl shadow-sm flex items-center justify-center space-x-1.5 disabled:opacity-50"
+                        >
+                          <Check className="w-4 h-4" />
+                          <span>VERIFY FIX VIA CCTV</span>
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleVerifyAlert(selectedAlert, 'VERIFIED', 'PHYSICAL_INSPECTION')}
+                          disabled={submitting}
+                          className="py-3 px-3 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-black text-xs rounded-xl shadow-sm flex items-center justify-center space-x-1.5 disabled:opacity-50"
+                        >
+                          <Check className="w-4 h-4" />
+                          <span>VERIFY ON-SITE</span>
+                        </button>
+                      )}
+
+                      <button
+                        onClick={() => handleVerifyAlert(selectedAlert, 'FAILED', 'PHYSICAL_INSPECTION')}
+                        disabled={submitting}
+                        className="py-3 px-3 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-300 font-bold text-xs rounded-xl shadow-sm flex items-center justify-center space-x-1.5 disabled:opacity-50"
+                      >
+                        <X className="w-4 h-4 text-rose-600" />
+                        <span>FAILED — REOPEN</span>
+                      </button>
+                    </div>
+
+                    <button
+                      onClick={() => handleVerifyAlert(selectedAlert, 'HSE_REVIEW_REQUIRED', 'DOCUMENTATION')}
+                      disabled={submitting}
+                      className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-[11px] rounded-lg transition-colors"
+                    >
+                      Request Formal HSE Audit / Clearance
+                    </button>
                   </div>
                 )}
 
@@ -678,11 +866,11 @@ export default function Supervisor({ stateData }) {
                       ) : (
                         <button
                           onClick={() => handleResponding(selectedAlert.id)}
-                          disabled={submitting}
+                          disabled={submitting || acknowledgedAlertIds.has(selectedAlert.id)}
                           className="w-full py-3.5 px-4 bg-slate-900 hover:bg-slate-800 active:bg-black text-white font-bold text-sm rounded-xl shadow-md transition-all flex items-center justify-center space-x-2 disabled:opacity-50"
                         >
                           <Activity className="w-4 h-4 text-amber-400" />
-                          <span>{submitting ? 'RECORDING...' : "I'M RESPONDING (LATE)"}</span>
+                          <span>{submitting ? 'RECORDING...' : (acknowledgedAlertIds.has(selectedAlert.id) ? 'ACKNOWLEDGED' : "I'M RESPONDING (LATE)")}</span>
                         </button>
                       )
                     ) : (
@@ -737,79 +925,150 @@ export default function Supervisor({ stateData }) {
                 {activeAlerts.length > 0 ? (
                   <div className="space-y-2.5">
                     {activeAlerts.map((alert, idx) => {
+                      const isProximity = alert.is_high_priority || alert.type === 'Person–Vehicle Proximity';
+                      const isFire = alert.fire_detected || alert.type?.toLowerCase().includes('fire') || alert.title?.toLowerCase().includes('fire');
                       const isPassportBreach = alert.type === 'SAFETY PASSPORT BREACH';
                       const isZone = alert.type === 'Restricted Zone Entry';
                       const isWaiting = alert.status === 'WAITING_FOR_RESPONSE';
                       const isResponding = alert.status === 'RESPONDING';
                       const isEscalated = alert.status === 'ESCALATED';
 
+                      const sifLevel = alert.sif_level || (alert.priority_score >= 100 ? 'HIGH' : 'MEDIUM');
+                      const personCount = alert.person_count || (alert.affected_person_ids?.length || 1);
+                      const isAwaitingVerification = alert.verification_status === 'AWAITING_VERIFICATION' || alert.action_status === 'COMPLETED';
+
                       return (
                         <div
                           key={alert.id}
-                          className={`bg-white rounded-xl border-2 p-3.5 shadow-sm transition-all flex flex-col justify-between space-y-2.5 ${
-                            isEscalated 
+                          className={`rounded-xl border-2 p-3.5 shadow-sm transition-all flex flex-col justify-between space-y-3 ${
+                            sifLevel === 'CRITICAL' || isProximity || isFire
+                              ? 'bg-rose-50/70 border-rose-400 ring-2 ring-rose-400/20'
+                              : isEscalated 
                               ? 'border-rose-400 bg-rose-50/30' 
                               : isWaiting 
-                              ? (isPassportBreach ? 'border-red-500 bg-red-50/40 ring-2 ring-red-400/20' : isZone ? 'border-red-400 bg-red-50/20' : 'border-amber-400 bg-amber-50/20')
-                              : 'border-emerald-400 bg-emerald-50/20'
+                              ? 'border-red-400 bg-red-50/30'
+                              : isAwaitingVerification
+                              ? 'border-purple-400 bg-purple-50/30'
+                              : 'border-amber-400 bg-amber-50/20'
                           }`}
                         >
-                          {/* Card Top: Type & Severity Badge */}
-                          <div className="flex items-start justify-between">
+                          {/* 1. Header: SIF POTENTIAL + Priority badge */}
+                          <div className="flex items-start justify-between border-b border-slate-200/80 pb-2">
                             <div className="flex items-center space-x-2">
-                              <span className="text-base">{isPassportBreach ? '🔴' : isZone ? '🔴' : '🟠'}</span>
+                              <span className="text-base leading-none">🚨</span>
                               <div>
-                                <div className="text-xs font-black text-slate-900 tracking-tight">
-                                  {isPassportBreach ? 'SAFETY PASSPORT PAUSED' : alert.type}
+                                <div className="text-xs font-black text-rose-700 uppercase tracking-wider flex items-center space-x-1.5">
+                                  <span>SIF POTENTIAL</span>
+                                  <span className={`px-1.5 py-0.2 rounded text-[9px] font-black uppercase text-white ${
+                                    sifLevel === 'CRITICAL' || isProximity || isFire ? 'bg-red-600' : 'bg-amber-600'
+                                  }`}>
+                                    {sifLevel} PRIORITY
+                                  </span>
                                 </div>
-                                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                                  {isPassportBreach ? 'CRITICAL SIF POTENTIAL' : `${alert.priority_label || alert.severity} SIF POTENTIAL`}
+                                <div className="text-[10px] font-mono text-slate-500 font-bold mt-0.5">
+                                  {alert.location} • Camera {alert.camera || 'C-01'}
                                 </div>
                               </div>
                             </div>
 
-                            <span className={`text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-wider ${
-                              isEscalated 
-                                ? 'bg-rose-100 text-rose-800 border border-rose-200' 
-                                : isResponding 
-                                ? 'bg-amber-100 text-amber-800 border border-amber-200' 
-                                : isPassportBreach
-                                ? 'bg-red-600 text-white animate-pulse'
-                                : 'bg-red-600 text-white animate-pulse'
-                            }`}>
-                              {isEscalated ? 'ESCALATED' : isResponding ? 'IN ACTION' : isPassportBreach ? 'PAUSED (BREACH)' : 'ACTION REQ'}
+                            <span className="text-[10px] font-mono font-bold text-slate-500">
+                              {alert.id}
                             </span>
                           </div>
 
-                          {/* Card Metrics: People & Location */}
-                          <div className="grid grid-cols-2 gap-2 text-xs py-1.5 border-y border-slate-100">
-                            <div>
-                              <span className="text-[10px] text-slate-400 font-bold uppercase block">Personnel</span>
-                              <span className="font-extrabold text-slate-800">
-                                {isPassportBreach 
-                                  ? 'Person in Exclusion Zone' 
-                                  : `${alert.person_count} ${alert.person_count > 1 ? 'People' : 'Person'} ${isZone ? ' in Zone' : ' without Helmet'}`}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-[10px] text-slate-400 font-bold uppercase block">Location</span>
-                              <span className="font-extrabold text-slate-800 truncate block">
-                                {alert.location}
-                              </span>
-                            </div>
+                          {/* 2. EVENT Label */}
+                          <div>
+                            <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider block">
+                              EVENT
+                            </span>
+                            <h3 className="text-xs font-black text-slate-900 leading-snug mt-0.5">
+                              {alert.title || alert.type}
+                            </h3>
                           </div>
 
-                          {/* Card Action Button */}
-                          <div className="flex items-center justify-between pt-1">
-                            <div className="text-[11px] font-bold text-slate-600">
-                              Action: <span className="text-slate-900">{isPassportBreach ? 'Hold Lifting & Restore Barrier' : isZone ? 'Clear Zone' : 'Verify PPE'}</span>
+                          {/* 3. WHY SIF POTENTIAL? Compact Bullets */}
+                          <div className="bg-white/90 rounded-lg p-2.5 border border-slate-200/80 space-y-1">
+                            <span className="text-[9px] font-black uppercase tracking-wider text-slate-500 block">
+                              WHY SIF POTENTIAL?
+                            </span>
+                            <ul className="text-[11px] text-slate-700 font-medium space-y-0.5">
+                              <li className="flex items-start space-x-1.5">
+                                <span className="text-rose-600 font-bold shrink-0">•</span>
+                                <span>{personCount} person(s) exposed to active hazard activity</span>
+                              </li>
+                              <li className="flex items-start space-x-1.5">
+                                <span className="text-rose-600 font-bold shrink-0">•</span>
+                                <span>Critical exclusion barrier ({alert.critical_barrier || 'Exclusion zone'}) violated</span>
+                              </li>
+                              <li className="flex items-start space-x-1.5">
+                                <span className="text-rose-600 font-bold shrink-0">•</span>
+                                <span>{alert.potential_consequence || 'Potential line-of-fire / struck-by consequence'}</span>
+                              </li>
+                            </ul>
+                          </div>
+
+                          {/* 4. IMMEDIATE ACTION */}
+                          <div className="bg-amber-50/80 border border-amber-200 rounded-lg p-2">
+                            <span className="text-[9px] font-black uppercase tracking-wider text-amber-900 block">
+                              IMMEDIATE ACTION
+                            </span>
+                            <p className="text-[11px] font-bold text-slate-900 mt-0.5 leading-snug">
+                              {alert.immediate_action || 'Stop/hold hazardous activity and clear the danger zone.'}
+                            </p>
+                          </div>
+
+                          {/* 5. IF ACTION IS NOT TAKEN */}
+                          <div className="bg-rose-50/60 border border-rose-200 rounded-lg p-2">
+                            <span className="text-[9px] font-black uppercase tracking-wider text-rose-900 block">
+                              IF ACTION IS NOT TAKEN
+                            </span>
+                            <p className="text-[11px] font-medium text-slate-700 mt-0.5 leading-snug">
+                              {alert.consequence_if_not_addressed || 'Continued exposure may result in serious injury or fatality.'}
+                            </p>
+                          </div>
+
+                          {/* 6. RESPONSE ACTION BUTTONS & SLA */}
+                          <div className="pt-1 flex items-center justify-between flex-wrap gap-2 border-t border-slate-200/60">
+                            <div className="flex items-center space-x-1.5">
+                              {isWaiting && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleResponding(alert.id);
+                                  }}
+                                  disabled={submitting || acknowledgedAlertIds.has(alert.id)}
+                                  className="px-3.5 py-1.5 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white rounded-lg text-xs font-black shadow-xs transition-colors disabled:opacity-50 flex items-center space-x-1"
+                                >
+                                  <span>[ ACKNOWLEDGE ]</span>
+                                </button>
+                              )}
+
+                              {isResponding && !isAwaitingVerification && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleMarkActionTaken(alert);
+                                  }}
+                                  disabled={submitting}
+                                  className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-slate-950 rounded-lg text-xs font-black shadow-xs transition-colors disabled:opacity-50"
+                                >
+                                  <span>[ ACTION TAKEN ]</span>
+                                </button>
+                              )}
+
+                              {isAwaitingVerification && (
+                                <span className="px-2.5 py-1 rounded bg-purple-100 text-purple-900 border border-purple-200 text-[10px] font-black uppercase">
+                                  AWAITING VERIFICATION
+                                </span>
+                              )}
                             </div>
+
                             <button
                               onClick={() => setSelectedAlertId(alert.id)}
-                              className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold flex items-center space-x-1 shadow-sm"
+                              className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold flex items-center space-x-1 shadow-xs ml-auto"
                             >
-                              <span>VIEW ALERT</span>
-                              <ChevronRight className="w-3.5 h-3.5" />
+                              <span>[ VIEW DETAILS ]</span>
+                              <ChevronRight className="w-3.5 h-3.5 text-amber-400" />
                             </button>
                           </div>
                         </div>
@@ -1883,9 +2142,6 @@ export default function Supervisor({ stateData }) {
                     className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 font-semibold text-xs"
                   >
                     <option value="C-01">Camera C-01 (Demo Work Zone / Laptop Webcam)</option>
-                    <option value="C-02">Camera C-02 (Rig Floor & Compressor Area)</option>
-                    <option value="C-03">Camera C-03 (Tank Battery Confined Space)</option>
-                    <option value="C-04">Camera C-04 (Pipe Crane Yard Line of Fire)</option>
                   </select>
                 </div>
 

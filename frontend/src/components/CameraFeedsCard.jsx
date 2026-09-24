@@ -13,33 +13,6 @@ export default function CameraFeedsCard({ status, activeCamera = 'C-01', onSelec
       badge: 'PHYSICAL WEBCAM',
       active: cameraActive,
       streamUrl: '/video_feed?camera=C-01'
-    },
-    {
-      id: 'C-02',
-      name: 'CAMERA C-02',
-      location: 'Rig Floor & Compressor Area',
-      resolution: '640×480',
-      badge: 'RESTRICTED ZONE',
-      active: true,
-      streamUrl: '/video_feed?camera=C-02'
-    },
-    {
-      id: 'C-03',
-      name: 'CAMERA C-03',
-      location: 'Tank Battery Confined Space',
-      resolution: '640×480',
-      badge: 'CONFINED SPACE',
-      active: true,
-      streamUrl: '/video_feed?camera=C-03'
-    },
-    {
-      id: 'C-04',
-      name: 'CAMERA C-04',
-      location: 'Mechanical Crane & Pipe Yard',
-      resolution: '640×480',
-      badge: 'LINE OF FIRE',
-      active: true,
-      streamUrl: '/video_feed?camera=C-04'
     }
   ];
 
@@ -49,18 +22,18 @@ export default function CameraFeedsCard({ status, activeCamera = 'C-01', onSelec
         <div className="flex items-center space-x-2">
           <Video className="w-4 h-4 text-slate-700" />
           <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider">
-            Site Surveillance Nodes
+            Site Surveillance Node
           </h3>
         </div>
         <div className="flex items-center space-x-2">
           <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-            4 / 4 Feeds Active
+            1 / 1 Feed Active (C-01)
           </span>
         </div>
       </div>
 
-      {/* Grid of All 4 Cameras */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      {/* Primary Camera C-01 */}
+      <div className="grid grid-cols-1 gap-3">
         {cameras.map((cam) => {
           const isSelected = (activeCamera === cam.id);
           return (

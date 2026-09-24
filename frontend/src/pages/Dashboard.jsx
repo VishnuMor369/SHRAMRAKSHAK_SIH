@@ -8,7 +8,6 @@ import AlertPanel from '../components/AlertPanel';
 import SafetyOverviewCard from '../components/SafetyOverviewCard';
 import LiveCameraCard from '../components/LiveCameraCard';
 import CCTVPanel from '../components/CCTVPanel';
-import CameraFeedsCard from '../components/CameraFeedsCard';
 import ZoneStatusCard from '../components/ZoneStatusCard';
 import RecentEventsCard from '../components/RecentEventsCard';
 import AlertDetailModal from '../components/AlertDetailModal';
@@ -95,7 +94,7 @@ export default function Dashboard({ stateData }) {
                 <span>Back to Dashboard</span>
               </button>
               <h1 className="text-sm font-black text-slate-900 uppercase tracking-wider">
-                Live Camera Surveillance • {selectedCamera}
+                Live Camera Surveillance • Camera C-01 (Laptop Webcam)
               </h1>
             </div>
             <CCTVPanel 
@@ -104,11 +103,7 @@ export default function Dashboard({ stateData }) {
               setIsDrawingMode={setIsDrawingZone} 
               selectedCamera={selectedCamera}
               onSelectCamera={setSelectedCamera}
-            />
-            <CameraFeedsCard 
-              status={status} 
-              activeCamera={selectedCamera}
-              onSelectCamera={setSelectedCamera}
+              onSelectAlert={handleSelectAlert}
             />
           </main>
         ) : activeTab === 'Alerts' ? (
@@ -167,6 +162,7 @@ export default function Dashboard({ stateData }) {
               setIsDrawingMode={setIsDrawingZone} 
               selectedCamera={selectedCamera}
               onSelectCamera={setSelectedCamera}
+              onSelectAlert={handleSelectAlert}
             />
           </main>
         ) : (

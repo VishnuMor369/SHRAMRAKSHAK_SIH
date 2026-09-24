@@ -1,8 +1,10 @@
 import io
 import re
 import time
-import pandas as pd
-import numpy as np
+try:
+    import pandas as pd
+except (ImportError, Exception):
+    import safe_pandas as pd
 from typing import Dict, List, Tuple, Optional, Any
 from datetime import datetime
 
@@ -565,6 +567,11 @@ class DatasetProcessor:
         ]
 
         return {
+            "reports_analyzed": total_reports,
+            "sif_potential_count": sif_count,
+            "non_sif_count": non_sif_count,
+            "sif_percentage": sif_density_pct,
+            "recurring_patterns": recurring_patterns[:10],
             "section_1_executive_summary": {
                 "reports_analyzed": total_reports,
                 "sif_potential_count": sif_count,

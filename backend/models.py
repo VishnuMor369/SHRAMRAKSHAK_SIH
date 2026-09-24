@@ -15,6 +15,32 @@ class RestrictedZone(BaseModel):
     polygon: List[List[float]] = [] # [[x1, y1], [x2, y2], ...] in 640x480 camera space
     enabled: bool = True
 
+class PersonFinding(BaseModel):
+    person_id: str = "Person #1"
+    track_id: int = 1
+    bbox: List[int] = [] # [x1, y1, x2, y2]
+    helmet_status: Literal["OK", "VIOLATION", "UNKNOWN"] = "UNKNOWN"
+    vest_status: Literal["OK", "VIOLATION", "UNKNOWN"] = "UNKNOWN"
+    glove_status: Literal["OK", "VIOLATION", "UNKNOWN"] = "UNKNOWN"
+    overall_ppe_status: Literal["OK", "VIOLATION", "UNKNOWN"] = "OK"
+    violations: List[str] = [] # e.g. ["NO HELMET", "NO SAFETY VEST"]
+    evidence_crop_url: Optional[str] = None
+    evidence_crop_base64: Optional[str] = None
+    helmet_confidence: float = 0.0
+    vest_confidence: float = 0.0
+    glove_confidence: float = 0.0
+    in_zone: bool = False
+
+class VehicleFinding(BaseModel):
+    vehicle_id: str # e.g. "Vehicle #1"
+    track_id: int = 1
+    class_name: str = "vehicle" # e.g. "truck", "car", "bus", "motorcycle"
+    bbox: List[int] = [] # [x1, y1, x2, y2]
+    confidence: float = 0.0
+    evidence_crop_url: Optional[str] = None
+    evidence_crop_base64: Optional[str] = None
+    proximity_zone: Optional[List[int]] = None # [zx1, zy1, zx2, zy2]
+
 class Alert(BaseModel):
     id: str
     incident_id: Optional[str] = None # Unique Incident ID e.g. "SR-2026-0042"
@@ -46,13 +72,76 @@ class Alert(BaseModel):
     resolved_by: Optional[str] = None
     notes: Optional[str] = None
     reason: Optional[str] = None
-    sif_potential: Optional[str] = "HIGH / POTENTIAL"
+
+    # ==========================================
+    # SIF PRECURSOR INTELLIGENCE & CAUSAL FIELDS
+    # ==========================================
+    event_id: Optional[str] = None # e.g. "EVT-2026-0042"
+    activity: Optional[str] = "General Site Operations"
     hazard: Optional[str] = None
     unsafe_condition: Optional[str] = None
+    sif_potential: Optional[str] = "SIF Potential" # Standardized terminology
+    sif_level: Literal["CRITICAL", "HIGH", "MEDIUM", "LOW"] = "HIGH"
+    sif_reason: Optional[str] = None
+    sif_why: List[str] = [] # Structured bullet reasons: why SIF potential
+    exposure: Optional[str] = None
+    critical_barrier: Optional[str] = None
+    barrier_condition: Optional[str] = None
+    potential_consequence: Optional[str] = None
+    life_saving_rule: Optional[str] = None
+
+    # Event-Specific Action Recommendation Layer (Phase 3)
+    immediate_action: Optional[str] = None
+    consequence_if_not_addressed: Optional[str] = None
+
+    # Corrective Action State Machine (Phase 4)
+    # Lifecycle: ASSIGNED -> IN_PROGRESS -> COMPLETED
+    action_status: Literal["ASSIGNED", "IN_PROGRESS", "COMPLETED"] = "ASSIGNED"
+    action_taken_at: Optional[str] = None
+    action_taken_by: Optional[str] = None
+    action_taken_notes: Optional[str] = None
+
+    # Verification Lifecycle: PENDING -> AWAITING_VERIFICATION -> VERIFIED / FAILED / HSE_REVIEW_REQUIRED -> HSE_CLOSED
+    verification_status: Literal[
+        "PENDING", 
+        "AWAITING_VERIFICATION", 
+        "VERIFIED", 
+        "FAILED", 
+        "HSE_REVIEW_REQUIRED", 
+        "NOT_REQUIRED"
+    ] = "PENDING"
+    verification_type: Literal["CCTV_VERIFIABLE", "FIELD_HSE_VERIFICATION"] = "CCTV_VERIFIABLE"
+    verification_notes: Optional[str] = None
+    verified_at: Optional[str] = None
+    verified_by: Optional[str] = None
+
     # Visual evidence captured from actual detection frame
     evidence_url: Optional[str] = None
     evidence_image: Optional[str] = None
     evidence_timestamp: Optional[str] = None
+    # Extended PPE detection attributes
+    violations: List[str] = [] # e.g. ["NO HELMET", "NO SAFETY VEST", "RESTRICTED ZONE"]
+    ppe_status: Dict[str, str] = {} # e.g. {"helmet": "VIOLATION", "vest": "VIOLATION", "gloves": "UNKNOWN"}
+    person_findings: List[PersonFinding] = [] # Structured findings per tracked worker
+
+    # Person-Vehicle Proximity & Person Crop attributes
+    person_id: Optional[str] = None # e.g. "Person #3"
+    person_crop_url: Optional[str] = None
+    person_crop_base64: Optional[str] = None
+    vehicle_id: Optional[str] = None # e.g. "Vehicle #1"
+    vehicle_type: Optional[str] = None # e.g. "truck", "forklift", "car"
+    vehicle_crop_url: Optional[str] = None
+    vehicle_crop_base64: Optional[str] = None
+    proximity_status: Optional[str] = None # e.g. "Proximity Confirmed"
+    is_high_priority: bool = False
+    vehicle_findings: List[VehicleFinding] = []
+
+    # Fire Detection Attributes (Feature 3)
+    fire_detected: bool = False
+    fire_confidence: Optional[float] = None
+    fire_bbox: Optional[List[int]] = None # [x1, y1, x2, y2]
+    fire_crop_url: Optional[str] = None
+    fire_crop_base64: Optional[str] = None
 
     # ==========================================
     # HSE OBSERVATION & INCIDENT CORRELATION
@@ -210,6 +299,12 @@ class SystemStatus(BaseModel):
     helmet_detected: bool = False
     person_count: int = 0
     unhelmeted_count: int = 0
+    vest_detected: bool = False
+    unvested_count: int = 0
+    gloves_detected: bool = False
+    ungloved_count: int = 0
+    fire_detected: bool = False
+    fire_confidence: float = 0.0
     current_safety_state: Literal["SAFE", "VIOLATION", "MONITORING"] = "MONITORING"
     active_zone: Optional[RestrictedZone] = None
     permanent_zones: List[RestrictedZone] = []
@@ -228,10 +323,23 @@ class SystemStatus(BaseModel):
     # Safety Passport integration
     active_passport: Optional[SafetyPassport] = None
     passport_status: Optional[str] = None
+    # KPI counts for Clean Dashboard (Phase 6)
+    sif_potential_count: int = 0
+    open_actions_count: int = 0
+    awaiting_verification_count: int = 0
+    verified_count: int = 0
 
 class AlertActionRequest(BaseModel):
     alert_id: Optional[str] = None
     supervisor_id: Optional[str] = "SUP-01"
+    notes: Optional[str] = None
+    action_taken: Optional[str] = None
+
+class AlertVerificationRequest(BaseModel):
+    alert_id: Optional[str] = None
+    supervisor_id: Optional[str] = "SUP-01"
+    decision: Literal["VERIFIED", "FAILED", "HSE_REVIEW_REQUIRED"] = "VERIFIED"
+    verification_method: Literal["CCTV_VERIFIED", "PHYSICAL_INSPECTION", "DOCUMENTATION"] = "CCTV_VERIFIED"
     notes: Optional[str] = None
 
 # ==========================================

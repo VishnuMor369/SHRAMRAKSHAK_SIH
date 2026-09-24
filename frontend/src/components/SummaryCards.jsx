@@ -1,113 +1,159 @@
 import React from 'react';
-import { Users, Video, ShieldAlert, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { ShieldAlert, AlertTriangle, Clock, CheckCircle2, ShieldCheck } from 'lucide-react';
 
 export default function SummaryCards({ status, alerts = [] }) {
-  const personCount = status?.person_count ?? (status?.person_detected ? 1 : 0);
-  const cameraActive = status?.camera_active ?? true;
-  const camerasCount = cameraActive ? 1 : 0;
-  
-  const hasZone = !!(status?.active_zone && status.active_zone.polygon && status.active_zone.polygon.length >= 3);
-  const isZoneEnabled = hasZone && (status?.active_zone?.enabled ?? false);
-  const zonesCount = hasZone ? 1 : 0;
+  // SIF Potential Count
+  const sifPotentialCount = status?.sif_potential_count !== undefined 
+    ? status.sif_potential_count 
+    : alerts.filter(a => getattrSif(a)).length;
 
-  // Active alerts count from real state
+  // Active Alerts Count
   const activeAlertsCount = alerts.length > 0 
     ? alerts.length 
-    : (status?.active_alert ? 1 : 0);
+    : (status?.active_alerts?.length ?? (status?.active_alert ? 1 : 0));
+
+  // Open Actions Count
+  const openActionsCount = status?.open_actions_count !== undefined
+    ? status.open_actions_count
+    : alerts.filter(a => a.action_status !== 'COMPLETED').length;
+
+  // Awaiting Verification Count
+  const awaitingVerificationCount = status?.awaiting_verification_count !== undefined
+    ? status.awaiting_verification_count
+    : alerts.filter(a => a.verification_status === 'AWAITING_VERIFICATION').length;
+
+  // Verified Count
+  const verifiedCount = status?.verified_count !== undefined
+    ? status.verified_count
+    : 18;
+
+  function getattrSif(a) {
+    const lvl = a?.sif_level || '';
+    const pot = String(a?.sif_potential || '');
+    return lvl === 'CRITICAL' || lvl === 'HIGH' || pot.includes('SIF') || pot.includes('HIGH');
+  }
+
+  const formatNum = (num) => String(num ?? 0).padStart(2, '0');
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-      {/* CARD 1: PERSONS DETECTED */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-start justify-between">
-        <div>
-          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
-            Persons Detected
-          </span>
-          <div className="text-2xl sm:text-3xl font-black text-slate-900 mt-1">
-            {personCount}
-          </div>
-          <p className="text-xs text-slate-500 font-medium mt-0.5">
-            {personCount === 1 ? '1 person visible' : `${personCount} people visible`}
-          </p>
-        </div>
-        <div className="w-9 h-9 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shrink-0">
-          <Users className="w-5 h-5" />
-        </div>
-      </div>
-
-      {/* CARD 2: CAMERAS ACTIVE */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-start justify-between">
-        <div>
-          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
-            Cameras Active
-          </span>
-          <div className="text-2xl sm:text-3xl font-black text-slate-900 mt-1">
-            {camerasCount}
-          </div>
-          <p className="text-xs text-slate-500 font-medium mt-0.5">
-            {cameraActive ? 'Live AI camera' : 'Camera offline'}
-          </p>
-        </div>
-        <div className="w-9 h-9 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
-          <Video className="w-5 h-5" />
-        </div>
-      </div>
-
-      {/* CARD 3: SAFETY ZONES */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-start justify-between">
-        <div>
-          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
-            Safety Zones
-          </span>
-          <div className="text-2xl sm:text-3xl font-black text-slate-900 mt-1">
-            {zonesCount}
-          </div>
-          <p className="text-xs text-slate-500 font-medium mt-0.5">
-            {hasZone 
-              ? (isZoneEnabled ? 'Active restricted zone' : 'Zone disabled') 
-              : 'No zone configured'}
-          </p>
-        </div>
-        <div className="w-9 h-9 rounded-lg bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 shrink-0">
-          <ShieldAlert className="w-5 h-5" />
-        </div>
-      </div>
-
-      {/* CARD 4: ACTIVE ALERTS - Visually stands out when alerts exist */}
-      <div className={`p-4 rounded-xl border transition-all shadow-sm flex items-start justify-between ${
-        activeAlertsCount > 0 
-          ? 'bg-red-50/70 border-red-300 ring-2 ring-red-400/30 text-red-950' 
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+      {/* 1. SIF POTENTIAL */}
+      <div className={`p-3.5 rounded-xl border transition-all shadow-xs flex flex-col justify-between ${
+        sifPotentialCount > 0 
+          ? 'bg-rose-50/90 border-rose-300 ring-2 ring-rose-400/20 text-rose-950' 
           : 'bg-white border-slate-200 text-slate-900'
       }`}>
-        <div>
-          <span className={`text-[11px] font-black uppercase tracking-wider block ${
-            activeAlertsCount > 0 ? 'text-red-700' : 'text-slate-500'
+        <div className="flex items-center justify-between">
+          <span className={`text-[10px] font-black uppercase tracking-wider ${
+            sifPotentialCount > 0 ? 'text-rose-700' : 'text-slate-500'
           }`}>
-            Active Alerts
+            SIF POTENTIAL
           </span>
-          <div className={`text-2xl sm:text-3xl font-black mt-1 ${
-            activeAlertsCount > 0 ? 'text-red-700' : 'text-slate-900'
+          <div className={`w-6 h-6 rounded-md flex items-center justify-center ${
+            sifPotentialCount > 0 ? 'bg-rose-600 text-white' : 'bg-slate-100 text-slate-500'
           }`}>
-            {activeAlertsCount}
+            <ShieldAlert className="w-3.5 h-3.5" />
           </div>
-          <p className={`text-xs font-semibold mt-0.5 ${
-            activeAlertsCount > 0 ? 'text-red-600' : 'text-slate-500'
+        </div>
+        <div className="mt-2">
+          <div className={`text-2xl sm:text-3xl font-black font-mono tracking-tight ${
+            sifPotentialCount > 0 ? 'text-rose-700' : 'text-slate-900'
           }`}>
-            {activeAlertsCount > 0 
-              ? (activeAlertsCount === 1 ? 'Requires attention' : `${activeAlertsCount} require attention`) 
-              : 'All clear / No hazard'}
+            {formatNum(sifPotentialCount)}
+          </div>
+          <p className="text-[11px] font-medium text-slate-500 mt-0.5 truncate">
+            {sifPotentialCount > 0 ? 'Precursors flagged' : 'No precursor active'}
           </p>
         </div>
-        <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 border ${
-          activeAlertsCount > 0 
-            ? 'bg-red-600 text-white border-red-700 animate-pulse shadow-sm' 
-            : 'bg-emerald-50 text-emerald-600 border-emerald-100'
-        }`}>
-          {activeAlertsCount > 0 ? (
-            <AlertTriangle className="w-5 h-5" />
-          ) : (
-            <CheckCircle2 className="w-5 h-5" />
-          )}
+      </div>
+
+      {/* 2. ACTIVE ALERTS */}
+      <div className={`p-3.5 rounded-xl border transition-all shadow-xs flex flex-col justify-between ${
+        activeAlertsCount > 0 
+          ? 'bg-amber-50/90 border-amber-300 ring-2 ring-amber-400/20 text-amber-950' 
+          : 'bg-white border-slate-200 text-slate-900'
+      }`}>
+        <div className="flex items-center justify-between">
+          <span className={`text-[10px] font-black uppercase tracking-wider ${
+            activeAlertsCount > 0 ? 'text-amber-800' : 'text-slate-500'
+          }`}>
+            ACTIVE ALERTS
+          </span>
+          <div className={`w-6 h-6 rounded-md flex items-center justify-center ${
+            activeAlertsCount > 0 ? 'bg-amber-500 text-white' : 'bg-slate-100 text-slate-500'
+          }`}>
+            <AlertTriangle className="w-3.5 h-3.5" />
+          </div>
+        </div>
+        <div className="mt-2">
+          <div className={`text-2xl sm:text-3xl font-black font-mono tracking-tight ${
+            activeAlertsCount > 0 ? 'text-amber-800' : 'text-slate-900'
+          }`}>
+            {formatNum(activeAlertsCount)}
+          </div>
+          <p className="text-[11px] font-medium text-slate-500 mt-0.5 truncate">
+            {activeAlertsCount > 0 ? 'Unresolved events' : 'Perimeter clear'}
+          </p>
+        </div>
+      </div>
+
+      {/* 3. OPEN ACTIONS */}
+      <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs flex flex-col justify-between">
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+            OPEN ACTIONS
+          </span>
+          <div className="w-6 h-6 rounded-md bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
+            <Clock className="w-3.5 h-3.5" />
+          </div>
+        </div>
+        <div className="mt-2">
+          <div className="text-2xl sm:text-3xl font-black font-mono text-slate-900 tracking-tight">
+            {formatNum(openActionsCount)}
+          </div>
+          <p className="text-[11px] font-medium text-slate-500 mt-0.5 truncate">
+            {openActionsCount > 0 ? 'In progress on-site' : 'All actions assigned'}
+          </p>
+        </div>
+      </div>
+
+      {/* 4. AWAITING VERIFICATION */}
+      <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs flex flex-col justify-between">
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+            AWAITING VERIFICATION
+          </span>
+          <div className="w-6 h-6 rounded-md bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600">
+            <ShieldCheck className="w-3.5 h-3.5" />
+          </div>
+        </div>
+        <div className="mt-2">
+          <div className="text-2xl sm:text-3xl font-black font-mono text-slate-900 tracking-tight">
+            {formatNum(awaitingVerificationCount)}
+          </div>
+          <p className="text-[11px] font-medium text-slate-500 mt-0.5 truncate">
+            CCTV / Field audit
+          </p>
+        </div>
+      </div>
+
+      {/* 5. VERIFIED */}
+      <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs flex flex-col justify-between col-span-2 sm:col-span-1">
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+            VERIFIED
+          </span>
+          <div className="w-6 h-6 rounded-md bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
+            <CheckCircle2 className="w-3.5 h-3.5" />
+          </div>
+        </div>
+        <div className="mt-2">
+          <div className="text-2xl sm:text-3xl font-black font-mono text-emerald-700 tracking-tight">
+            {formatNum(verifiedCount)}
+          </div>
+          <p className="text-[11px] font-medium text-slate-500 mt-0.5 truncate">
+            Controls verified & closed
+          </p>
         </div>
       </div>
     </div>

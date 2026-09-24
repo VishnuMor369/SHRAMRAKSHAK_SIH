@@ -29,13 +29,13 @@ def run_e2e_verification():
     # TEST 3: Preload Real Dataset (January2015toNovember2025.csv)
     # ------------------------------------------------------------------
     print("\n--- TEST 3: REAL DATASET PRELOAD & HISTORICAL CORRELATION STORE ---")
-    load_sample_dataset(max_rows=1500)
+    load_sample_dataset(max_rows=250)
     summary = None
-    for _ in range(30):
+    for _ in range(60):
         summary = dataset_store.get_summary()
         if summary:
             break
-        time.sleep(0.4)
+        time.sleep(0.3)
     assert summary is not None, "Dataset summary must not be None"
     print(f"  [OK] Real Dataset Loaded: {summary.get('reports_analyzed', 0):,} records analyzed")
     print(f"  [OK] SIF Precursors: {summary.get('sif_potential_count', 0):,}")

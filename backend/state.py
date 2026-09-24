@@ -5,10 +5,10 @@ import base64
 import cv2
 import numpy as np
 from datetime import datetime, timedelta
-from typing import Optional, List, Set, Dict
+from typing import Optional, List, Set, Dict, Union, Any
 from fastapi import WebSocket
 from models import (
-    Alert, SystemStatus, RestrictedZone,
+    Alert, SystemStatus, RestrictedZone, PersonFinding, VehicleFinding,
     SafetyPassport, ControlItem, PassportEvent,
     CreatePassportRequest, VerifyControlRequest, ApprovePassportRequest, VerifyRestorationRequest
 )
@@ -68,7 +68,28 @@ def generate_visual_evidence(
         cv2.putText(frame, badge_txt, (min_x, min_y - 2), cv2.FONT_HERSHEY_SIMPLEX, 0.38, z_col, 1, cv2.LINE_AA)
 
     # 2. Draw person annotations
-    if is_zone_alert:
+    if "multi" in alert_type.lower():
+        bx1, by1, bx2, by2 = 220, 130, 420, 430
+        cv2.rectangle(frame, (bx1, by1), (bx2, by2), (60, 60, 235), 2)
+        lbl = "Person 01 [MULTI-HAZARD VIOLATION]"
+        (ltw, lth), _ = cv2.getTextSize(lbl, cv2.FONT_HERSHEY_SIMPLEX, 0.42, 1)
+        cv2.rectangle(frame, (bx1, by1 - lth - 4), (bx1 + ltw + 6, by1 + 2), (60, 60, 235), -1)
+        cv2.putText(frame, lbl, (bx1 + 3, by1 - 2), cv2.FONT_HERSHEY_SIMPLEX, 0.42, (255, 255, 255), 1, cv2.LINE_AA)
+    elif "vest" in alert_type.lower():
+        bx1, by1, bx2, by2 = 220, 130, 420, 430
+        cv2.rectangle(frame, (bx1, by1), (bx2, by2), (60, 60, 235), 2)
+        lbl = "Person 01 [NO SAFETY VEST]"
+        (ltw, lth), _ = cv2.getTextSize(lbl, cv2.FONT_HERSHEY_SIMPLEX, 0.42, 1)
+        cv2.rectangle(frame, (bx1, by1 - lth - 4), (bx1 + ltw + 6, by1 + 2), (60, 60, 235), -1)
+        cv2.putText(frame, lbl, (bx1 + 3, by1 - 2), cv2.FONT_HERSHEY_SIMPLEX, 0.42, (255, 255, 255), 1, cv2.LINE_AA)
+    elif "gloves" in alert_type.lower() or "ungloved" in alert_type.lower():
+        bx1, by1, bx2, by2 = 220, 130, 420, 430
+        cv2.rectangle(frame, (bx1, by1), (bx2, by2), (60, 60, 235), 2)
+        lbl = "Person 01 [NO GLOVES]"
+        (ltw, lth), _ = cv2.getTextSize(lbl, cv2.FONT_HERSHEY_SIMPLEX, 0.42, 1)
+        cv2.rectangle(frame, (bx1, by1 - lth - 4), (bx1 + ltw + 6, by1 + 2), (60, 60, 235), -1)
+        cv2.putText(frame, lbl, (bx1 + 3, by1 - 2), cv2.FONT_HERSHEY_SIMPLEX, 0.42, (255, 255, 255), 1, cv2.LINE_AA)
+    elif is_zone_alert:
         # Person inside zone
         bx1, by1, bx2, by2 = 240, 140, 390, 420
         cv2.rectangle(frame, (bx1, by1), (bx2, by2), (60, 60, 235), 2)
@@ -113,24 +134,38 @@ def generate_visual_evidence(
     _, enc = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 85])
     return enc.tobytes()
 
-def calculate_alert_priority(alert_type: str, severity: str = "HIGH", sif_potential: str = "HIGH / POTENTIAL") -> tuple[int, str]:
+def calculate_alert_priority(alert_type: str, severity: str = "HIGH", sif_potential: str = "HIGH / POTENTIAL", **kwargs) -> tuple[int, str]:
     """
     AI Recommended Response Priority:
+    -1. PERSON-VEHICLE PROXIMITY (score 150, CRITICAL - HIGHEST ACTIVE FEED PRIORITY)
     0. SAFETY PASSPORT PAUSED / CRITICAL BARRIER BREACH (score 120, CRITICAL)
     1. RESTRICTED ZONE / HIGH SIF POTENTIAL (score 100, CRITICAL)
+    1.5 MULTI-HAZARD CONCURRENT VIOLATION (score 95, HIGH/CRITICAL)
     2. OTHER HIGH SIF POTENTIAL SAFETY EVENTS (score 80, HIGH)
+    2.5 SAFETY VEST VIOLATION (score 65, HIGH)
     3. PPE / HELMET VIOLATION (score 60, HIGH)
+    3.5 GLOVES VIOLATION (score 55, HIGH)
     4. LOWER-SEVERITY OBSERVATIONS (score 40, LOW)
     """
     al_lower = alert_type.lower()
+    if "proximity" in al_lower or "vehicle" in al_lower:
+        return 150, "CRITICAL"
+    if "fire" in al_lower:
+        return 140, "CRITICAL"
     if "passport" in al_lower or "breach" in al_lower:
         return 120, "CRITICAL"
     if "zone" in al_lower or "restricted" in al_lower:
         return 100, "CRITICAL"
-    if "high" in str(sif_potential).lower() and "ppe" not in al_lower and "helmet" not in al_lower:
+    if "multi" in al_lower:
+        return 95, "HIGH"
+    if "high" in str(sif_potential).lower() and "ppe" not in al_lower and "helmet" not in al_lower and "vest" not in al_lower and "glove" not in al_lower and "fire" not in al_lower:
         return 80, "HIGH"
+    if "vest" in al_lower:
+        return 65, "HIGH"
     if "ppe" in al_lower or "helmet" in al_lower:
         return 60, "HIGH"
+    if "glove" in al_lower:
+        return 55, "HIGH"
     if severity == "CRITICAL":
         return 90, "CRITICAL"
     if severity == "HIGH":
@@ -142,10 +177,286 @@ def calculate_alert_priority(alert_type: str, severity: str = "HIGH", sif_potent
 def sort_alerts_by_priority(alerts: List[Alert]) -> List[Alert]:
     """
     Sorts alerts by AI Recommended Response Priority:
-    1. Highest priority score first
-    2. Within same score, oldest unresolved alert first (created_at ascending)
+    1. Highest priority score first (e.g. Person-Vehicle Proximity at 150, Fire at 140 at top)
+    2. For high-priority proximity/fire alerts (score >= 140), newest active/recent event appears first
+    3. For normal SLA alerts with equal score, older unacknowledged alerts preserve FIFO response queue
     """
-    return sorted(alerts, key=lambda a: (-a.priority_score, a.created_at))
+    def _sort_key(a: Alert):
+        score = a.priority_score or 0
+        ts = 0.0
+        if isinstance(a.created_at, datetime):
+            ts = a.created_at.timestamp()
+        elif isinstance(a.created_at, str) and a.created_at:
+            try:
+                clean_str = a.created_at.replace("Z", "+00:00")
+                ts = datetime.fromisoformat(clean_str).timestamp()
+            except Exception:
+                ts = 0.0
+        # If critical alert (score >= 140: proximity, fire), newer timestamp sorts ahead (-ts)
+        # For standard SLA alerts with equal score, older alert sorts ahead (+ts)
+        secondary = -ts if score >= 140 else ts
+        return (-score, secondary)
+
+    return sorted(alerts, key=_sort_key)
+
+def get_sif_action_recommendation(
+    alert_type: str,
+    location: str = "Demo Work Zone",
+    hazard: Optional[str] = None,
+    unsafe_condition: Optional[str] = None,
+    person_count: int = 1,
+    task_type: Optional[str] = None,
+    zone_name: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Action Recommendation Layer (Phase 3 & Phase 5):
+    Provides event-specific immediate action, consequence if not addressed,
+    IOGP Life-Saving Rules, critical barrier condition, and causal 'Why SIF Potential' reasoning.
+    Terminology strictly adheres to 'SIF Potential'.
+    """
+    al_low = (alert_type or "").lower()
+    z_name = zone_name or location or "monitored zone"
+    
+    # 1. Restricted Lifting Zone / Suspended Load / Safety Passport Breach
+    if "passport" in al_low or ("lifting" in al_low) or ("suspended" in str(hazard).lower()) or ("breach" in al_low and "zone" in al_low):
+        return {
+            "activity": task_type or "Mechanical Lifting Operations",
+            "sif_potential": "SIF Potential",
+            "sif_level": "HIGH",
+            "sif_reason": "Worker entered active lifting exclusion perimeter with potential line-of-fire exposure to suspended load.",
+            "sif_why": [
+                "Person exposed to active hazardous lifting activity",
+                "Critical exclusion barrier violated",
+                "Potential line-of-fire / struck-by consequence"
+            ],
+            "exposure": f"{person_count} worker(s) inside active lifting swing radius ({z_name})",
+            "critical_barrier": "Exclusion zone physical barricade & warning signage",
+            "barrier_condition": "Violated",
+            "potential_consequence": "Struck-by / line-of-fire from suspended/moving load",
+            "life_saving_rule": "Line of Fire",
+            "immediate_action": "Stop/hold lifting activity and clear the exclusion zone.",
+            "consequence_if_not_addressed": "Continued exposure to suspended/moving load may result in serious injury or fatality.",
+            "verification_type": "CCTV_VERIFIABLE"
+        }
+        
+    # 2. Person–Vehicle Proximity / Mobile Equipment
+    if "proximity" in al_low or "vehicle" in al_low:
+        return {
+            "activity": "Mobile Equipment Operations",
+            "sif_potential": "SIF Potential",
+            "sif_level": "CRITICAL",
+            "sif_reason": "Pedestrian worker detected inside operating safety radius / blind spot of heavy mobile plant.",
+            "sif_why": [
+                "Pedestrian worker inside active vehicle blind spot radius",
+                "Critical pedestrian segregation barrier breached",
+                "Potential struck-by / run-over mobile plant consequence"
+            ],
+            "exposure": f"Personnel within hazardous proximity perimeter of mobile equipment ({location})",
+            "critical_barrier": "Pedestrian segregation & equipment line-of-sight",
+            "barrier_condition": "Violated",
+            "potential_consequence": "Crushing / struck-by heavy vehicle",
+            "life_saving_rule": "Line of Fire",
+            "immediate_action": "Halt mobile equipment and clear personnel from vehicle operating radius.",
+            "consequence_if_not_addressed": "Continued proximity creates direct struck-by or crushing danger leading to serious injury or fatality.",
+            "verification_type": "CCTV_VERIFIABLE"
+        }
+
+    # 3. Fire Hazard / Thermal Ignition
+    if "fire" in al_low:
+        return {
+            "activity": "Hydrocarbon Processing / Hot Work",
+            "sif_potential": "SIF Potential",
+            "sif_level": "CRITICAL",
+            "sif_reason": "Visual flame confirmation in process / plant operations area requiring instant suppression.",
+            "sif_why": [
+                "Thermal combustion detected in process / hydrocarbon area",
+                "Active ignition control barrier breached",
+                "Potential rapid flame propagation or pressure explosion"
+            ],
+            "exposure": "Uncontrolled thermal combustion in monitored camera perimeter",
+            "critical_barrier": "Ignition containment & localized fire suppression",
+            "barrier_condition": "Violated",
+            "potential_consequence": "Flash fire / thermal burn / hydrocarbon explosion",
+            "life_saving_rule": "Hot Work",
+            "immediate_action": "Sound localized alarm, isolate fuel/gas feed, and evacuate active hazard radius.",
+            "consequence_if_not_addressed": "Uncontained thermal ignition creates severe burn and catastrophic explosion risk.",
+            "verification_type": "FIELD_HSE_VERIFICATION"
+        }
+
+    # 4. Working at Height / Fall Hazard
+    if "fall" in al_low or "height" in al_low or "harness" in al_low:
+        return {
+            "activity": "Working at Height",
+            "sif_potential": "SIF Potential",
+            "sif_level": "HIGH",
+            "sif_reason": "Elevated worker observed without verified 100% tie-off fall arrest harness engagement.",
+            "sif_why": [
+                "Person working elevated without verified anchor point",
+                "Personal fall arrest barrier not confirmed engaged",
+                "Potential high-impact fall from height consequence"
+            ],
+            "exposure": f"{person_count} worker(s) elevated above ground level with unverified fall protection",
+            "critical_barrier": "Fall arrest harness & certified anchorage lifeline",
+            "barrier_condition": "Compromised / absent",
+            "potential_consequence": "Fall from height resulting in fatal trauma",
+            "life_saving_rule": "Work at Height",
+            "immediate_action": "Stop the activity and verify fall-protection controls before work continues.",
+            "consequence_if_not_addressed": "Continued work without effective fall protection may result in serious injury or fatality.",
+            "verification_type": "FIELD_HSE_VERIFICATION"
+        }
+
+    # 5. Electrical Isolation / Energized Equipment
+    if "electric" in al_low or "isolation" in al_low or "loto" in al_low or "energiz" in al_low:
+        return {
+            "activity": "Electrical Maintenance / Live Plant",
+            "sif_potential": "SIF Potential",
+            "sif_level": "CRITICAL",
+            "sif_reason": "Work occurring adjacent to potentially energized circuits without confirmed zero-energy verification.",
+            "sif_why": [
+                "Worker in proximity to potentially energized industrial circuit",
+                "Positive electrical isolation barrier not verified",
+                "Potential high-energy arc flash / electrocution consequence"
+            ],
+            "exposure": "Worker in direct contact or line-of-fire of energized equipment",
+            "critical_barrier": "Lockout / Tagout (LOTO) & positive electrical isolation",
+            "barrier_condition": "Unverified / bypassed",
+            "potential_consequence": "High-voltage electrocution / arc flash",
+            "life_saving_rule": "Energy Isolation",
+            "immediate_action": "Stop work and verify isolation before personnel remain exposed.",
+            "consequence_if_not_addressed": "Continued exposure may result in electrical injury or fatality.",
+            "verification_type": "FIELD_HSE_VERIFICATION"
+        }
+
+    # 6. Restricted Zone Entry (General / Compressor / Machinery Perimeter)
+    if "zone" in al_low or "restricted" in al_low:
+        return {
+            "activity": "Active Plant Machinery Area",
+            "sif_potential": "SIF Potential",
+            "sif_level": "HIGH",
+            "sif_reason": "Unauthorized worker breached restricted perimeter of operating plant equipment.",
+            "sif_why": [
+                "Person exposed to active hazardous plant machinery",
+                "Critical exclusion barrier violated",
+                "Potential line-of-fire / struck-by consequence"
+            ],
+            "exposure": f"{person_count} worker(s) inside configured restricted zone ({z_name})",
+            "critical_barrier": "Exclusion zone physical barricade & boundary controls",
+            "barrier_condition": "Violated",
+            "potential_consequence": "Mechanical entanglement / struck-by rotating machinery",
+            "life_saving_rule": "Bypassing Safety Controls",
+            "immediate_action": "Stop/hold the hazardous activity and clear the danger zone.",
+            "consequence_if_not_addressed": "Continued exposure may result in serious injury or fatality.",
+            "verification_type": "CCTV_VERIFIABLE"
+        }
+
+    # 7. Multi-Hazard Safety Violation
+    if "multi" in al_low:
+        return {
+            "activity": "Multi-Activity Industrial Zone",
+            "sif_potential": "SIF Potential",
+            "sif_level": "HIGH",
+            "sif_reason": "Multiple concurrent barrier failures detected on worker, compounding incident likelihood.",
+            "sif_why": [
+                "Worker operating under multiple simultaneous barrier failures",
+                "Primary physical protection and secondary PPE both degraded",
+                "Compounded risk multiplier for high-consequence event"
+            ],
+            "exposure": f"{person_count} worker(s) missing multiple defense-in-depth safety controls",
+            "critical_barrier": "Defense-in-depth PPE and operational zoning",
+            "barrier_condition": "Multiple concurrent failures",
+            "potential_consequence": "Multiple trauma / uncontrolled escalation",
+            "life_saving_rule": "Bypassing Safety Controls",
+            "immediate_action": "Halt active work immediately, withdraw personnel, and conduct on-site safety intervention.",
+            "consequence_if_not_addressed": "Compounded barrier breakdown drastically escalates serious injury or fatality risk.",
+            "verification_type": "CCTV_VERIFIABLE"
+        }
+
+    # 8. PPE - Helmet / Head Protection
+    if "helmet" in al_low or "head" in al_low or "ppe" in al_low or "helmet" in str(hazard).lower():
+        return {
+            "activity": "Active Industrial Operations",
+            "sif_potential": "SIF Potential",
+            "sif_level": "HIGH",
+            "sif_reason": "Personnel operating in industrial hazard zone without mandatory hard-hat head protection.",
+            "sif_why": [
+                "Worker present in active industrial zone without head protection",
+                "Personal barrier against overhead dropped objects absent",
+                "Potential blunt-force head trauma or fatality"
+            ],
+            "exposure": f"{person_count} worker(s) unequipped with impact head protection in active sector",
+            "critical_barrier": "Personal protective equipment (Industrial Safety Helmet)",
+            "barrier_condition": "Absent / not worn",
+            "potential_consequence": "Severe blunt-force trauma from dropped object",
+            "life_saving_rule": "Bypassing Safety Controls",
+            "immediate_action": "Stop worker from entering hazard zone until certified industrial safety helmet / hard hat is donned.",
+            "consequence_if_not_addressed": "Exposure to overhead impact or dropped objects can result in traumatic head injury or fatality.",
+            "verification_type": "CCTV_VERIFIABLE"
+        }
+
+    # 9. PPE - Safety Vest
+    if "vest" in al_low:
+        return {
+            "activity": "Logistics / Site Operations",
+            "sif_potential": "SIF Potential",
+            "sif_level": "MEDIUM",
+            "sif_reason": "Personnel missing high-visibility safety vest in area with mobile equipment movement.",
+            "sif_why": [
+                "Worker lacks high-visibility identification in operational zone",
+                "Operator visual awareness barrier compromised",
+                "Elevated risk of undetected pedestrian movement in equipment lanes"
+            ],
+            "exposure": f"{person_count} worker(s) without high-visibility garments",
+            "critical_barrier": "High-visibility warning garment",
+            "barrier_condition": "Missing / degraded",
+            "potential_consequence": "Equipment operator failure to detect pedestrian",
+            "life_saving_rule": "Line of Fire",
+            "immediate_action": "Direct personnel to don high-visibility vest before remaining in vehicle/machinery path.",
+            "consequence_if_not_addressed": "Low visibility increases struck-by probability in mobile equipment zones.",
+            "verification_type": "CCTV_VERIFIABLE"
+        }
+
+    # 10. PPE - Gloves
+    if "glove" in al_low:
+        return {
+            "activity": "Manual Tooling & Equipment Handling",
+            "sif_potential": "SIF Potential",
+            "sif_level": "MEDIUM",
+            "sif_reason": "Personnel handling machinery/tools without verified hand protection.",
+            "sif_why": [
+                "Direct bare-hand contact with industrial tooling or components",
+                "Personal hand protection barrier absent",
+                "Risk of pinch-point or sharp-edge trauma"
+            ],
+            "exposure": f"{person_count} worker(s) without protective gloves",
+            "critical_barrier": "Industrial safety gloves",
+            "barrier_condition": "Absent",
+            "potential_consequence": "Severe hand laceration or pinch-point crush injury",
+            "life_saving_rule": "Bypassing Safety Controls",
+            "immediate_action": "Issue cut/chemical resistant gloves prior to manual handling.",
+            "consequence_if_not_addressed": "Handling equipment without hand protection risks lacerations, chemical burns, or crush injury.",
+            "verification_type": "CCTV_VERIFIABLE"
+        }
+
+    # 11. Generic Default Fallback
+    return {
+        "activity": "General Industrial Operations",
+        "sif_potential": "SIF Potential",
+        "sif_level": "MEDIUM",
+        "sif_reason": "Safety condition detected requiring supervisory verification and corrective action.",
+        "sif_why": [
+            "Person observed under unverified safety conditions",
+            "Operational barrier requires inspection",
+            "Potential workplace safety compromise"
+        ],
+        "exposure": f"{person_count} worker(s) in monitored work area",
+        "critical_barrier": "Site operational controls",
+        "barrier_condition": "Unverified",
+        "potential_consequence": "Uncontrolled incident / workplace injury",
+        "life_saving_rule": "Bypassing Safety Controls",
+        "immediate_action": "Halt task, assess site controls, and verify safe perimeter.",
+        "consequence_if_not_addressed": "Uncontrolled exposure to site hazards may result in serious injury or fatality.",
+        "verification_type": "CCTV_VERIFIABLE"
+    }
 
 class AlertStateManager:
     def __init__(self):
@@ -189,6 +500,14 @@ class AlertStateManager:
         self.person_count: int = 0
         self.unhelmeted_count: int = 0
         self.unhelmeted_ids: List[str] = []
+        self.vest_detected: bool = False
+        self.unvested_count: int = 0
+        self.unvested_ids: List[str] = []
+        self.gloves_detected: bool = False
+        self.ungloved_count: int = 0
+        self.ungloved_ids: List[str] = []
+        self.person_violations: Dict[str, List[str]] = {}
+        self.ppe_statuses: Dict[str, Dict[str, str]] = {}
         self.current_safety_state: str = "MONITORING" # SAFE, VIOLATION, MONITORING
         
         # Restricted Zone detection state
@@ -198,8 +517,14 @@ class AlertStateManager:
         self.zone_occupancy_score: float = 0.0
         self.zone_debug_info: Optional[str] = None
         
+        # Fire detection state (Feature 3)
+        self.fire_detected: bool = False
+        self.fire_confidence: float = 0.0
+        
         # Debounce tracking for single violation persistence
         self.violation_start_time: Optional[float] = None
+        self.vest_violation_start_time: Optional[float] = None
+        self.gloves_violation_start_time: Optional[float] = None
         self.safe_start_time: Optional[float] = None
         self.violation_persist_threshold: float = 1.5 # 1.5 seconds consistent detection
         
@@ -912,6 +1237,27 @@ class AlertStateManager:
             highest_priority_alert = alerts_sorted[0] if alerts_sorted else None
             active_p = self.active_passport
             active_z = self.active_zone
+
+            # Clean Dashboard KPI calculations (Phase 6)
+            sif_pot_cnt = sum(
+                1 for a in alerts_sorted 
+                if getattr(a, 'sif_level', '') in ("CRITICAL", "HIGH") or "SIF" in str(getattr(a, 'sif_potential', ''))
+            )
+            open_act_cnt = sum(
+                1 for a in alerts_sorted 
+                if getattr(a, 'action_status', '') in ("ASSIGNED", "IN_PROGRESS") or getattr(a, 'status', '') in ("WAITING_FOR_RESPONSE", "RESPONDING", "ESCALATED")
+            )
+            await_ver_cnt = sum(
+                1 for a in alerts_sorted 
+                if getattr(a, 'verification_status', '') == "AWAITING_VERIFICATION"
+            )
+            verified_cnt = sum(
+                1 for a in self.history 
+                if getattr(a, 'verification_status', '') == "VERIFIED" or getattr(a, 'status', '') == "RESOLVED"
+            )
+            if verified_cnt == 0 and len(self.history) > 0:
+                verified_cnt = len(self.history)
+
             return SystemStatus(
                 system_status="ONLINE",
                 active_alerts=alerts_sorted,
@@ -920,6 +1266,12 @@ class AlertStateManager:
                 helmet_detected=self.helmet_detected,
                 person_count=self.person_count,
                 unhelmeted_count=self.unhelmeted_count,
+                vest_detected=getattr(self, 'vest_detected', False),
+                unvested_count=getattr(self, 'unvested_count', 0),
+                gloves_detected=getattr(self, 'gloves_detected', False),
+                ungloved_count=getattr(self, 'ungloved_count', 0),
+                fire_detected=getattr(self, 'fire_detected', False),
+                fire_confidence=getattr(self, 'fire_confidence', 0.0),
                 current_safety_state=self.current_safety_state,
                 active_zone=active_z,
                 permanent_zones=self.get_permanent_zones(),
@@ -936,8 +1288,106 @@ class AlertStateManager:
                 camera_name="C-01 (Laptop Webcam)",
                 timestamp=datetime.now().isoformat(),
                 active_passport=active_p,
-                passport_status=active_p.status if active_p else "NO_PASSPORT"
+                passport_status=active_p.status if active_p else "NO_PASSPORT",
+                sif_potential_count=sif_pot_cnt,
+                open_actions_count=open_act_cnt,
+                awaiting_verification_count=await_ver_cnt,
+                verified_count=verified_cnt
             )
+
+    def _process_person_findings(self, raw_findings: Optional[List[Union[PersonFinding, Dict[str, Any]]]], alert_id: str) -> List[PersonFinding]:
+        """
+        Processes person findings: stores individual crops in evidence_store under ev-{alert_id}-p{idx+1},
+        constructs PersonFinding models, and attaches evidence_crop_url and base64.
+        """
+        if not raw_findings:
+            return []
+        processed: List[PersonFinding] = []
+        for idx, item in enumerate(raw_findings):
+            if isinstance(item, PersonFinding):
+                processed.append(item)
+                continue
+            if isinstance(item, dict):
+                crop_bytes = item.get("crop_bytes") or item.get("evidence_crop_bytes")
+                crop_b64 = item.get("evidence_crop_base64") or item.get("evidence_crop")
+                p_id = item.get("person_id") or f"Person #{idx+1}"
+                
+                p_ev_id = f"ev-{alert_id}-p{idx+1}"
+                if crop_bytes:
+                    self.evidence_store[p_ev_id] = crop_bytes
+                    ev_url = f"/api/evidence/{p_ev_id}"
+                elif crop_b64:
+                    try:
+                        raw_b64 = crop_b64.split(",", 1)[1] if "," in crop_b64 else crop_b64
+                        self.evidence_store[p_ev_id] = base64.b64decode(raw_b64)
+                        ev_url = f"/api/evidence/{p_ev_id}"
+                    except Exception:
+                        ev_url = item.get("evidence_crop_url")
+                else:
+                    ev_url = item.get("evidence_crop_url")
+                
+                pf = PersonFinding(
+                    person_id=p_id,
+                    track_id=item.get("track_id", idx+1),
+                    bbox=item.get("bbox", []),
+                    helmet_status=item.get("helmet_status", "UNKNOWN"),
+                    vest_status=item.get("vest_status", "UNKNOWN"),
+                    glove_status=item.get("glove_status", "UNKNOWN"),
+                    overall_ppe_status=item.get("overall_ppe_status", "OK"),
+                    violations=item.get("violations", []),
+                    evidence_crop_url=ev_url,
+                    evidence_crop_base64=crop_b64,
+                    helmet_confidence=float(item.get("helmet_confidence", 0.0)),
+                    vest_confidence=float(item.get("vest_confidence", 0.0)),
+                    glove_confidence=float(item.get("glove_confidence", 0.0)),
+                    in_zone=bool(item.get("in_zone", False))
+                )
+                processed.append(pf)
+        return processed
+
+    def _process_vehicle_findings(self, raw_findings: Optional[List[Union[VehicleFinding, Dict[str, Any]]]], alert_id: str) -> List[VehicleFinding]:
+        """
+        Processes vehicle findings: stores individual vehicle crops in evidence_store under ev-{alert_id}-veh{idx+1},
+        constructs VehicleFinding models, and attaches evidence_crop_url and base64.
+        """
+        if not raw_findings:
+            return []
+        processed: List[VehicleFinding] = []
+        for idx, item in enumerate(raw_findings):
+            if isinstance(item, VehicleFinding):
+                processed.append(item)
+                continue
+            if isinstance(item, dict):
+                crop_bytes = item.get("crop_bytes") or item.get("evidence_crop_bytes")
+                crop_b64 = item.get("evidence_crop_base64") or item.get("evidence_crop")
+                v_id = item.get("vehicle_id") or f"Vehicle #{idx+1}"
+                
+                v_ev_id = f"ev-{alert_id}-veh{idx+1}"
+                if crop_bytes:
+                    self.evidence_store[v_ev_id] = crop_bytes
+                    ev_url = f"/api/evidence/{v_ev_id}"
+                elif crop_b64:
+                    try:
+                        raw_b64 = crop_b64.split(",", 1)[1] if "," in crop_b64 else crop_b64
+                        self.evidence_store[v_ev_id] = base64.b64decode(raw_b64)
+                        ev_url = f"/api/evidence/{v_ev_id}"
+                    except Exception:
+                        ev_url = item.get("evidence_crop_url")
+                else:
+                    ev_url = item.get("evidence_crop_url")
+                
+                vf = VehicleFinding(
+                    vehicle_id=v_id,
+                    track_id=item.get("track_id", idx+1),
+                    class_name=item.get("class_name", "vehicle"),
+                    bbox=item.get("bbox", []),
+                    confidence=float(item.get("confidence", 0.0)),
+                    evidence_crop_url=ev_url,
+                    evidence_crop_base64=crop_b64,
+                    proximity_zone=item.get("proximity_zone", [])
+                )
+                processed.append(vf)
+        return processed
 
     def trigger_alert(self, alert_type: str = "Helmet/PPE Violation", 
                       location: str = "Demo Work Zone", 
@@ -953,29 +1403,123 @@ class AlertStateManager:
                       affected_person_ids: Optional[List[str]] = None,
                       title: Optional[str] = None,
                       short_summary: Optional[str] = None,
-                      evidence_frame: Optional[bytes] = None) -> Optional[Alert]:
+                      evidence_frame: Optional[bytes] = None,
+                      violations: Optional[List[str]] = None,
+                      ppe_status: Optional[Dict[str, str]] = None,
+                      person_findings: Optional[List[Union[PersonFinding, Dict[str, Any]]]] = None,
+                      person_id: Optional[str] = None,
+                      person_crop_bytes: Optional[bytes] = None,
+                      person_crop_base64: Optional[str] = None,
+                      vehicle_id: Optional[str] = None,
+                      vehicle_type: Optional[str] = None,
+                      vehicle_crop_bytes: Optional[bytes] = None,
+                      vehicle_crop_base64: Optional[str] = None,
+                      proximity_status: Optional[str] = None,
+                      is_high_priority: bool = False,
+                      vehicle_findings: Optional[List[Union[VehicleFinding, Dict[str, Any]]]] = None,
+                      fire_detected: bool = False,
+                      fire_confidence: Optional[float] = None,
+                      fire_bbox: Optional[List[int]] = None,
+                      fire_crop_bytes: Optional[bytes] = None,
+                      fire_crop_base64: Optional[str] = None,
+                      activity: Optional[str] = None,
+                      source: Optional[str] = None) -> Optional[Alert]:
         """
         Triggers or updates an alert with verified CCTV visual evidence.
         Same-type alerts are grouped and updated (deduplication).
-        Different-type alerts (e.g. Restricted Zone vs Helmet) coexist independently.
+        When person_findings are provided, all camera violations are grouped into ONE camera event.
+        Different-type alerts (e.g. Restricted Zone vs Helmet vs Person-Vehicle Proximity vs Fire Hazard) coexist independently.
         """
         now = datetime.now()
-        affected_ids = affected_person_ids or [f"Person {i+1:02d}" for i in range(person_count)]
+        affected_ids = affected_person_ids or [f"Person #{i+1}" for i in range(person_count)]
         priority_score, priority_label = calculate_alert_priority(alert_type, severity, sif_potential)
 
         with self.lock:
-            # Check if an alert of this SAME type is already active (WAITING_FOR_RESPONSE, RESPONDING, ESCALATED)
+            # Check if an alert of this SAME type is already active, OR if person_findings are provided, on this camera
             existing_alert = None
             for a in self._active_alerts.values():
-                if a.type == alert_type and a.status in ["WAITING_FOR_RESPONSE", "RESPONDING", "ESCALATED"]:
-                    existing_alert = a
-                    break
+                if a.status in ["WAITING_FOR_RESPONSE", "RESPONDING", "ESCALATED"]:
+                    if "fire" in alert_type.lower():
+                        if "fire" in a.type.lower() and (a.camera_id == camera or a.camera == camera):
+                            existing_alert = a
+                            break
+                    elif alert_type == "Person–Vehicle Proximity":
+                        if a.type == "Person–Vehicle Proximity" and (a.camera_id == camera or a.camera == camera):
+                            if vehicle_id and a.vehicle_id and a.vehicle_id == vehicle_id:
+                                existing_alert = a
+                                break
+                            elif not vehicle_id:
+                                existing_alert = a
+                                break
+                    elif "fire" not in a.type.lower() and a.type != "Person–Vehicle Proximity":
+                        if a.type == alert_type or (person_findings and (a.camera_id == camera or a.camera == camera)):
+                            existing_alert = a
+                            break
 
             if existing_alert:
-                # Update existing alert (e.g., person count increase or ID updates) without resetting timer
+                # Update existing alert without resetting timer
                 existing_alert.person_count = max(1, person_count)
                 existing_alert.affected_person_ids = affected_ids
                 existing_alert.affected_persons = affected_ids
+                if vehicle_id:
+                    existing_alert.vehicle_id = vehicle_id
+                if person_id:
+                    existing_alert.person_id = person_id
+                if vehicle_type:
+                    existing_alert.vehicle_type = vehicle_type
+                if proximity_status:
+                    existing_alert.proximity_status = proximity_status
+                if is_high_priority or alert_type == "Person–Vehicle Proximity":
+                    existing_alert.is_high_priority = True
+                if person_crop_bytes:
+                    p_ev_id = f"ev-{existing_alert.id}-pers"
+                    self.evidence_store[p_ev_id] = person_crop_bytes
+                    existing_alert.person_crop_url = f"/api/evidence/{p_ev_id}"
+                    existing_alert.person_crop_base64 = f"data:image/jpeg;base64,{base64.b64encode(person_crop_bytes).decode('utf-8')}"
+                elif person_crop_base64:
+                    try:
+                        raw_b64 = person_crop_base64.split(",", 1)[1] if "," in person_crop_base64 else person_crop_base64
+                        p_ev_id = f"ev-{existing_alert.id}-pers"
+                        self.evidence_store[p_ev_id] = base64.b64decode(raw_b64)
+                        existing_alert.person_crop_url = f"/api/evidence/{p_ev_id}"
+                        existing_alert.person_crop_base64 = person_crop_base64
+                    except Exception:
+                        existing_alert.person_crop_base64 = person_crop_base64
+                if vehicle_crop_bytes:
+                    v_ev_id = f"ev-{existing_alert.id}-veh"
+                    self.evidence_store[v_ev_id] = vehicle_crop_bytes
+                    existing_alert.vehicle_crop_url = f"/api/evidence/{v_ev_id}"
+                    existing_alert.vehicle_crop_base64 = f"data:image/jpeg;base64,{base64.b64encode(vehicle_crop_bytes).decode('utf-8')}"
+                elif vehicle_crop_base64:
+                    try:
+                        raw_b64 = vehicle_crop_base64.split(",", 1)[1] if "," in vehicle_crop_base64 else vehicle_crop_base64
+                        v_ev_id = f"ev-{existing_alert.id}-veh"
+                        self.evidence_store[v_ev_id] = base64.b64decode(raw_b64)
+                        existing_alert.vehicle_crop_url = f"/api/evidence/{v_ev_id}"
+                        existing_alert.vehicle_crop_base64 = vehicle_crop_base64
+                    except Exception:
+                        existing_alert.vehicle_crop_base64 = vehicle_crop_base64
+                if vehicle_findings:
+                    existing_alert.vehicle_findings = self._process_vehicle_findings(vehicle_findings, existing_alert.id)
+                if fire_detected or "fire" in alert_type.lower():
+                    existing_alert.fire_detected = True
+                    if fire_confidence is not None:
+                        existing_alert.fire_confidence = fire_confidence
+                    if fire_bbox is not None:
+                        existing_alert.fire_bbox = fire_bbox
+                    if fire_crop_bytes:
+                        f_ev_id = f"ev-{existing_alert.id}-fire"
+                        self.evidence_store[f_ev_id] = fire_crop_bytes
+                        existing_alert.fire_crop_url = f"/api/evidence/{f_ev_id}"
+                        existing_alert.fire_crop_base64 = f"data:image/jpeg;base64,{base64.b64encode(fire_crop_bytes).decode('utf-8')}"
+                    elif fire_crop_base64:
+                        existing_alert.fire_crop_base64 = fire_crop_base64
+                if violations:
+                    existing_alert.violations = list(dict.fromkeys(existing_alert.violations + violations))
+                if ppe_status:
+                    existing_alert.ppe_status.update(ppe_status)
+                if person_findings:
+                    existing_alert.person_findings = self._process_person_findings(person_findings, existing_alert.id)
                 if evidence_frame:
                     ev_id = f"ev-{existing_alert.id}"
                     self.evidence_store[ev_id] = evidence_frame
@@ -984,7 +1528,9 @@ class AlertStateManager:
                     existing_alert.evidence_image = f"data:image/jpeg;base64,{b64}"
                     existing_alert.evidence_timestamp = now.isoformat()
 
-                if alert_type == "Helmet/PPE Violation":
+                if title:
+                    existing_alert.title = title
+                elif alert_type == "Helmet/PPE Violation":
                     p_word = "PEOPLE" if person_count > 1 else "PERSON"
                     existing_alert.title = f"{person_count} {p_word} WITHOUT HELMETS"
                     existing_alert.short_summary = f"{person_count} unequipped workers detected in active area"
@@ -993,13 +1539,29 @@ class AlertStateManager:
                     p_word = "PEOPLE" if person_count > 1 else "PERSON"
                     existing_alert.title = f"RESTRICTED ZONE ENTRY ({person_count} {p_word})"
                     existing_alert.short_summary = f"{person_count} {p_word} detected occupying restricted perimeter ({location})"
+                elif "multi" in alert_type.lower():
+                    v_str = ', '.join(existing_alert.violations) if existing_alert.violations else "Multiple Violations"
+                    existing_alert.title = title or f"MULTI-HAZARD SAFETY VIOLATION ({', '.join(affected_ids)})"
+                    existing_alert.short_summary = f"Worker detected with concurrent safety violations: {v_str}"
+                elif "fall" in alert_type.lower():
+                    existing_alert.title = title or "FALL DETECTED — WORKER DOWN"
+                    existing_alert.short_summary = "Worker horizontal / fallen posture confirmed across multiple video frames"
+                elif "vest" in alert_type.lower():
+                    p_word = "PEOPLE" if person_count > 1 else "PERSON"
+                    existing_alert.title = f"{person_count} {p_word} WITHOUT SAFETY VEST"
+                    existing_alert.short_summary = f"{person_count} unequipped workers detected without high-visibility vest"
+
+                if short_summary:
+                    existing_alert.short_summary = short_summary
+
                 self.current_safety_state = "VIOLATION"
                 self.notify_clients()
                 return existing_alert
 
             # No existing alert of this type: create new independent alert
             deadline = now + timedelta(seconds=response_sec)
-            alert_prefix = "ZONE" if "zone" in alert_type.lower() else ("PASS" if "passport" in alert_type.lower() else "PPE")
+            al_low = alert_type.lower()
+            alert_prefix = "FIRE" if "fire" in al_low else ("PROX" if ("proximity" in al_low or "vehicle" in al_low) else ("FALL" if "fall" in al_low else ("MULTI" if "multi" in al_low else ("ZONE" if "zone" in al_low else ("PASS" if "passport" in al_low else "PPE")))))
             ms = int(now.microsecond / 1000)
             alert_id = f"ALT-{alert_prefix}-{now.strftime('%Y%m%d-%H%M%S')}-{ms:03d}"
             suffix = 1
@@ -1009,7 +1571,43 @@ class AlertStateManager:
                 suffix += 1
 
             default_notes = "Automated SIF Prevention Alert"
-            if alert_type == "Restricted Zone Entry":
+            if "fire" in al_low:
+                title = title or "FIRE DETECTED — CONFIRMED"
+                short_summary = short_summary or "Active fire detected in monitored area"
+                default_notes = "Automated SIF Alert: Visual fire confirmation in CCTV feed. Immediate response required."
+                hazard = hazard or "Active Fire Hazard / Thermal Ignition"
+                unsafe_condition = unsafe_condition or "Confirmed open fire in monitored camera perimeter"
+            elif "proximity" in al_low or "vehicle" in al_low:
+                title = title or "HIGH PRIORITY — PERSON–VEHICLE PROXIMITY"
+                short_summary = short_summary or "Worker detected in vehicle proximity zone"
+                default_notes = "Automated SIF Prevention Alert: High-priority proximity event detected between personnel and mobile vehicle."
+                hazard = hazard or "Heavy Equipment / Vehicle Proximity & Struck-By Hazard"
+                unsafe_condition = unsafe_condition or "Worker present in active proximity perimeter of mobile equipment"
+            elif "fall" in al_low:
+                title = title or "FALL DETECTED — WORKER DOWN"
+                short_summary = short_summary or "Worker horizontal / fallen posture confirmed across multiple video frames"
+                default_notes = "Automated SIF Alert: Critical fall event requiring immediate supervisor and first-aid response."
+                hazard = hazard or "Slip, Trip or Fall from Same Level / Height"
+                unsafe_condition = unsafe_condition or "Worker down in active zone"
+            elif "multi" in al_low:
+                v_str = ', '.join(violations) if violations else "Multiple Violations"
+                title = title or f"MULTI-HAZARD SAFETY VIOLATION ({', '.join(affected_ids)})"
+                short_summary = short_summary or f"Worker detected with concurrent safety violations: {v_str}"
+                default_notes = f"Automated SIF Prevention Alert: Multiple simultaneous barrier failures ({v_str})."
+                hazard = hazard or "Multiple Concurrent Safety Barrier Failures"
+                unsafe_condition = unsafe_condition or f"Concurrent safety violations: {v_str}"
+            elif "vest" in al_low:
+                p_word = "PEOPLE" if person_count > 1 else "PERSON"
+                title = title or f"{person_count} {p_word} WITHOUT SAFETY VEST"
+                short_summary = short_summary or f"{person_count} unequipped workers detected without high-visibility vest"
+                hazard = hazard or "Lack of required PPE (High-Visibility Safety Vest)"
+                unsafe_condition = unsafe_condition or f"{person_count} workers present without safety vest in active zone"
+            elif "harness" in al_low or "height" in al_low:
+                title = title or "WORKING AT HEIGHT VIOLATION (NO HARNESS)"
+                short_summary = short_summary or "Worker detected in working-at-height zone without required fall arrest harness"
+                hazard = hazard or "Working at Height without Fall Protection / Harness"
+                unsafe_condition = unsafe_condition or "Worker present in height zone without verified safety harness"
+            elif alert_type == "Restricted Zone Entry":
                 p_word = "PEOPLE" if person_count > 1 else "PERSON"
                 title = title or f"RESTRICTED ZONE ENTRY"
                 short_summary = short_summary or f"{person_count} {p_word} detected occupying restricted perimeter ({location})"
@@ -1061,8 +1659,83 @@ class AlertStateManager:
                 }
             ]
 
+            new_person_findings = self._process_person_findings(person_findings, alert_id)
+
+            # Process person crop if passed directly
+            p_ev_url = None
+            p_ev_b64 = None
+            if person_crop_bytes:
+                p_ev_id = f"ev-{alert_id}-pers"
+                self.evidence_store[p_ev_id] = person_crop_bytes
+                p_ev_url = f"/api/evidence/{p_ev_id}"
+                p_ev_b64 = f"data:image/jpeg;base64,{base64.b64encode(person_crop_bytes).decode('utf-8')}"
+            elif person_crop_base64:
+                try:
+                    raw_b64 = person_crop_base64.split(",", 1)[1] if "," in person_crop_base64 else person_crop_base64
+                    p_ev_id = f"ev-{alert_id}-pers"
+                    self.evidence_store[p_ev_id] = base64.b64decode(raw_b64)
+                    p_ev_url = f"/api/evidence/{p_ev_id}"
+                    p_ev_b64 = person_crop_base64
+                except Exception:
+                    p_ev_b64 = person_crop_base64
+
+            # Process vehicle crop if passed directly
+            v_ev_url = None
+            v_ev_b64 = None
+            if vehicle_crop_bytes:
+                v_ev_id = f"ev-{alert_id}-veh"
+                self.evidence_store[v_ev_id] = vehicle_crop_bytes
+                v_ev_url = f"/api/evidence/{v_ev_id}"
+                v_ev_b64 = f"data:image/jpeg;base64,{base64.b64encode(vehicle_crop_bytes).decode('utf-8')}"
+            elif vehicle_crop_base64:
+                try:
+                    raw_b64 = vehicle_crop_base64.split(",", 1)[1] if "," in vehicle_crop_base64 else vehicle_crop_base64
+                    v_ev_id = f"ev-{alert_id}-veh"
+                    self.evidence_store[v_ev_id] = base64.b64decode(raw_b64)
+                    v_ev_url = f"/api/evidence/{v_ev_id}"
+                    v_ev_b64 = vehicle_crop_base64
+                except Exception:
+                    v_ev_b64 = vehicle_crop_base64
+
+            new_vehicle_findings = self._process_vehicle_findings(vehicle_findings, alert_id)
+            if not v_ev_url and new_vehicle_findings and new_vehicle_findings[0].evidence_crop_url:
+                v_ev_url = new_vehicle_findings[0].evidence_crop_url
+            if not v_ev_b64 and new_vehicle_findings and new_vehicle_findings[0].evidence_crop_base64:
+                v_ev_b64 = new_vehicle_findings[0].evidence_crop_base64
+
+            # Process fire crop if passed directly
+            f_ev_url = None
+            f_ev_b64 = None
+            if fire_crop_bytes:
+                f_ev_id = f"ev-{alert_id}-fire"
+                self.evidence_store[f_ev_id] = fire_crop_bytes
+                f_ev_url = f"/api/evidence/{f_ev_id}"
+                f_ev_b64 = f"data:image/jpeg;base64,{base64.b64encode(fire_crop_bytes).decode('utf-8')}"
+            elif fire_crop_base64:
+                try:
+                    raw_b64 = fire_crop_base64.split(",", 1)[1] if "," in fire_crop_base64 else fire_crop_base64
+                    f_ev_id = f"ev-{alert_id}-fire"
+                    self.evidence_store[f_ev_id] = base64.b64decode(raw_b64)
+                    f_ev_url = f"/api/evidence/{f_ev_id}"
+                    f_ev_b64 = fire_crop_base64
+                except Exception:
+                    f_ev_b64 = fire_crop_base64
+
+            cur_p = self.active_passport
+            cur_z = self.active_zone
+            sif_rec = get_sif_action_recommendation(
+                alert_type=alert_type,
+                location=location,
+                hazard=hazard,
+                unsafe_condition=unsafe_condition,
+                person_count=person_count,
+                task_type=activity or (cur_p.task_type if cur_p else None),
+                zone_name=cur_z.name if cur_z else None
+            )
+
             new_alert = Alert(
                 id=alert_id,
+                event_id=f"EVT-{now.strftime('%Y%m%d')}-{self._incident_counter:04d}",
                 incident_id=inc_id,
                 type=alert_type,
                 title=title,
@@ -1070,7 +1743,7 @@ class AlertStateManager:
                 location=location,
                 camera=camera,
                 camera_id=camera,
-                source=f"AI CCTV (Camera {camera})",
+                source=source or f"AI CCTV (Camera {camera})",
                 severity=severity,
                 priority_score=priority_score,
                 priority_label=priority_label,
@@ -1086,13 +1759,47 @@ class AlertStateManager:
                 response_duration_sec=response_sec,
                 action_duration_sec=action_sec,
                 notes=notes or default_notes,
-                sif_potential=sif_potential,
-                hazard=hazard,
+                # Structured SIF intelligence & causal fields (Phases 2, 3, 5, 8)
+                activity=sif_rec["activity"],
+                hazard=hazard or sif_rec.get("critical_barrier"),
                 unsafe_condition=unsafe_condition,
+                sif_potential="SIF Potential", # Strictly 'SIF Potential' terminology
+                sif_level=sif_rec["sif_level"],
+                sif_reason=sif_rec["sif_reason"],
+                sif_why=sif_rec["sif_why"],
+                exposure=sif_rec["exposure"],
+                critical_barrier=sif_rec["critical_barrier"],
+                barrier_condition=sif_rec["barrier_condition"],
+                potential_consequence=sif_rec["potential_consequence"],
+                life_saving_rule=sif_rec["life_saving_rule"],
+                immediate_action=sif_rec["immediate_action"],
+                consequence_if_not_addressed=sif_rec["consequence_if_not_addressed"],
+                # Corrective Action State Machine (Phase 4): ASSIGNED -> IN_PROGRESS -> COMPLETED
+                action_status="ASSIGNED",
+                verification_status="PENDING",
+                verification_type=sif_rec["verification_type"],
                 evidence_url=ev_url,
                 evidence_image=b64_img,
                 evidence_timestamp=ev_time,
-                incident_timeline=init_timeline
+                incident_timeline=init_timeline,
+                violations=violations or [],
+                ppe_status=ppe_status or {},
+                person_findings=new_person_findings,
+                person_id=person_id or (affected_ids[0] if affected_ids else None),
+                person_crop_url=p_ev_url,
+                person_crop_base64=p_ev_b64,
+                vehicle_id=vehicle_id,
+                vehicle_type=vehicle_type,
+                vehicle_crop_url=v_ev_url,
+                vehicle_crop_base64=v_ev_b64,
+                proximity_status=proximity_status or ("Proximity Confirmed" if alert_type == "Person–Vehicle Proximity" else None),
+                is_high_priority=bool(is_high_priority or alert_type == "Person–Vehicle Proximity"),
+                vehicle_findings=new_vehicle_findings,
+                fire_detected=bool(fire_detected or "fire" in alert_type.lower()),
+                fire_confidence=fire_confidence,
+                fire_bbox=fire_bbox,
+                fire_crop_url=f_ev_url,
+                fire_crop_base64=f_ev_b64
             )
 
             self._active_alerts[alert_id] = new_alert
@@ -1106,6 +1813,7 @@ class AlertStateManager:
         """
         Supervisor acknowledges response (Stage 1 -> Stage 2).
         If alert_id is not specified, acknowledges the highest-priority WAITING_FOR_RESPONSE alert.
+        Updates action_status to IN_PROGRESS.
         """
         with self.lock:
             target = None
@@ -1128,11 +1836,160 @@ class AlertStateManager:
             action_deadline = now + timedelta(seconds=target.action_duration_sec)
             target.status = "RESPONDING"
             target.stage = "ACTION"
+            target.action_status = "IN_PROGRESS"
             target.responded_at = now.isoformat()
             target.action_deadline = action_deadline.isoformat()
             target.resolved_by = supervisor_id
             if notes:
                 target.notes = notes
+
+            target.incident_timeline.append({
+                "timestamp": now.isoformat(),
+                "event_type": "SUPERVISOR_RESPONDED",
+                "title": f"Response Acknowledged by {supervisor_id}",
+                "actor": supervisor_id,
+                "details": f"Supervisor acknowledged incident. Action SLA timer initialized ({target.action_duration_sec}s)."
+            })
+
+        self.notify_clients()
+        return target
+
+    def mark_action_taken(self, alert_id: Optional[str] = None, supervisor_id: str = "SUP-01", notes: Optional[str] = None, action_taken: Optional[str] = None) -> Optional[Alert]:
+        """
+        Supervisor marks corrective action completed (Phase 4).
+        Sets action_status='COMPLETED' and verification_status='AWAITING_VERIFICATION'.
+        Does NOT equate manager completion with verified fixed.
+        """
+        with self.lock:
+            target = None
+            if alert_id:
+                target = self._active_alerts.get(alert_id)
+            else:
+                sorted_alerts = sort_alerts_by_priority(list(self._active_alerts.values()))
+                for a in sorted_alerts:
+                    if a.action_status in ["ASSIGNED", "IN_PROGRESS"]:
+                        target = a
+                        break
+
+            if not target:
+                return None
+
+            now = datetime.now()
+            target.action_status = "COMPLETED"
+            target.verification_status = "AWAITING_VERIFICATION"
+            target.action_taken_at = now.isoformat()
+            target.action_taken_by = supervisor_id
+            target.action_taken_notes = notes or action_taken or "Corrective action executed on-site"
+            target.stage = "ACTION"
+
+            target.incident_timeline.append({
+                "timestamp": now.isoformat(),
+                "event_type": "ACTION_COMPLETED",
+                "title": f"Corrective Action Completed by {supervisor_id}",
+                "actor": supervisor_id,
+                "details": target.action_taken_notes
+            })
+
+        self.notify_clients()
+        return target
+
+    def verify_alert(self, alert_id: Optional[str] = None, supervisor_id: str = "SUP-01", decision: str = "VERIFIED", verification_method: str = "CCTV_VERIFIED", notes: Optional[str] = None) -> Optional[Alert]:
+        """
+        Executes formal safety verification step (Phase 4).
+        Separates physical/objective verification from action completion.
+        - If decision == "VERIFIED": sets verification_status="VERIFIED", status="RESOLVED", moves to history.
+        - If decision == "FAILED": sets verification_status="FAILED", action_status="IN_PROGRESS" (reopen required).
+        - If decision == "HSE_REVIEW_REQUIRED": sets verification_status="HSE_REVIEW_REQUIRED", assigned_to="HSE CONTROL DESK".
+        """
+        with self.lock:
+            target = None
+            if alert_id:
+                target = self._active_alerts.get(alert_id)
+            else:
+                sorted_alerts = sort_alerts_by_priority(list(self._active_alerts.values()))
+                for a in sorted_alerts:
+                    if a.verification_status == "AWAITING_VERIFICATION" or a.action_status == "COMPLETED":
+                        target = a
+                        break
+                if not target and sorted_alerts:
+                    target = sorted_alerts[0]
+
+            if not target:
+                return None
+
+            now = datetime.now()
+            clean_decision = str(decision).upper()
+
+            if clean_decision == "VERIFIED":
+                target.action_status = "COMPLETED"
+                target.verification_status = "VERIFIED"
+                target.verified_at = now.isoformat()
+                target.verified_by = supervisor_id
+                target.verification_notes = notes or f"Barrier restoration verified ({verification_method})"
+                target.status = "RESOLVED"
+                target.stage = "RESOLVED"
+                target.resolved_at = now.isoformat()
+                target.resolved_by = supervisor_id
+                if target.escalated_at:
+                    target.was_escalated = True
+
+                target.incident_timeline.append({
+                    "timestamp": now.isoformat(),
+                    "event_type": "VERIFIED_AND_RESOLVED",
+                    "title": f"Safety Verification Passed ({verification_method})",
+                    "actor": supervisor_id,
+                    "details": target.verification_notes
+                })
+
+                if target.id in self._active_alerts:
+                    del self._active_alerts[target.id]
+                self._last_resolved_alert = target
+                self.history.append(target)
+
+                # Reactivate passport if breach alert
+                p = self.active_passport
+                if p and (target.type == "SAFETY PASSPORT BREACH" or p.active_breach_alert_id == target.id):
+                    if p.status in ["PAUSED", "AWAITING_RESTORATION"]:
+                        p.status = "ACTIVE"
+                        p.reactivated_at = now.isoformat()
+                        p.breach_reason = None
+                        p.events.append(PassportEvent(
+                            id=f"evt-{int(now.timestamp()*1000)}",
+                            timestamp=now.isoformat(),
+                            event_type="reactivated",
+                            actor=supervisor_id,
+                            description="Safety verification passed. Safety Passport REACTIVATED."
+                        ))
+                        p.active_breach_alert_id = None
+
+                if not self._active_alerts:
+                    has_helmet_violation = (self.person_detected and not self.helmet_detected)
+                    if not has_helmet_violation and not self.zone_violation:
+                        self.current_safety_state = "SAFE" if self.person_detected else "MONITORING"
+
+            elif clean_decision == "FAILED":
+                target.verification_status = "FAILED"
+                target.action_status = "IN_PROGRESS"
+                target.verification_notes = notes or "Verification failed: Safety barrier or PPE remains compromised. Reopen required."
+                target.incident_timeline.append({
+                    "timestamp": now.isoformat(),
+                    "event_type": "VERIFICATION_FAILED",
+                    "title": "Safety Verification Failed — Reopen Required",
+                    "actor": supervisor_id,
+                    "details": target.verification_notes
+                })
+
+            elif clean_decision == "HSE_REVIEW_REQUIRED":
+                target.verification_status = "HSE_REVIEW_REQUIRED"
+                target.assigned_to = "HSE CONTROL DESK"
+                target.verification_notes = notes or "Action completed on-site; formal HSE review and documentation audit required."
+                target.incident_timeline.append({
+                    "timestamp": now.isoformat(),
+                    "event_type": "HSE_REVIEW_REQUIRED",
+                    "title": "HSE Verification Review Required",
+                    "actor": supervisor_id,
+                    "details": target.verification_notes
+                })
 
         self.notify_clients()
         return target
@@ -1140,8 +1997,7 @@ class AlertStateManager:
     def resolve_alert(self, supervisor_id: str = "SUP-01", notes: Optional[str] = None, alert_id: Optional[str] = None) -> Optional[Alert]:
         """
         Supervisor marks alert fixed/resolved.
-        Resolving one alert removes ONLY that alert from active_alerts.
-        Other active alerts remain active and running.
+        Fulfills both action completion and verified resolution for full backwards compatibility.
         """
         with self.lock:
             target = None
@@ -1155,9 +2011,13 @@ class AlertStateManager:
                 return None
 
             now = datetime.now()
+            target.action_status = "COMPLETED"
+            target.verification_status = "VERIFIED"
             target.status = "RESOLVED"
             target.stage = "RESOLVED"
             target.resolved_at = now.isoformat()
+            target.verified_at = now.isoformat()
+            target.verified_by = supervisor_id
             if target.escalated_at:
                 target.was_escalated = True
             if supervisor_id:
@@ -1211,6 +2071,16 @@ class AlertStateManager:
             self.person_count = 0
             self.unhelmeted_count = 0
             self.unhelmeted_ids = []
+            self.vest_detected = False
+            self.unvested_count = 0
+            self.unvested_ids = []
+            self.gloves_detected = False
+            self.ungloved_count = 0
+            self.ungloved_ids = []
+            self.person_violations = {}
+            self.ppe_statuses = {}
+            self.vest_violation_start_time = None
+            self.gloves_violation_start_time = None
             self.passports.clear()
             self.active_passport_id = None
             self._passport_counter = 0
@@ -1243,6 +2113,7 @@ class AlertStateManager:
             self.zone_status = "CLEAR" if (self.active_zone and self.active_zone.enabled) else "NO_ZONE"
 
         self.notify_clients()
+
 
     def simulate_no_helmet(self, count: int = 2):
         with self.lock:
@@ -1446,16 +2317,36 @@ class AlertStateManager:
                             person_count: int = 0, unhelmeted_count: int = 0,
                             unhelmeted_ids: Optional[List[str]] = None,
                             evidence_frame: Optional[bytes] = None,
-                            breached_zone: Optional[RestrictedZone] = None):
+                            breached_zone: Optional[RestrictedZone] = None,
+                            vest_detected: bool = False,
+                            unvested_count: int = 0,
+                            unvested_ids: Optional[List[str]] = None,
+                            gloves_detected: bool = False,
+                            ungloved_count: int = 0,
+                            ungloved_ids: Optional[List[str]] = None,
+                            person_violations: Optional[Dict[str, List[str]]] = None,
+                            ppe_statuses: Optional[Dict[str, Dict[str, str]]] = None,
+                            person_findings: Optional[List[Dict[str, Any]]] = None,
+                            fire_detected: bool = False,
+                            fire_confidence: float = 0.0,
+                            **kwargs):
         """
         Called by detection loop for each frame.
         Applies debounce logic for violations and notifies clients on state transitions.
-        Supports multiple simultaneous alerts with authentic visual evidence!
+        Unifies multiple simultaneous violations across people into ONE camera incident.
+        Supports person detection, helmet, safety vest, gloves, and restricted zones with authentic visual evidence!
         """
         state_changed = False
         trigger_helmet_alert = False
+        trigger_vest_alert = False
+        trigger_gloves_alert = False
+        trigger_multi_alert = False
         trigger_zone_alert = False
         trigger_passport_breach = False
+        trigger_grouped_camera_alert = False
+        grouped_alert_args = {}
+        multi_violations_list = []
+        multi_affected_ids = []
         
         with self.lock:
             if self.simulated_mode:
@@ -1466,8 +2357,13 @@ class AlertStateManager:
             
             prev_person = self.person_detected
             prev_helmet = self.helmet_detected
+            prev_vest = self.vest_detected
+            prev_gloves = getattr(self, 'gloves_detected', False)
+            prev_fire = getattr(self, 'fire_detected', False)
             prev_person_count = self.person_count
             prev_unhelmeted_count = self.unhelmeted_count
+            prev_unvested_count = self.unvested_count
+            prev_ungloved_count = getattr(self, 'ungloved_count', 0)
             prev_safety = self.current_safety_state
             prev_zone_violation = self.zone_violation
             prev_persons_in_zone = self.persons_in_zone
@@ -1477,9 +2373,19 @@ class AlertStateManager:
             
             self.person_detected = person_detected
             self.helmet_detected = helmet_detected
+            self.vest_detected = vest_detected
+            self.gloves_detected = gloves_detected
+            self.fire_detected = fire_detected
+            self.fire_confidence = fire_confidence
             self.person_count = person_count
             self.unhelmeted_count = unhelmeted_count
             self.unhelmeted_ids = unhelmeted_ids or []
+            self.unvested_count = unvested_count
+            self.unvested_ids = unvested_ids or []
+            self.ungloved_count = ungloved_count
+            self.ungloved_ids = ungloved_ids or []
+            self.person_violations = person_violations or {}
+            self.ppe_statuses = ppe_statuses or {}
             self.zone_occupancy_score = occupancy_score
             self.zone_debug_info = debug_info
             
@@ -1495,93 +2401,323 @@ class AlertStateManager:
                 self.zone_status = "NO_ZONE"
                 
             now_ts = time.time()
-            
-            # 1. Check Zone Violation & Passport Breach
-            if self.zone_violation and active_z and active_z.enabled:
-                self.current_safety_state = "VIOLATION"
-                # Check linked active passport
-                p = self.active_passport
-                is_passport_zone = (active_z.zone_category == "PASSPORT_TEMPORARY" or (p and p.linked_zone_id == active_z.zone_id))
-                if p and p.status in ["ACTIVE", "PAUSED"] and is_passport_zone:
-                    if p.status == "ACTIVE":
-                        trigger_passport_breach = True
-                else:
-                    # Check if zone alert is already active
-                    has_active_zone_alert = any(a.type == "Restricted Zone Entry" for a in self._active_alerts.values())
-                    if not has_active_zone_alert:
-                        trigger_zone_alert = True
+
+            if person_findings is not None:
+                self.person_findings = person_findings
+                target_z = breached_zone or self.active_zone
+                cam_id = (target_z.camera_id if target_z else self.active_camera_id) or "C-01"
+                loc = target_z.name if target_z else "Demo Work Zone"
+                total_people = max(person_count, len(person_findings))
+                
+                # Identify people with confirmed issues
+                people_with_issues = [pf for pf in person_findings if len(pf.get("violations", [])) > 0]
+                all_viols = []
+                for pf in people_with_issues:
+                    for v in pf.get("violations", []):
+                        if v not in all_viols:
+                            all_viols.append(v)
+                            
+                p_aff = [pf.get("person_id") for pf in people_with_issues]
+
+                # Check if camera already has an active ongoing alert
+                active_cam_alert = None
+                for a in self._active_alerts.values():
+                    if (a.camera_id == cam_id or a.camera == cam_id) and a.status in ["WAITING_FOR_RESPONSE", "RESPONDING", "ESCALATED"]:
+                        active_cam_alert = a
+                        break
+
+                if people_with_issues:
+                    self.current_safety_state = "VIOLATION"
+                    self.safe_start_time = None
+                    
+                    if active_cam_alert:
+                        active_cam_alert.person_count = total_people
+                        active_cam_alert.affected_person_ids = p_aff
+                        active_cam_alert.affected_persons = p_aff
+                        active_cam_alert.violations = all_viols
+                        active_cam_alert.person_findings = self._process_person_findings(person_findings, active_cam_alert.id)
+                        if len(people_with_issues) > 1:
+                            active_cam_alert.title = f"CAMERA EVENT — {len(people_with_issues)} People With Issues"
+                            active_cam_alert.short_summary = f"{total_people} People Detected • {len(people_with_issues)} with issues ({', '.join(all_viols)})"
+                        else:
+                            active_cam_alert.title = f"CAMERA EVENT — {p_aff[0]}: {', '.join(all_viols)}"
+                            active_cam_alert.short_summary = f"{total_people} People Detected • 1 with issues: {', '.join(all_viols)}"
+                        if evidence_frame:
+                            ev_id = f"ev-{active_cam_alert.id}"
+                            self.evidence_store[ev_id] = evidence_frame
+                            active_cam_alert.evidence_url = f"/api/evidence/{ev_id}"
+                            active_cam_alert.evidence_image = f"data:image/jpeg;base64,{base64.b64encode(evidence_frame).decode('utf-8')}"
+                        state_changed = True
                     else:
-                        # Update active zone alert person count if changed
+                        if self.violation_start_time is None:
+                            self.violation_start_time = now_ts
+                        elapsed = now_ts - self.violation_start_time
+                        if elapsed >= self.violation_persist_threshold:
+                            is_multi = (len(people_with_issues) > 1 or len(all_viols) > 1)
+                            if len(people_with_issues) > 1:
+                                al_type = "Multi-Hazard Safety Violation"
+                                title = f"CAMERA EVENT — {len(people_with_issues)} People With Issues"
+                            elif len(all_viols) > 1:
+                                al_type = "Multi-Hazard Safety Violation"
+                                title = f"CAMERA EVENT — {p_aff[0]}: {', '.join(all_viols)}"
+                            elif "RESTRICTED ZONE" in all_viols:
+                                al_type = "Restricted Zone Entry"
+                                title = "RESTRICTED ZONE ENTRY"
+                            elif "NO HELMET" in all_viols:
+                                al_type = "Helmet/PPE Violation"
+                                title = f"{p_aff[0]} WITHOUT HELMET"
+                            elif "NO SAFETY VEST" in all_viols:
+                                al_type = "Safety Vest Violation"
+                                title = f"{p_aff[0]} WITHOUT SAFETY VEST"
+                            elif "NO GLOVES" in all_viols:
+                                al_type = "Gloves Violation"
+                                title = f"{p_aff[0]} WITHOUT GLOVES"
+                            else:
+                                al_type = "Helmet/PPE Violation"
+                                title = f"CAMERA EVENT ({cam_id})"
+
+                            sev = "CRITICAL" if any("ZONE" in v for v in all_viols) else "HIGH"
+                            grouped_alert_args = {
+                                "alert_type": al_type,
+                                "location": loc,
+                                "camera": cam_id,
+                                "severity": sev,
+                                "sif_potential": "CRITICAL / HIGH" if sev == "CRITICAL" else "HIGH / POTENTIAL",
+                                "person_count": total_people,
+                                "affected_person_ids": p_aff,
+                                "title": title,
+                                "short_summary": f"{total_people} People Detected • {len(people_with_issues)} with issues: {', '.join(all_viols)}",
+                                "hazard": "Multiple Concurrent Safety Barrier Failures" if is_multi else f"Lack of required PPE ({', '.join(all_viols)})",
+                                "unsafe_condition": f"Workers detected with safety violations: {', '.join(all_viols)}",
+                                "notes": f"Automated SIF Alert: {total_people} detected, {len(people_with_issues)} affected.",
+                                "evidence_frame": evidence_frame,
+                                "violations": all_viols,
+                                "person_findings": person_findings
+                            }
+                            trigger_grouped_camera_alert = True
+
+                    if any("ZONE" in v for v in all_viols):
+                        p = self.active_passport
+                        is_passport_zone = bool(active_z and (active_z.zone_category == "PASSPORT_TEMPORARY" or (p and p.linked_zone_id == active_z.zone_id)))
+                        if p and p.status in ["ACTIVE", "PAUSED"] and is_passport_zone:
+                            if p.status == "ACTIVE":
+                                trigger_passport_breach = True
+                else:
+                    # All people are normal (no issues)
+                    self.violation_start_time = None
+                    if self.safe_start_time is None:
+                        self.safe_start_time = now_ts
+                    if active_cam_alert:
+                        active_cam_alert.notes = "All detected workers have returned to normal compliant PPE status."
+                        active_cam_alert.person_findings = self._process_person_findings(person_findings, active_cam_alert.id)
+                        state_changed = True
+                    if not self._active_alerts:
+                        self.current_safety_state = "SAFE" if total_people > 0 else "MONITORING"
+
+            else:
+                # Fallback path when person_findings is not provided
+                # Identify workers with multiple simultaneous violations
+                multi_viol_persons = {pid: vlist for pid, vlist in self.person_violations.items() if len(vlist) > 1}
+                if multi_viol_persons:
+                    multi_affected_ids = list(multi_viol_persons.keys())
+                    combined_v = []
+                    for vlist in multi_viol_persons.values():
+                        for v in vlist:
+                            if v not in combined_v:
+                                combined_v.append(v)
+                    multi_violations_list = combined_v
+                    self.current_safety_state = "VIOLATION"
+                    
+                    # Deduplication: check if Multi-Hazard alert is already active
+                    has_active_multi = any(a.type == "Multi-Hazard Safety Violation" for a in self._active_alerts.values())
+                    if not has_active_multi:
+                        trigger_multi_alert = True
+                    else:
                         for a in self._active_alerts.values():
-                            if a.type == "Restricted Zone Entry":
-                                a.person_count = max(1, self.persons_in_zone)
+                            if a.type == "Multi-Hazard Safety Violation":
+                                a.person_count = max(1, len(multi_affected_ids))
+                                a.affected_person_ids = multi_affected_ids
+                                a.affected_persons = multi_affected_ids
+                                a.violations = list(dict.fromkeys(a.violations + multi_violations_list))
                                 if evidence_frame:
                                     ev_id = f"ev-{a.id}"
                                     self.evidence_store[ev_id] = evidence_frame
                                     a.evidence_url = f"/api/evidence/{ev_id}"
                                     a.evidence_image = f"data:image/jpeg;base64,{base64.b64encode(evidence_frame).decode('utf-8')}"
+                                state_changed = True
                                 break
-            else:
-                # Zone is clear!
-                p = self.active_passport
-                if p and p.status == "PAUSED":
-                    # Transition to AWAITING_RESTORATION (DO NOT AUTO-REACTIVATE!)
-                    p.status = "AWAITING_RESTORATION"
-                    p.events.append(PassportEvent(
-                        id=f"evt-{int(now_ts*1000)}",
-                        timestamp=datetime.now().isoformat(),
-                        event_type="barrier_clear",
-                        actor="AI CCTV Vision",
-                        description="AI indicates exclusion zone is now clear. Human verification required before reactivation."
-                    ))
-                    state_changed = True
-            
-            # 2. Check Helmet Violation (Multi-Person or Single)
-            if unhelmeted_count > 0:
-                self.safe_start_time = None
-                if self.violation_start_time is None:
-                    self.violation_start_time = now_ts
-                
-                elapsed = now_ts - self.violation_start_time
-                if elapsed >= self.violation_persist_threshold:
+
+                    if any("ZONE" in v for v in multi_violations_list):
+                        p = self.active_passport
+                        is_passport_zone = bool(active_z and (active_z.zone_category == "PASSPORT_TEMPORARY" or (p and p.linked_zone_id == active_z.zone_id)))
+                        if p and p.status in ["ACTIVE", "PAUSED"] and is_passport_zone:
+                            if p.status == "ACTIVE":
+                                trigger_passport_breach = True
+
+                # Single-violation paths (no person has multiple concurrent violations)
+                # 1. Check Zone Violation & Passport Breach
+                if not multi_viol_persons and self.zone_violation and active_z and active_z.enabled:
                     self.current_safety_state = "VIOLATION"
-                    has_active_ppe_alert = any(a.type == "Helmet/PPE Violation" for a in self._active_alerts.values())
-                    if not has_active_ppe_alert:
-                        trigger_helmet_alert = True
+                    p = self.active_passport
+                    is_passport_zone = (active_z.zone_category == "PASSPORT_TEMPORARY" or (p and p.linked_zone_id == active_z.zone_id))
+                    if p and p.status in ["ACTIVE", "PAUSED"] and is_passport_zone:
+                        if p.status == "ACTIVE":
+                            trigger_passport_breach = True
                     else:
-                        # Update existing active PPE alert person count dynamically!
-                        for a in self._active_alerts.values():
-                            if a.type == "Helmet/PPE Violation":
-                                if a.person_count != unhelmeted_count or evidence_frame:
+                        has_active_zone_alert = any(a.type == "Restricted Zone Entry" for a in self._active_alerts.values())
+                        if not has_active_zone_alert:
+                            trigger_zone_alert = True
+                        else:
+                            for a in self._active_alerts.values():
+                                if a.type == "Restricted Zone Entry":
+                                    a.person_count = max(1, self.persons_in_zone)
+                                    if evidence_frame:
+                                        ev_id = f"ev-{a.id}"
+                                        self.evidence_store[ev_id] = evidence_frame
+                                        a.evidence_url = f"/api/evidence/{ev_id}"
+                                        a.evidence_image = f"data:image/jpeg;base64,{base64.b64encode(evidence_frame).decode('utf-8')}"
+                                    break
+                elif not multi_viol_persons:
+                    # Zone is clear
+                    p = self.active_passport
+                    if p and p.status == "PAUSED":
+                        p.status = "AWAITING_RESTORATION"
+                        p.events.append(PassportEvent(
+                            id=f"evt-{int(now_ts*1000)}",
+                            timestamp=datetime.now().isoformat(),
+                            event_type="barrier_clear",
+                            actor="AI CCTV Vision",
+                            description="AI indicates exclusion zone is now clear. Human verification required before reactivation."
+                        ))
+                        state_changed = True
+
+                # 2. Check Helmet Violation
+                if not multi_viol_persons and unhelmeted_count > 0:
+                    self.safe_start_time = None
+                    if self.violation_start_time is None:
+                        self.violation_start_time = now_ts
+                    
+                    elapsed = now_ts - self.violation_start_time
+                    if elapsed >= self.violation_persist_threshold:
+                        self.current_safety_state = "VIOLATION"
+                        has_active_ppe_alert = any(a.type == "Helmet/PPE Violation" for a in self._active_alerts.values())
+                        if not has_active_ppe_alert:
+                            trigger_helmet_alert = True
+                        else:
+                            for a in self._active_alerts.values():
+                                if a.type == "Helmet/PPE Violation":
                                     a.person_count = unhelmeted_count
                                     a.affected_person_ids = self.unhelmeted_ids
                                     a.affected_persons = self.unhelmeted_ids
-                                    p_word = "PEOPLE" if unhelmeted_count > 1 else "PERSON"
-                                    a.title = f"{unhelmeted_count} {p_word} WITHOUT HELMETS"
-                                    a.short_summary = f"{unhelmeted_count} unequipped workers detected without head protection"
+                                    combined_viols = ["NO HELMET"]
+                                    if self.unvested_count > 0 and "NO SAFETY VEST" not in combined_viols:
+                                        combined_viols.append("NO SAFETY VEST")
+                                    if getattr(self, 'ungloved_count', 0) > 0 and "NO GLOVES" not in combined_viols:
+                                        combined_viols.append("NO GLOVES")
+                                    a.title = " + ".join(combined_viols)
+                                    a.violations = combined_viols
+                                    a.short_summary = f"{unhelmeted_count} unequipped workers detected missing: {', '.join(combined_viols)}"
                                     if evidence_frame:
                                         ev_id = f"ev-{a.id}"
                                         self.evidence_store[ev_id] = evidence_frame
                                         a.evidence_url = f"/api/evidence/{ev_id}"
                                         a.evidence_image = f"data:image/jpeg;base64,{base64.b64encode(evidence_frame).decode('utf-8')}"
                                     state_changed = True
-                                break
-            elif person_detected and helmet_detected:
-                self.violation_start_time = None
-                if self.safe_start_time is None:
-                    self.safe_start_time = now_ts
-                if not self.zone_violation:
-                    self.current_safety_state = "SAFE"
-            else:
-                self.violation_start_time = None
-                self.safe_start_time = None
-                if not self.zone_violation:
-                    self.current_safety_state = "MONITORING"
+                                    break
+                elif not multi_viol_persons:
+                    self.violation_start_time = None
+
+                # 3. Check Safety Vest Violation (Single violation)
+                if not multi_viol_persons and unvested_count > 0 and unhelmeted_count == 0:
+                    self.safe_start_time = None
+                    if self.vest_violation_start_time is None:
+                        self.vest_violation_start_time = now_ts
+                    
+                    elapsed = now_ts - self.vest_violation_start_time
+                    if elapsed >= self.violation_persist_threshold:
+                        self.current_safety_state = "VIOLATION"
+                        has_active_vest = any(a.type == "Safety Vest Violation" for a in self._active_alerts.values())
+                        if not has_active_vest:
+                            trigger_vest_alert = True
+                        else:
+                            for a in self._active_alerts.values():
+                                if a.type == "Safety Vest Violation":
+                                    if a.person_count != unvested_count or evidence_frame:
+                                        a.person_count = unvested_count
+                                        a.affected_person_ids = self.unvested_ids
+                                        a.affected_persons = self.unvested_ids
+                                        p_word = "PEOPLE" if unvested_count > 1 else "PERSON"
+                                        a.title = f"{unvested_count} {p_word} WITHOUT SAFETY VEST"
+                                        a.short_summary = f"{unvested_count} unequipped workers detected without high-visibility vest"
+                                        if evidence_frame:
+                                            ev_id = f"ev-{a.id}"
+                                            self.evidence_store[ev_id] = evidence_frame
+                                            a.evidence_url = f"/api/evidence/{ev_id}"
+                                            a.evidence_image = f"data:image/jpeg;base64,{base64.b64encode(evidence_frame).decode('utf-8')}"
+                                        state_changed = True
+                                    break
+                elif not multi_viol_persons:
+                    self.vest_violation_start_time = None
+
+                # 4. Check Gloves Violation (Single violation)
+                if not multi_viol_persons and ungloved_count > 0 and unhelmeted_count == 0 and unvested_count == 0:
+                    self.safe_start_time = None
+                    if self.gloves_violation_start_time is None:
+                        self.gloves_violation_start_time = now_ts
+                    
+                    elapsed = now_ts - self.gloves_violation_start_time
+                    if elapsed >= self.violation_persist_threshold:
+                        self.current_safety_state = "VIOLATION"
+                        has_active_gloves = any("glove" in a.type.lower() for a in self._active_alerts.values())
+                        if not has_active_gloves:
+                            trigger_gloves_alert = True
+                        else:
+                            for a in self._active_alerts.values():
+                                if "glove" in a.type.lower():
+                                    if a.person_count != ungloved_count or evidence_frame:
+                                        a.person_count = ungloved_count
+                                        a.affected_person_ids = self.ungloved_ids
+                                        a.affected_persons = self.ungloved_ids
+                                        p_word = "PEOPLE" if ungloved_count > 1 else "PERSON"
+                                        a.title = f"{ungloved_count} {p_word} WITHOUT SAFETY GLOVES"
+                                        a.short_summary = f"{ungloved_count} unequipped workers detected without safety gloves"
+                                        if evidence_frame:
+                                            ev_id = f"ev-{a.id}"
+                                            self.evidence_store[ev_id] = evidence_frame
+                                            a.evidence_url = f"/api/evidence/{ev_id}"
+                                            a.evidence_image = f"data:image/jpeg;base64,{base64.b64encode(evidence_frame).decode('utf-8')}"
+                                        state_changed = True
+                                    break
+                else:
+                    self.gloves_violation_start_time = None
+
+                # 5. Check Safe State
+                if (person_detected and helmet_detected and vest_detected and not self.zone_violation and 
+                    unhelmeted_count == 0 and unvested_count == 0 and ungloved_count == 0):
+                    self.violation_start_time = None
+                    self.vest_violation_start_time = None
+                    self.gloves_violation_start_time = None
+                    if self.safe_start_time is None:
+                        self.safe_start_time = now_ts
+                    if not self._active_alerts:
+                        self.current_safety_state = "SAFE"
+                elif not person_detected and not self.zone_violation:
+                    self.violation_start_time = None
+                    self.vest_violation_start_time = None
+                    self.gloves_violation_start_time = None
+                    self.safe_start_time = None
+                    if not self._active_alerts:
+                        self.current_safety_state = "MONITORING"
 
             if (self.person_detected != prev_person or 
                 self.helmet_detected != prev_helmet or 
+                self.vest_detected != prev_vest or
+                getattr(self, 'gloves_detected', False) != prev_gloves or
+                getattr(self, 'fire_detected', False) != prev_fire or
                 self.person_count != prev_person_count or
                 self.unhelmeted_count != prev_unhelmeted_count or
+                self.unvested_count != prev_unvested_count or
+                getattr(self, 'ungloved_count', 0) != prev_ungloved_count or
                 self.current_safety_state != prev_safety or
                 self.zone_violation != prev_zone_violation or
                 self.persons_in_zone != prev_persons_in_zone or
@@ -1590,14 +2726,39 @@ class AlertStateManager:
                 self.zone_debug_info != prev_debug_info):
                 state_changed = True
 
+        # Alert dispatches outside lock
+        target_z = breached_zone or self.active_zone
+        loc = target_z.name if target_z else "Demo Work Zone"
+        cam = target_z.camera_id if target_z else "C-01"
+
+        if trigger_grouped_camera_alert and grouped_alert_args:
+            self.trigger_alert(**grouped_alert_args)
+
         if trigger_passport_breach:
             b_name = (breached_zone.name if breached_zone else (self.active_passport.linked_zone_name if self.active_passport else "Lifting exclusion zone"))
             self.pause_passport_due_to_breach(f"{b_name} breached", evidence_frame=evidence_frame)
 
+        if trigger_multi_alert:
+            v_str = " + ".join(multi_violations_list)
+            p_str = ", ".join(multi_affected_ids)
+            self.trigger_alert(
+                alert_type="Multi-Hazard Safety Violation",
+                location=loc,
+                camera=cam,
+                severity="CRITICAL" if any("ZONE" in v for v in multi_violations_list) else "HIGH",
+                sif_potential="CRITICAL / HIGH",
+                person_count=max(1, len(multi_affected_ids)),
+                affected_person_ids=multi_affected_ids,
+                title=f"MULTI-HAZARD SAFETY VIOLATION ({p_str})",
+                short_summary=f"{p_str} detected with concurrent violations: {v_str}",
+                hazard="Multiple Concurrent Safety Barrier Failures",
+                unsafe_condition=f"Worker present with multiple simultaneous safety violations: {v_str}",
+                notes=f"Automated SIF Alert: {p_str} multiple concurrent violations ({v_str}).",
+                evidence_frame=evidence_frame,
+                violations=multi_violations_list
+            )
+
         if trigger_zone_alert:
-            target_z = breached_zone or self.active_zone
-            loc = target_z.name if target_z else "Compressor Restricted Area"
-            cam = target_z.camera_id if target_z else "C-01"
             sev = target_z.severity if target_z else "HIGH"
             z_type = (target_z.zone_type or "floor").lower() if target_z else "floor"
             type_label = "Surface / Platform" if "surface" in z_type else "Floor / Ground"
@@ -1611,12 +2772,20 @@ class AlertStateManager:
                 hazard=f"Unauthorized / Unsafe Occupancy of {type_label} Zone",
                 unsafe_condition=f"Person detected occupying {type_label} restricted perimeter ({loc})",
                 notes="Automated SIF Observation: Person detected inside an HSE-defined restricted area.",
-                evidence_frame=evidence_frame
+                evidence_frame=evidence_frame,
+                violations=["RESTRICTED ZONE"]
             )
         
         if trigger_helmet_alert:
             cnt = max(1, self.unhelmeted_count)
             p_word = "PEOPLE" if cnt > 1 else "PERSON"
+            combined_viols = ["NO HELMET"]
+            if self.unvested_count > 0 and "NO SAFETY VEST" not in combined_viols:
+                combined_viols.append("NO SAFETY VEST")
+            if getattr(self, 'ungloved_count', 0) > 0 and "NO GLOVES" not in combined_viols:
+                combined_viols.append("NO GLOVES")
+            alert_title = " + ".join(combined_viols)
+
             self.trigger_alert(
                 alert_type="Helmet/PPE Violation",
                 location="Demo Work Zone",
@@ -1625,15 +2794,62 @@ class AlertStateManager:
                 sif_potential="HIGH / POTENTIAL",
                 person_count=cnt,
                 affected_person_ids=self.unhelmeted_ids,
-                title=f"{cnt} {p_word} WITHOUT HELMETS",
-                short_summary=f"{cnt} unequipped workers detected without head protection",
-                hazard="Lack of required PPE (Head Protection)",
-                unsafe_condition=f"{cnt} workers present without hard hat in active zone",
+                title=alert_title,
+                short_summary=f"{cnt} unequipped workers detected missing: {', '.join(combined_viols)}",
+                hazard=f"Lack of required PPE ({', '.join(combined_viols)})",
+                unsafe_condition=f"{cnt} workers present missing required PPE ({' + '.join(combined_viols)}) in active zone",
                 notes=f"Automated SIF Prevention Alert: {cnt} workers.",
-                evidence_frame=evidence_frame
+                evidence_frame=evidence_frame,
+                violations=combined_viols
             )
 
-        if state_changed and not (trigger_zone_alert or trigger_helmet_alert or trigger_passport_breach):
+        if trigger_vest_alert:
+            cnt = max(1, self.unvested_count)
+            p_word = "PEOPLE" if cnt > 1 else "PERSON"
+            combined_viols = ["NO SAFETY VEST"]
+            if getattr(self, 'ungloved_count', 0) > 0 and "NO GLOVES" not in combined_viols:
+                combined_viols.append("NO GLOVES")
+            alert_title = " + ".join(combined_viols)
+
+            self.trigger_alert(
+                alert_type="Safety Vest Violation",
+                location="Demo Work Zone",
+                camera="C-01",
+                severity="HIGH",
+                sif_potential="HIGH / POTENTIAL",
+                person_count=cnt,
+                affected_person_ids=self.unvested_ids,
+                title=alert_title,
+                short_summary=f"{cnt} unequipped workers detected missing: {', '.join(combined_viols)}",
+                hazard=f"Lack of required PPE ({', '.join(combined_viols)})",
+                unsafe_condition=f"{cnt} workers present missing required PPE ({' + '.join(combined_viols)}) in active zone",
+                notes=f"Automated SIF Prevention Alert: {cnt} workers.",
+                evidence_frame=evidence_frame,
+                violations=combined_viols
+            )
+
+        if trigger_gloves_alert:
+            cnt = max(1, self.ungloved_count)
+            p_word = "PEOPLE" if cnt > 1 else "PERSON"
+            self.trigger_alert(
+                alert_type="Gloves Violation",
+                location="Demo Work Zone",
+                camera="C-01",
+                severity="HIGH",
+                sif_potential="HIGH / POTENTIAL",
+                person_count=cnt,
+                affected_person_ids=self.ungloved_ids,
+                title=f"{cnt} {p_word} WITHOUT SAFETY GLOVES",
+                short_summary=f"{cnt} unequipped workers detected without hand protection",
+                hazard="Lack of required PPE (Safety Hand Protection / Gloves)",
+                unsafe_condition=f"{cnt} workers present without safety gloves in active zone",
+                notes=f"Automated SIF Prevention Alert: {cnt} workers.",
+                evidence_frame=evidence_frame,
+                violations=["NO GLOVES"]
+            )
+
+        if state_changed and not (trigger_grouped_camera_alert or trigger_zone_alert or trigger_helmet_alert or trigger_vest_alert or 
+                                  trigger_gloves_alert or trigger_multi_alert or trigger_passport_breach):
             self.notify_clients()
 
     def _watchdog_loop(self):
@@ -1734,6 +2950,55 @@ class AlertStateManager:
             
             if should_notify:
                 self.notify_clients()
+
+    def reset_cv_session(self):
+        """
+        Clears transient CV live tracking state when switching camera sources or videos.
+        Resets active_alert if it is a CV-generated alert, resets detection counters, and clears tracking state.
+        Returns a dict with success=True.
+        """
+        with self.lock:
+            # Reset live transient CV counters
+            self.person_detected = False
+            self.person_count = 0
+            self.unhelmeted_count = 0
+            self.unvested_count = 0
+            self.ungloved_count = 0
+            self.unhelmeted_ids = []
+            self.unvested_ids = []
+            self.ungloved_ids = []
+            self.helmet_detected = False
+            self.vest_detected = False
+            self.gloves_detected = False
+            self.fire_detected = False
+            self.fire_confidence = 0.0
+            self.zone_violation = False
+            self.camera_consecutive_violation_count = 0
+            self.camera_consecutive_safe_count = 0
+            self.camera_active_alert_id = None
+            self.current_safety_state = "MONITORING"
+
+            # Clear active CV alert if present
+            if self.active_alert:
+                if (
+                    self.active_alert.type in ("Person–Vehicle Proximity", "Helmet/PPE Violation", "Restricted Area Breach", "Zone Breach", "CCTV Safety Violation", "Safety Vest Violation", "Gloves Violation", "Fire Hazard", "Fire Detection") or
+                    "fire" in self.active_alert.type.lower() or
+                    getattr(self.active_alert, "source", "") in ("CCTV_CV", "CV_DETECTION", "CCTV") or
+                    self.active_alert.id.startswith("ALT-PROX-") or
+                    self.active_alert.id.startswith("ALT-FIRE-") or
+                    self.active_alert.id.startswith("ALT-CV-")
+                ):
+                    self.active_alert = None
+            
+            # Reset detection engine tracks if available
+            try:
+                from detection import video_engine
+                video_engine.reset_tracks()
+            except Exception:
+                pass
+                
+        self.notify_clients()
+        return {"success": True, "message": "CV session cleanly reset"}
 
     def notify_clients(self):
         """

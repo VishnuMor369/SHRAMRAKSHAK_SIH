@@ -6,7 +6,10 @@ import time
 import base64
 import cv2
 import numpy as np
-import pandas as pd
+try:
+    import pandas as pd
+except (ImportError, Exception):
+    import safe_pandas as pd
 from datetime import datetime, timedelta
 from typing import Optional, List, Dict, Any
 
@@ -16,7 +19,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse, Response
 
 from models import (
-    SystemStatus, Alert, AlertActionRequest, RestrictedZone,
+    SystemStatus, Alert, AlertActionRequest, AlertVerificationRequest, RestrictedZone,
     CreatePassportRequest, VerifyControlRequest, ApprovePassportRequest, VerifyRestorationRequest,
     SafetyReport, AnalysisSummary, RecurringPattern, HSEReviewRequest, HSEObservationRequest
 )
@@ -192,6 +195,37 @@ def resolve_alert(req: AlertActionRequest = AlertActionRequest()):
     if not alert:
         raise HTTPException(status_code=400, detail="No active alert to resolve")
     return {"message": "Alert resolved successfully", "alert": alert}
+
+@app.post("/api/alert/action")
+@app.post("/api/alerts/{alert_id}/action")
+def mark_alert_action(alert_id: Optional[str] = None, req: AlertActionRequest = AlertActionRequest()):
+    """Supervisor marks corrective action executed on site (Phase 4)."""
+    target_id = alert_id or req.alert_id
+    alert = state_manager.mark_action_taken(
+        alert_id=target_id,
+        supervisor_id=req.supervisor_id or "SUP-01",
+        notes=req.notes,
+        action_taken=req.action_taken
+    )
+    if not alert:
+        raise HTTPException(status_code=400, detail="Alert not found or cannot mark action taken")
+    return {"message": "Corrective action marked completed; awaiting verification", "alert": alert}
+
+@app.post("/api/alert/verify")
+@app.post("/api/alerts/{alert_id}/verify")
+def verify_alert_action(alert_id: Optional[str] = None, req: AlertVerificationRequest = AlertVerificationRequest()):
+    """Safety verification step (Phase 4): VERIFIED, FAILED, or HSE_REVIEW_REQUIRED."""
+    target_id = alert_id or req.alert_id
+    alert = state_manager.verify_alert(
+        alert_id=target_id,
+        supervisor_id=req.supervisor_id or "SUP-01",
+        decision=req.decision,
+        verification_method=req.verification_method,
+        notes=req.notes
+    )
+    if not alert:
+        raise HTTPException(status_code=400, detail="Alert not found or cannot verify")
+    return {"message": f"Verification decision '{req.decision}' recorded", "alert": alert}
 
 def process_and_store_hse_observation(alert_id_param: Optional[str], req: HSEObservationRequest) -> Alert:
     now_iso = datetime.now().isoformat()
@@ -433,6 +467,13 @@ def simulate_safe():
     """Demo Mode fallback: simulates safe state (helmet detected)"""
     state_manager.simulate_safe()
     return {"message": "Simulated Safe state active"}
+
+@app.post("/api/demo/simulate-breach")
+@app.post("/api/demo/simulate-zone-entry")
+def simulate_zone_breach():
+    """Demo Mode fallback: simulates restricted zone breach / SIF precursor"""
+    alert = state_manager.simulate_zone_entry()
+    return {"message": "Simulated Restricted Zone breach triggered", "alert": alert}
 
 # ==========================================
 # AI + NLP SAFETY ANALYSIS ENDPOINTS (SIH PS 26165)
@@ -852,22 +893,31 @@ def video_feed(camera: Optional[str] = "C-01", camera_id: Optional[str] = None):
 async def process_browser_frame(request: Request):
     """
     Receives live webcam frames from browser (or demo video playback)
-    at configurable 5-10 FPS, runs real ONNX model inference, and returns detections.
+    at configurable 10-12 FPS, runs real ONNX model inference, and returns detections.
     """
     try:
         content_type = request.headers.get("content-type", "")
         img_bytes = None
         camera_id = "C-01"
+        frame_seq = 0
 
         if "multipart/form-data" in content_type:
             form = await request.form()
             file = form.get("frame")
             camera_id = form.get("camera_id", "C-01")
+            try:
+                frame_seq = int(form.get("frame_seq", 0))
+            except (ValueError, TypeError):
+                frame_seq = 0
             if file:
                 img_bytes = await file.read()
         elif "application/json" in content_type:
             data = await request.json()
             camera_id = data.get("camera_id", "C-01")
+            try:
+                frame_seq = int(data.get("frame_seq", 0))
+            except (ValueError, TypeError):
+                frame_seq = 0
             b64 = data.get("frame", "")
             if b64:
                 if "," in b64:
@@ -889,13 +939,24 @@ async def process_browser_frame(request: Request):
         video_engine._last_external_frame_ts = time.time()
 
         # Run real ONNX detection engine
-        result = video_engine.process_frame(frame, camera_id=camera_id)
+        result = video_engine.process_frame(frame, camera_id=camera_id, frame_seq=frame_seq)
         return result
 
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/cv/reset")
+def reset_cv_session():
+    """
+    Resets all CV tracking session states (person tracks, vehicle tracks,
+    proximity states, frame sequences) and clears camera active alert session.
+    Called when user switches source (Webcam <-> Demo Video) or uploads new video.
+    """
+    video_engine.reset_tracks()
+    state_manager.reset_cv_session()
+    return {"status": "ok", "message": "CV detection session cleanly reset"}
 
 @app.get("/api/cv/debug")
 def get_cv_debug():
@@ -909,46 +970,16 @@ def get_cameras():
         "cameras": [
             {
                 "id": "C-01",
-                "name": "Camera C-01 (Demo Work Zone)",
+                "name": "Camera C-01 (Laptop Webcam)",
                 "location": "Demo Work Zone",
                 "type": "PHYSICAL" if hasattr(video_engine, 'cap') and video_engine.cap and video_engine.cap.isOpened() else "AI_CCTV",
                 "status": "LIVE",
                 "resolution": "640x480",
                 "ai_active": True,
                 "stream_url": "/video_feed?camera=C-01"
-            },
-            {
-                "id": "C-02",
-                "name": "Camera C-02 (Rig Floor & Compressor)",
-                "location": "Compressor Restricted Area",
-                "type": "PHYSICAL" if hasattr(video_engine, 'caps') and 1 in video_engine.caps else "AI_CCTV",
-                "status": "LIVE",
-                "resolution": "640x480",
-                "ai_active": True,
-                "stream_url": "/video_feed?camera=C-02"
-            },
-            {
-                "id": "C-03",
-                "name": "Camera C-03 (Tank Battery)",
-                "location": "Confined Space Entry",
-                "type": "AI_CCTV",
-                "status": "LIVE",
-                "resolution": "640x480",
-                "ai_active": True,
-                "stream_url": "/video_feed?camera=C-03"
-            },
-            {
-                "id": "C-04",
-                "name": "Camera C-04 (Mechanical Lifting)",
-                "location": "Crane Radius & Pipe Yard",
-                "type": "AI_CCTV",
-                "status": "LIVE",
-                "resolution": "640x480",
-                "ai_active": True,
-                "stream_url": "/video_feed?camera=C-04"
             }
         ],
-        "active_camera": getattr(state_manager, 'active_camera_id', 'C-01')
+        "active_camera": "C-01"
     }
 
 @app.post("/api/cameras/select")

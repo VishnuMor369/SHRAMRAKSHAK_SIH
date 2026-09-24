@@ -851,10 +851,7 @@ export default function SafetyPassportView({ status, onClose }) {
                       onChange={(e) => setFormData({ ...formData, camera_id: e.target.value })}
                       className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 font-semibold outline-none focus:border-slate-800"
                     >
-                      <option value="C-01">Camera C-01 (Demo Work Zone)</option>
-                      <option value="C-02">Camera C-02 (Rig Floor & Compressor Area)</option>
-                      <option value="C-03">Camera C-03 (Tank Battery Confined Space)</option>
-                      <option value="C-04">Camera C-04 (Pipe Crane Yard Line of Fire)</option>
+                      <option value="C-01">Camera C-01 (Demo Work Zone / Laptop Webcam)</option>
                     </select>
                   </div>
 

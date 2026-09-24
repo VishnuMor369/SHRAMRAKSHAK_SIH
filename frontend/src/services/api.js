@@ -57,6 +57,28 @@ export async function resolveAlert(supervisorId = 'SUP-01', notes = '', alertId 
   return res.json();
 }
 
+export async function markActionTaken(supervisorId = 'SUP-01', notes = '', actionTaken = '', alertId = null) {
+  const endpoint = alertId ? `${API_BASE}/api/alerts/${alertId}/action` : `${API_BASE}/api/alert/action`;
+  const res = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ supervisor_id: supervisorId, notes, action_taken: actionTaken, alert_id: alertId }),
+  });
+  if (!res.ok) throw new Error('Failed to mark action taken');
+  return res.json();
+}
+
+export async function verifyAlert(supervisorId = 'SUP-01', decision = 'VERIFIED', verificationMethod = 'CCTV_VERIFIED', notes = '', alertId = null) {
+  const endpoint = alertId ? `${API_BASE}/api/alerts/${alertId}/verify` : `${API_BASE}/api/alert/verify`;
+  const res = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ supervisor_id: supervisorId, decision, verification_method: verificationMethod, notes, alert_id: alertId }),
+  });
+  if (!res.ok) throw new Error('Failed to record alert verification');
+  return res.json();
+}
+
 export async function addHSEObservation(alertId, data) {
   const res = await fetch(`${API_BASE}/api/alerts/${alertId}/hse-observation`, {
     method: 'POST',
@@ -546,13 +568,22 @@ export function useRealtimeState() {
   return { status, isConnected };
 }
 
-export async function sendCameraFrame(frameBase64, cameraId = 'C-01') {
+export async function sendCameraFrame(frameBase64, cameraId = 'C-01', frameSeq = 0) {
   const res = await fetch(`${API_BASE}/api/cv/frame`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ frame: frameBase64, camera_id: cameraId })
+    body: JSON.stringify({ frame: frameBase64, camera_id: cameraId, frame_seq: frameSeq })
   });
   if (!res.ok) throw new Error('Failed to process camera frame');
+  return res.json();
+}
+
+export async function resetCvSession() {
+  const res = await fetch(`${API_BASE}/api/cv/reset`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' }
+  });
+  if (!res.ok) throw new Error('Failed to reset CV session');
   return res.json();
 }
 

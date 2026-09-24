@@ -22,7 +22,7 @@ export default function LiveCameraCard({ status, activeCamera = 'C-01', onOpenLi
         <div className="flex items-center space-x-2">
           <Video className="w-4 h-4 text-slate-700" />
           <h2 className="text-xs font-black tracking-wider text-slate-800 uppercase">
-            Live Monitoring • {activeCamera}
+            Live Monitoring • Camera C-01 (Laptop Webcam)
           </h2>
         </div>
 
@@ -42,13 +42,13 @@ export default function LiveCameraCard({ status, activeCamera = 'C-01', onOpenLi
       </div>
 
       {/* Video Feed Window */}
-      <div className="relative rounded-lg overflow-hidden bg-slate-950 aspect-video border border-slate-200 group">
+      <div className="relative rounded-lg overflow-hidden bg-slate-950 aspect-[4/3] max-h-64 mx-auto border border-slate-200 group flex items-center justify-center">
         {!streamError ? (
           <img
             key={`${activeCamera}-${streamKey}`}
             src={`/video_feed?camera=${activeCamera}&t=${streamKey}`}
             alt={`Live CCTV Stream ${activeCamera}`}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-contain"
             onError={() => setStreamError(true)}
           />
         ) : (
@@ -87,7 +87,7 @@ export default function LiveCameraCard({ status, activeCamera = 'C-01', onOpenLi
       {/* Action Footer */}
       <div className="flex items-center justify-between pt-1">
         <span className="text-[11px] text-slate-500 font-medium">
-          Edge Model: YOLO-Pose + AI
+          Edge Model: ONNX PPE + YOLOv8
         </span>
         {onOpenLiveMonitoring && (
           <button
