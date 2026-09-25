@@ -1,11 +1,15 @@
 import asyncio
 import os
+import uuid
 import zipfile
 import io
 import time
 import base64
+import logging
 import cv2
 import numpy as np
+
+logger = logging.getLogger("shramrakshak")
 try:
     import pandas as pd
 except (ImportError, Exception):
@@ -32,6 +36,31 @@ from nlp_engine import (
 from safety_memory import safety_memory, SafetyEvent, HSEValidationStatus
 from nlp_engine.corroboration import corroboration_engine
 from nlp_engine.assertion_detector import AssertionDetector
+from unified_event_store import unified_event_store, SafetyEvent as CanonicalSafetyEvent
+from dataset_importer import dataset_import_manager
+
+try:
+    from backend.database import db
+    from backend.models_canonical import SafetyEvent as RealSafetyEvent, SIFStatus as CanonicalSIFStatus, ReviewStatus as CanonicalReviewStatus
+    from backend.nlp_engine.assertion_detector import assertion_detector as real_assertion_detector
+    from backend.nlp_engine.sif_pathway_engine import sif_pathway_engine as real_sif_pathway_engine
+    from backend.nlp_engine.lsr_classifier import lsr_classifier as real_lsr_classifier
+    from backend.nlp_engine.semantic_memory import semantic_memory as real_semantic_memory
+    from backend.nlp_engine.recurrence_engine import recurrence_engine as real_recurrence_engine
+    from backend.nlp_engine.propagation import propagation_engine as real_propagation_engine
+    from backend.nlp_engine.precondition_engine import precondition_engine as real_precondition_engine
+    from backend.dataset_pipeline.ingest import dataset_ingester as real_dataset_ingester
+except ImportError:
+    from database import db
+    from models_canonical import SafetyEvent as RealSafetyEvent, SIFStatus as CanonicalSIFStatus, ReviewStatus as CanonicalReviewStatus
+    from nlp_engine.assertion_detector import assertion_detector as real_assertion_detector
+    from nlp_engine.sif_pathway_engine import sif_pathway_engine as real_sif_pathway_engine
+    from nlp_engine.lsr_classifier import lsr_classifier as real_lsr_classifier
+    from nlp_engine.semantic_memory import semantic_memory as real_semantic_memory
+    from nlp_engine.recurrence_engine import recurrence_engine as real_recurrence_engine
+    from nlp_engine.propagation import propagation_engine as real_propagation_engine
+    from nlp_engine.precondition_engine import precondition_engine as real_precondition_engine
+    from dataset_pipeline.ingest import dataset_ingester as real_dataset_ingester
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -228,6 +257,19 @@ def verify_alert_action(alert_id: Optional[str] = None, req: AlertVerificationRe
     )
     if not alert:
         raise HTTPException(status_code=400, detail="Alert not found or cannot verify")
+    
+    # Persist verification record
+    try:
+        db.save_verification_record(
+            verification_id=f"VERIF-{uuid.uuid4().hex[:8].upper()}",
+            event_id=target_id or "ALERT-EVENT",
+            source=req.verification_method or "CCTV",
+            status=req.decision or "VERIFIED",
+            details=req.notes or f"Alert action verification: {req.decision}"
+        )
+    except Exception as e:
+        logger.error(f"Error persisting verification record: {e}")
+        
     return {"message": f"Verification decision '{req.decision}' recorded", "alert": alert}
 
 def process_and_store_hse_observation(alert_id_param: Optional[str], req: HSEObservationRequest) -> Alert:
@@ -486,14 +528,57 @@ def simulate_zone_breach():
 @app.post("/api/alerts/{alert_id}/cctv-verify")
 def cctv_verify_alert(alert_id: Optional[str] = None, req: Dict[str, Any] = {}):
     """
-    Executes objective CCTV verification of site safety conditions (Section 3C & 8).
-    - If simulate_rebreach is True or person is inside zone: returns FAILED (RE-BREACH DETECTED) and reopens action!
+    Executes objective CCTV verification of site safety conditions (P2.5).
+    - If simulate_rebreach is True or person is inside zone: returns FAILED (RE-BREACH DETECTED),
+      reopens action, logs verification record to SQLite, and emits a new Canonical SafetyEvent into Safety Memory!
     - If zone is clear: returns VERIFIED (Observable condition restored) and resolves alert.
     """
     simulate_rebreach = bool(req.get("simulate_rebreach", False))
     supervisor_id = req.get("supervisor_id", "SUP-01")
     target_id = alert_id or req.get("alert_id")
     result = state_manager.verify_cctv_condition(target_id, supervisor_id, simulate_rebreach)
+
+    # 1. Log verification record in SQLite
+    verif_id = f"VERIF-CCTV-{uuid.uuid4().hex[:8]}"
+    is_success = bool(result.get("verified")) or result.get("status") == "VERIFIED"
+    status_str = "VERIFIED" if is_success else "VERIFICATION_FAILED"
+    
+    db.save_verification(
+        verification_id=verif_id,
+        event_id=target_id,
+        source="CCTV",
+        status=status_str,
+        details=result
+    )
+
+    # 2. If VERIFICATION_FAILED (re-breach), create a new SafetyEvent entering Safety Memory
+    if not is_success:
+        now_iso = datetime.now().isoformat()
+        rebreach_event_id = f"EVT-CCTV-REBREACH-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+        rebreach_event = RealSafetyEvent(
+            event_id=rebreach_event_id,
+            source="CCTV",
+            timestamp=now_iso,
+            site="OIL Field Duliajan",
+            location="Drilling Rig 04 - Lifting Zone",
+            activity="Mechanical Crane Hoisting",
+            energy="Gravitational / Kinetic Energy (Suspended Load)",
+            exposure="Worker re-entered lifting exclusion zone post-corrective action",
+            barrier=["EXCLUSION_ZONE"],
+            barrier_state=["BYPASSED"],
+            consequence="Crush trauma / struck-by suspended load",
+            sif_status=CanonicalSIFStatus.SIF_POTENTIAL,
+            sif_reasons=["CCTV Verification Failed: Re-breach detected in active zone while load active."],
+            lsr=["SAFE_MECHANICAL_LIFTING", "LINE_OF_FIRE"],
+            machine_observation=True,
+            narrative="CCTV automated verification detected worker re-entry into restricted zone following corrective action sign-off."
+        )
+        db.save_event(rebreach_event)
+        try:
+            real_recurrence_engine.process_event(rebreach_event)
+        except Exception:
+            pass
+
     return result
 
 # ==========================================
@@ -502,65 +587,352 @@ def cctv_verify_alert(alert_id: Optional[str] = None, req: Dict[str, Any] = {}):
 
 @app.get("/api/safety-memory/summary")
 def get_safety_memory_summary():
-    """Returns consolidated Safety Memory status, recurring patterns, candidate vs validated counts"""
-    return safety_memory.get_summary()
+    """Returns consolidated Safety Memory status, recurring patterns, candidate vs validated counts from SQLite"""
+    counts = db.count_events()
+    patterns = db.list_patterns()
+    cand_count = sum(1 for p in patterns if p.validation_status == CanonicalReviewStatus.CANDIDATE)
+    val_count = sum(1 for p in patterns if p.validation_status == CanonicalReviewStatus.HSE_VALIDATED)
+    preconditions = db.list_preconditions(active_only=True)
+    return {
+        "total_events": counts["total"],
+        "sif_events_count": counts["sif_potential"],
+        "review_required_count": counts["review_required"],
+        "safe_controls_count": counts["no_sif_potential"],
+        "candidate_patterns_count": cand_count,
+        "validated_patterns_count": val_count,
+        "active_preconditions_count": len(preconditions),
+        "patterns": [p.to_dict() for p in patterns]
+    }
 
 @app.get("/api/safety-memory/events")
 def get_safety_memory_events():
-    """Returns all recorded safety events in Safety Memory"""
-    return {"events": [ev.dict() for ev in safety_memory.events.values()]}
+    """Returns all recorded safety events in SQLite persistent database"""
+    return {"events": [ev.to_dict() for ev in db.list_events(limit=200)]}
 
 @app.get("/api/safety-memory/patterns")
 def get_safety_memory_patterns():
-    """Returns all Candidate and HSE Validated Recurring Safety-Control Patterns"""
-    return {"patterns": [p.dict() for p in safety_memory.patterns.values()]}
+    """Returns all Candidate and HSE Validated Recurring Safety-Control Patterns from SQLite"""
+    patterns = db.list_patterns()
+    return {"patterns": [p.to_dict() for p in patterns]}
 
 @app.post("/api/safety-memory/patterns/{pattern_id}/validate")
-def validate_safety_pattern(pattern_id: str, req: Dict[str, Any] = {}):
+@app.post("/api/safety-memory/validate-pattern")
+def validate_safety_pattern_route(pattern_id: Optional[str] = None, req: Dict[str, Any] = {}):
     """
-    HSE Governance Layer (Section 7):
-    HSE Confirms, Corrects, or Rejects a Candidate Recurring Pattern.
-    When confirmed, automatically derives future-work safety requirements.
+    HSE Governance Layer:
+    Human HSE reviews Candidate Pattern -> validates or rejects -> triggers future precondition derivation.
     """
-    decision = req.get("decision", "CONFIRM")
-    reviewer = req.get("reviewer", "Chief HSE Inspector")
-    notes = req.get("notes", "Pattern confirmed based on independent recurrence analysis.")
-    pat = safety_memory.validate_pattern(pattern_id, decision, reviewer, notes)
-    if not pat:
-        raise HTTPException(status_code=404, detail=f"Pattern '{pattern_id}' not found")
-    state_manager.notify_clients()
-    return {"message": f"Pattern {pattern_id} {decision}ed by HSE", "pattern": pat.dict()}
+    target_id = pattern_id or req.get("pattern_id")
+    if not target_id:
+        raise HTTPException(status_code=400, detail="Pattern ID is required")
+    decision = req.get("decision", "VALIDATE")
+    reviewer = req.get("reviewer", "DEMO_HSE_REVIEWER")
+    notes = req.get("notes", "Confirmed recurring failure of safety barrier.")
+
+    try:
+        pat = real_propagation_engine.validate_safety_pattern(
+            pattern_id=target_id,
+            reviewer_role=reviewer,
+            action="VALIDATE" if decision.upper() in ["CONFIRM", "VALIDATE"] else "REJECT",
+            review_notes=notes
+        )
+        # If validated, auto-propose active precondition
+        prec = None
+        if pat.validation_status == CanonicalReviewStatus.HSE_VALIDATED:
+            prec = real_precondition_engine.create_precondition_from_pattern(pat.pattern_id)
+
+        state_manager.notify_clients()
+        return {
+            "message": f"Pattern {target_id} {decision}ed by HSE",
+            "pattern": pat.to_dict(),
+            "precondition": prec.to_dict() if prec else None
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/events/{event_id}/correct")
+def correct_event_route(event_id: str, req: Dict[str, Any] = {}):
+    """
+    Human Correction Propagation (P1.8):
+    Supervisor / HSE corrects extracted barrier or state.
+    Triggers dependency-aware recomputation of SIF, LSR, and Pattern state.
+    """
+    corrections = req.get("corrections", {})
+    reviewer = req.get("reviewer", "DEMO_HSE_REVIEWER")
+    reason = req.get("reason", "Field inspection correction")
+    try:
+        res = real_propagation_engine.apply_human_correction(
+            event_id=event_id,
+            corrections=corrections,
+            reviewer_role=reviewer,
+            reason=reason
+        )
+        state_manager.notify_clients()
+        return res
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @app.get("/api/safety-memory/future-requirements")
 def get_future_work_requirements():
-    """Returns all active Future-Work Safety Requirements derived from HSE Validated Patterns (Section 8)"""
-    return {"requirements": [r.dict() for r in safety_memory.future_requirements.values()]}
+    """Returns active Future-Work Preconditions derived from HSE Validated Patterns"""
+    precs = db.list_preconditions(active_only=True)
+    return {"requirements": [p.to_dict() for p in precs]}
 
 @app.post("/api/safety-memory/check-work-package")
 def evaluate_work_package(package: Dict[str, Any]):
     """
-    Evaluates future work package against HSE Validated Safety Patterns.
-    Flags 'REQUIRED_SAFETY_EVIDENCE_MISSING' if mandatory evidence is absent.
+    Evaluates future work package against active preconditions.
+    Flags MISSING_EVIDENCE or PASS. Never auto-approves permits.
     """
-    result = safety_memory.check_work_package(package)
-    return result.dict()
+    pkg_id = package.get("package_id") or package.get("id") or f"PKG-{uuid.uuid4().hex[:6]}"
+    activity = package.get("activity", "Mechanical Lifting")
+    location = package.get("location", "Rig 04")
+    evidence = package.get("submitted_evidence") or package.get("evidence") or {}
+    res = real_precondition_engine.evaluate_work_package(pkg_id, activity, location, evidence)
+    return res.to_dict()
 
-@app.post("/api/safety-memory/record-event")
-def record_event_in_memory(req: Dict[str, Any]):
-    """Records an external or manual safety event into Safety Memory with duplicate check"""
-    text = req.get("text", "")
-    context = req.get("context", {})
-    ev = AssertionDetector.evaluate_safety_event(text, context)
-    res = safety_memory.record_safety_event(ev)
-    state_manager.notify_clients()
-    return res
+# ==========================================
+# UNIFIED SAFETY EVENT PIPELINE & HUMAN REPORTS (Phases 1, 2, 3, 4, 5, 6)
+# ==========================================
 
-@app.post("/api/safety-memory/reset")
-def reset_safety_memory():
-    """Resets Safety Memory to default baseline (5 independent occurrences)"""
-    safety_memory.reset()
+@app.post("/api/events/human")
+def submit_human_safety_report(req: Dict[str, Any]):
+    """
+    Ingests and processes a REAL Human Safety Observation.
+    1. Runs real NLP & assertion detector with exact evidence spans.
+    2. Runs deterministic SIF pathway reasoning.
+    3. Maps multi-label IOGP Life-Saving Rules.
+    4. Persists Canonical SafetyEvent in SQLite and FAISS semantic memory.
+    5. Evaluates two-stage recurrence and candidate control patterns.
+    6. Triggers live immediate alert if high SIF.
+    """
+    narrative = req.get("narrative", "").strip()
+    if not narrative:
+        raise HTTPException(status_code=400, detail="Field 'narrative' ('What happened?') is required.")
+
+    location = req.get("location", "Drilling Rig 04 - Drill Floor").strip()
+    activity = req.get("activity", "Mechanical Lifting Operations").strip()
+    reporter = req.get("reporter", "Field HSE Inspector").strip()
+    date_val = req.get("date") or datetime.now().isoformat()
+
+    now_str = datetime.now().strftime("%Y%m%d-%H%M%S")
+    event_id = f"EVT-HUMAN-{now_str}-{uuid.uuid4().hex[:4].upper()}"
+
+    # 1. NLP Assertion & Evidence Extraction -> Canonical SafetyEvent
+    canonical_ev = real_assertion_detector.analyze(
+        narrative,
+        context={
+            "event_id": event_id,
+            "location": location,
+            "activity": activity,
+            "source": "HUMAN",
+            "timestamp": date_val
+        }
+    )
+
+    # 2. SIF Pathway Reasoning
+    canonical_ev = real_sif_pathway_engine.evaluate(canonical_ev)
+
+    # 3. Multi-label LSR mapping
+    lsr_matches = real_lsr_classifier.classify_event(canonical_ev)
+    canonical_ev.lsr = [m["lsr"] for m in lsr_matches]
+
+    # 4. Save to persistent SQLite database
+    db.save_event(canonical_ev)
+
+    # 5. Semantic Memory & Recurrence
+    rec_results, pattern = real_recurrence_engine.process_event(canonical_ev)
+
+    # 6. Synchronize into unified_event_store for live UI access
+    unified_event = CanonicalSafetyEvent(
+        event_id=canonical_ev.event_id,
+        source="HUMAN",
+        timestamp=canonical_ev.timestamp,
+        location=canonical_ev.location,
+        activity=canonical_ev.activity,
+        narrative=canonical_ev.narrative,
+        hazard=canonical_ev.energy,
+        exposure=canonical_ev.exposure,
+        critical_barrier=", ".join(canonical_ev.barrier) if canonical_ev.barrier else "Safety Barrier",
+        barrier_condition=", ".join(canonical_ev.barrier_state) if canonical_ev.barrier_state else "UNKNOWN",
+        consequence=canonical_ev.consequence,
+        sif_potential="HIGH" if canonical_ev.sif_status == CanonicalSIFStatus.SIF_POTENTIAL else ("MEDIUM" if canonical_ev.sif_status == CanonicalSIFStatus.REVIEW_REQUIRED else "NOT_SIF"),
+        lsr=", ".join(canonical_ev.lsr) if canonical_ev.lsr else "General Safety",
+        assertion_status=canonical_ev.assertion.value if hasattr(canonical_ev.assertion, "value") else str(canonical_ev.assertion),
+        temporal_status=canonical_ev.temporal_status.value if hasattr(canonical_ev.temporal_status, "value") else str(canonical_ev.temporal_status),
+        evidence_spans=[s.to_dict() if hasattr(s, "to_dict") else s for s in canonical_ev.evidence],
+        evidence_sources=["HUMAN_REPORT"],
+        recurrence_classification=rec_results[0].final_relationship.value if rec_results else "INDEPENDENT_RECURRENCE",
+        lifecycle_state="ACTION_REQUIRED" if canonical_ev.sif_status == CanonicalSIFStatus.SIF_POTENTIAL else "RESOLVED",
+        machine_observation=False,
+        metadata={"reporter": reporter}
+    )
+    unified_event_store.add_event(unified_event)
+
+    # 7. If SIF-POTENTIAL, trigger immediate active alert in state_manager
+    if canonical_ev.sif_status == CanonicalSIFStatus.SIF_POTENTIAL:
+        state_manager.trigger_alert(
+            alert_type="Human Safety Report / SIF Precursor",
+            location=location,
+            camera="C-01",
+            severity="CRITICAL",
+            sif_potential="HIGH / POTENTIAL",
+            person_count=1,
+            title="HUMAN REPORT: CRITICAL SIF PRECURSOR DETECTED",
+            short_summary=f"Worker report at {location}: {canonical_ev.exposure}",
+            hazard=canonical_ev.energy,
+            unsafe_condition=narrative,
+            notes=f"Field report by {reporter}. Barrier: {', '.join(canonical_ev.barrier)} ({', '.join(canonical_ev.barrier_state)})"
+        )
+
     state_manager.notify_clients()
-    return {"message": "Safety Memory reset successfully", "summary": safety_memory.get_summary()}
+
+    return {
+        "success": True,
+        "message": "Human Safety Report analyzed, vectorized, and persisted successfully",
+        "event": canonical_ev.to_dict(),
+        "recurrence_matches": [r.to_dict() for r in rec_results],
+        "candidate_pattern": pattern.to_dict() if pattern else None
+    }
+
+@app.get("/api/events")
+def get_unified_safety_events(
+    source: Optional[str] = "ALL",
+    sif_status: Optional[str] = "ALL",
+    search: Optional[str] = None,
+    page: int = 1,
+    page_size: int = 20
+):
+    """Returns filtered, paginated Unified Safety Events (HUMAN, IMPORTED, CCTV)."""
+    return unified_event_store.get_events(
+        source=source,
+        sif_status=sif_status,
+        search=search,
+        page=page,
+        page_size=page_size
+    )
+
+@app.get("/api/events/{event_id}")
+def get_unified_safety_event_by_id(event_id: str):
+    """Returns complete details, evidence spans, and audit trail for a single event."""
+    ev = unified_event_store.get_event(event_id)
+    if not ev:
+        raise HTTPException(status_code=404, detail=f"Safety Event '{event_id}' not found")
+    return ev.to_dict()
+
+@app.get("/api/events/stats/summary")
+def get_unified_safety_event_summary():
+    """Returns dynamically computed SIF intelligence metrics from real stored events."""
+    return unified_event_store.get_summary_stats()
+
+@app.post("/api/events/{event_id}/action")
+def update_event_action_state(event_id: str, req: Dict[str, Any]):
+    """Records supervisor corrective action on an event."""
+    supervisor_id = req.get("supervisor_id", "SUP-01")
+    notes = req.get("notes", "Corrective action taken on site")
+    ev = unified_event_store.update_lifecycle(event_id, "AWAITING_VERIFICATION", supervisor_id, notes)
+    if not ev:
+        raise HTTPException(status_code=404, detail=f"Safety Event '{event_id}' not found")
+    state_manager.notify_clients()
+    return {"message": "Action recorded. Transitioned to AWAITING_VERIFICATION", "event": ev.to_dict()}
+
+@app.post("/api/events/{event_id}/verify")
+def verify_event_condition(event_id: str, req: Dict[str, Any]):
+    """Closed-loop verification: 'Completion is not proof'. Checks for restoration or re-breach."""
+    simulate_rebreach = bool(req.get("simulate_rebreach", False))
+    supervisor_id = req.get("supervisor_id", "SUP-01")
+    notes = req.get("notes", "")
+
+    if simulate_rebreach:
+        ev = unified_event_store.update_lifecycle(
+            event_id,
+            "REOPENED",
+            supervisor_id,
+            f"VERIFICATION FAILED: Re-breach detected in zone! Corrective action reopened. {notes}"
+        )
+        try:
+            db.save_verification_record(
+                verification_id=f"VERIF-{uuid.uuid4().hex[:8].upper()}",
+                event_id=event_id,
+                source="CCTV",
+                status="FAILED",
+                details=f"Re-breach detected in zone: {notes}"
+            )
+        except Exception as e:
+            logger.error(f"Error persisting verification record: {e}")
+            
+        state_manager.notify_clients()
+        return {
+            "verified": False,
+            "message": "✕ VERIFICATION FAILED: Re-breach detected in zone! Corrective action reopened.",
+            "event": ev.to_dict() if ev else None
+        }
+    else:
+        ev = unified_event_store.update_lifecycle(
+            event_id,
+            "RESOLVED",
+            supervisor_id,
+            f"✓ VERIFIED: Observable zone clearance confirmed. {notes}"
+        )
+        try:
+            db.save_verification_record(
+                verification_id=f"VERIF-{uuid.uuid4().hex[:8].upper()}",
+                event_id=event_id,
+                source="CCTV",
+                status="VERIFIED",
+                details=f"Observable zone clearance confirmed: {notes}"
+            )
+        except Exception as e:
+            logger.error(f"Error persisting verification record: {e}")
+            
+        state_manager.notify_clients()
+        return {
+            "verified": True,
+            "message": "✓ VERIFIED: Observable zone clearance confirmed. Event closed.",
+            "event": ev.to_dict() if ev else None
+        }
+
+@app.post("/api/dataset/import-file")
+async def import_safety_dataset_file(file: UploadFile = File(...)):
+    """
+    Phase 4: Accepts CSV, XLSX, JSON, or PDF company dataset,
+    detects column mappings, and returns data health preview.
+    """
+    try:
+        contents = await file.read()
+        res = dataset_import_manager.parse_file(file.filename, contents)
+        return res
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/dataset/import-execute")
+def execute_dataset_import(req: Optional[Dict[str, Any]] = None, max_rows: Optional[int] = None):
+    """
+    Phase 5 & 6: Starts asynchronous background batch import into UnifiedEventStore
+    and SafetyMemoryStore without freezing browser UI.
+    """
+    limit = max_rows
+    if req and "max_rows" in req:
+        limit = req.get("max_rows")
+    try:
+        if dataset_import_manager.total_rows == 0:
+            dataset_import_manager.parse_default_dataset()
+        dataset_import_manager.start_background_import(limit)
+        return {
+            "success": True,
+            "message": "Dataset ingestion pipeline started in background",
+            "status": "PROCESSING",
+            "total_rows": dataset_import_manager.total_rows,
+            "processed": dataset_import_manager.processed_count
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/api/dataset/import-status")
+def get_dataset_import_status():
+    """Phase 6: Returns telemetry for real-time progress bar and completion summary."""
+    return dataset_import_manager.get_status()
+
 
 # ==========================================
 # CORROBORATION: HUMAN REPORT + CCTV EVIDENCE (Sections 3B & 12)

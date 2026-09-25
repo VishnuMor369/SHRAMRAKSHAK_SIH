@@ -1,199 +1,126 @@
-import re
-from typing import List, Dict, Any, Optional
+"""
+SHRAMRAKSHAK: Structured Multi-Label IOGP Life-Saving Rules Mapper
+SIH 2026 Problem Statement: SIH26165
 
-# Official 9 IOGP Life-Saving Rules (IOGP Report 459 standard)
-LSR_DEFINITIONS: Dict[str, Dict[str, Any]] = {
-    "Safe Mechanical Lifting": {
-        "why": "Personnel or load were involved in mechanical lifting without controlled path or integrity.",
-        "keywords": [
-            "lifting", "crane", "hoist", "suspended load", "rigging", "sling",
-            "mechanical lifting", "lifting exclusion zone", "lift plan", "winch", "boom"
-        ],
-        "patterns": [
-            r"\blift(ing)?\b",
-            r"\bcrane\b",
-            r"\bsuspended\s+load\b",
-            r"\brigg(ing)?\b",
-            r"\bhoist\b"
-        ]
-    },
-    "Line of Fire": {
-        "why": "Personnel were positioned directly in the trajectory, drop radius, or swing path of hazardous equipment.",
-        "keywords": [
-            "line of fire", "suspended load", "falling object", "underneath load",
-            "exclusion zone", "moving machinery", "swing radius", "struck by",
-            "pinch point", "drop hazard", "crush hazard", "trajectory", "recoil"
-        ],
-        "patterns": [
-            r"\bline\s+of\s+fire\b",
-            r"\bsuspended\s+load\b",
-            r"\bunder(neath)?\s+(the\s+)?load\b",
-            r"\bexclusion\s+zone\b",
-            r"\bcrush(ing)?\b",
-            r"\bstruck\s+by\b",
-            r"\bswing\s+radius\b"
-        ]
-    },
-    "Bypassing Safety Controls": {
-        "why": "Safety critical barrier, physical exclusion perimeter, or procedure was compromised or overridden.",
-        "keywords": [
-            "bypass", "override", "barrier breached", "barrier failed", "interlock",
-            "safety device disabled", "boundary breached", "perimeter breached",
-            "disregarded control", "unauthorized entry into restricted"
-        ],
-        "patterns": [
-            r"\bbypass(ing)?\b",
-            r"\bbarrier\s+(breach(ed)?|fail(ed)?|restor(ed)?)\b",
-            r"\bperimeter\s+breach(ed)?\b",
-            r"\bcontrol\s+breach(ed)?\b",
-            r"\boverrid(e|ing)\b"
-        ]
-    },
-    "Work Authorisation": {
-        "why": "Task executed without required permit to work, authorization verification, or formal clearance.",
-        "keywords": [
-            "permit to work", "ptw", "safety passport", "authorization", "permit",
-            "pre-start check", "unauthorized task", "toolbox talk", "isolation permit"
-        ],
-        "patterns": [
-            r"\bpermit\b",
-            r"\bpassport\b",
-            r"\bauthoris(ation|ed)\b",
-            r"\bauthoriz(ation|ed)\b",
-            r"\bptw\b"
-        ]
-    },
-    "Energy Isolation": {
-        "why": "Stored electrical, hydraulic, or pneumatic energy was not positively isolated and verified zero energy.",
-        "keywords": [
-            "lockout", "tagout", "loto", "energy isolation", "de-energized",
-            "stored energy", "pressurized line", "zero energy", "electrical isolation"
-        ],
-        "patterns": [
-            r"\bloto\b",
-            r"\blockout\b",
-            r"\btagout\b",
-            r"\benergy\s+isolation\b",
-            r"\bde-?energiz\b"
-        ]
-    },
-    "Working at Height": {
-        "why": "Work performed at elevation (>1.8m) without 100% continuous fall protection anchorage.",
-        "keywords": [
-            "working at height", "scaffold", "fall protection", "safety harness",
-            "ladder", "elevated platform", "leading edge", "manlift", "fall hazard"
-        ],
-        "patterns": [
-            r"\bheight\b",
-            r"\bscaffold(ing)?\b",
-            r"\bharness\b",
-            r"\bfall\s+(protection|hazard)\b",
-            r"\belevated\b"
-        ]
-    },
-    "Hot Work": {
-        "why": "Open flame, sparks, or thermal ignition source operated without continuous gas testing.",
-        "keywords": [
-            "hot work", "welding", "cutting", "grinding", "spark", "open flame",
-            "explosive atmosphere", "gas test", "fire watch"
-        ],
-        "patterns": [
-            r"\bhot\s+work\b",
-            r"\bweld(ing)?\b",
-            r"\bflame\b",
-            r"\bgrind(ing)?\b",
-            r"\bspark\b"
-        ]
-    },
-    "Confined Space": {
-        "why": "Enclosed or oxygen-deficient compartment entered without atmosphere certification or standby attendant.",
-        "keywords": [
-            "confined space", "vessel entry", "tank", "pit", "manhole",
-            "toxic atmosphere", "oxygen deficiency", "enclosed chamber"
-        ],
-        "patterns": [
-            r"\bconfined\s+space\b",
-            r"\bvessel\b",
-            r"\bmanhole\b",
-            r"\btank\s+entry\b"
-        ]
-    },
-    "Driving": {
-        "why": "Heavy plant or vehicle maneuvered without banksman, seatbelt, or pedestrian segregation.",
-        "keywords": [
-            "driving", "seatbelt", "vehicle", "speeding", "forklift transit",
-            "collision", "mobile equipment transit", "rollover"
-        ],
-        "patterns": [
-            r"\bdriv(ing|e)?\b",
-            r"\bvehicle\b",
-            r"\bseatbelt\b",
-            r"\bforklift\b"
-        ]
-    }
-}
+Implements P0.7:
+- Consumes Canonical SafetyEvent
+- Uses centralized ontology/lsr_rules.yaml
+- Structured multi-label assignment with explicit evidence, reason, and confidence
+- Eliminates superficial keyword guessing
+"""
+
+from typing import List, Dict, Any, Optional
+try:
+    from backend.models_canonical import SafetyEvent
+    from backend.nlp_engine.ontology import ontology
+except ImportError:
+    try:
+        from models_canonical import SafetyEvent
+        from nlp_engine.ontology import ontology
+    except ImportError:
+        from ..models_canonical import SafetyEvent
+        from .ontology import ontology
+
 
 class LSRClassifier:
-    """
-    Multi-label IOGP Life-Saving Rules Classifier.
-    Maps event descriptions, hazards, activities, and barrier failures
-    to applicable official IOGP rules without forcing rules where none apply.
-    """
+    def __init__(self):
+        self.ontology = ontology
 
-    def classify(self, text: str, context: Optional[Dict[str, Any]] = None) -> List[str]:
+    def classify_event(self, event: SafetyEvent) -> List[Dict[str, Any]]:
         """
-        Classifies input incident text and context to applicable IOGP Life-Saving Rules.
-        Returns a list of matched rule names (multi-label, capped to maximum 3).
+        Maps a Canonical SafetyEvent to applicable IOGP Life-Saving Rules.
+        Returns a list of structured mappings:
+        [{
+            "lsr": str,
+            "evidence": str,
+            "reason": str,
+            "confidence": float
+        }]
         """
-        details = self.classify_detailed(text, context)
-        # Cap to maximum 3 rules to prevent over-classification
-        return [d["rule"] for d in details[:3]]
+        matches = []
+        rules = self.ontology.lsr_rules
 
-    def classify_detailed(self, text: str, context: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
-        """
-        Returns structured IOGP Life-Saving Rule mappings with confidence and evidence.
-        """
-        if not text:
-            return []
+        # Collect event properties
+        act = (event.activity or "").upper()
+        energy = (event.energy or "").upper()
+        barriers = [b.upper() for b in event.barrier]
+        states = [s.upper() for s in event.barrier_state]
+        exposure = (event.exposure or "").upper()
+        narrative = (event.narrative or "").lower()
 
-        # Combine text and contextual fields
-        corpus = [text.lower()]
-        if context:
-            for k in ["activity", "hazard", "barrier_failure", "unsafe_condition", "event_type"]:
-                val = context.get(k)
-                if val:
-                    corpus.append(str(val).lower())
-        full_text = " ".join(corpus)
-
-        matched_items = []
-
-        for rule_name, rule_data in LSR_DEFINITIONS.items():
+        for rule in rules:
+            rule_id = rule["id"]
+            rule_name = rule["rule_name"]
+            matched_triggers = []
             evidence_snippets = []
-            confidence = "LOW"
 
-            # Check regex patterns
-            for pattern in rule_data["patterns"]:
-                match = re.search(pattern, full_text, re.IGNORECASE)
-                if match:
-                    evidence_snippets.append(f"Pattern matched: '{match.group(0)}'")
-                    confidence = "HIGH"
+            # Check Activity trigger
+            for t_act in rule.get("trigger_activities", []):
+                if t_act in act:
+                    matched_triggers.append(f"Activity matches {t_act}")
+                    evidence_snippets.append(event.activity)
                     break
 
-            # Check keyword presence
-            if not evidence_snippets:
-                for kw in rule_data["keywords"]:
-                    if kw in full_text:
-                        evidence_snippets.append(f"Keyword observed: '{kw}'")
-                        confidence = "MEDIUM"
-                        break
+            # Check Energy trigger
+            for t_eng in rule.get("trigger_energies", []):
+                if t_eng in energy:
+                    matched_triggers.append(f"Energy source matches {t_eng}")
+                    evidence_snippets.append(event.energy)
+                    break
 
-            if evidence_snippets:
-                matched_items.append({
-                    "rule": rule_name,
-                    "confidence": confidence,
-                    "why": rule_data["why"],
-                    "evidence": evidence_snippets
+            # Check Barrier trigger
+            for t_bar in rule.get("trigger_barriers", []):
+                if t_bar in barriers:
+                    matched_triggers.append(f"Safety barrier involves {t_bar}")
+                    evidence_snippets.append(t_bar)
+                    break
+
+            # Check Exposure trigger
+            for t_exp in rule.get("trigger_exposures", []):
+                if t_exp in exposure or any(kw in exposure.lower() for kw in ["inside", "line of fire", "under", "unprotected"]):
+                    matched_triggers.append(f"Exposure profile matches {t_exp}")
+                    evidence_snippets.append(event.exposure)
+                    break
+
+            # Check Barrier State trigger (e.g. BYPASSING_SAFETY_CONTROLS)
+            for t_bs in rule.get("trigger_barrier_states", []):
+                if t_bs in states:
+                    matched_triggers.append(f"Barrier state compromised ({t_bs})")
+                    evidence_snippets.append(t_bs)
+                    break
+
+            # Qualification check: must have at least 2 distinct trigger factors or a primary critical barrier match
+            is_valid_match = False
+            confidence = 0.85
+            if len(matched_triggers) >= 2:
+                is_valid_match = True
+                confidence = 0.95
+            elif rule_id == "SAFE_MECHANICAL_LIFTING" and ("LIFT" in act or "LIFTING" in barriers or "SUSPENDED" in energy):
+                is_valid_match = True
+                confidence = 0.90
+            elif rule_id == "LINE_OF_FIRE" and ("LINE OF FIRE" in exposure or "TRAJECTORY" in exposure or "DROPPED" in energy):
+                is_valid_match = True
+                confidence = 0.92
+            elif rule_id == "BYPASSING_SAFETY_CONTROLS" and any(st in ["BYPASSED", "REMOVED"] for st in states):
+                is_valid_match = True
+                confidence = 0.94
+            elif rule_id == "ENERGY_ISOLATION" and ("ISOLATION" in act or "LOTO" in act or "ELECTRICAL" in energy):
+                is_valid_match = True
+                confidence = 0.92
+            elif rule_id == "WORKING_AT_HEIGHT" and ("HEIGHT" in act or "HEIGHT" in energy or "FALL_PROTECTION" in barriers):
+                is_valid_match = True
+                confidence = 0.92
+
+            if is_valid_match:
+                matches.append({
+                    "lsr": rule_id,
+                    "rule_name": rule_name,
+                    "evidence": "; ".join(filter(None, set(evidence_snippets))),
+                    "reason": f"Triggered by: {', '.join(matched_triggers)}",
+                    "confidence": confidence
                 })
 
-        # Return max 3 most relevant rules
-        return matched_items[:3]
+        return matches
+
+
+lsr_classifier = LSRClassifier()

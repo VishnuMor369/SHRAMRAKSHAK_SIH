@@ -1,0 +1,101 @@
+version: "1.0.0"
+lsr_rules:
+  - id: "SAFE_MECHANICAL_LIFTING"
+    rule_name: "Safe Mechanical Lifting"
+    description: "Plan lifting operations and control the area. Never walk under a suspended load."
+    trigger_activities:
+      - "MECHANICAL_LIFTING"
+      - "PIPE_HANDLING"
+    trigger_energies:
+      - "GRAVITATIONAL_KINETIC"
+    trigger_barriers:
+      - "EXCLUSION_ZONE"
+      - "LIFTING_CONTROL"
+    trigger_exposures:
+      - "INSIDE_EXCLUSION_ZONE"
+      - "BENEATH_SUSPENDED_LOAD"
+
+  - id: "LINE_OF_FIRE"
+    rule_name: "Line of Fire"
+    description: "Keep yourself and others out of the line of fire. Position yourself to avoid moving objects, swinging loads, and stored energy."
+    trigger_activities:
+      - "MECHANICAL_LIFTING"
+      - "PRESSURE_TESTING"
+      - "WELL_INTERVENTION_DRILLING"
+      - "VEHICLE_LOGISTICS"
+    trigger_exposures:
+      - "LINE_OF_FIRE"
+      - "BENEATH_SUSPENDED_LOAD"
+      - "INSIDE_EXCLUSION_ZONE"
+
+  - id: "BYPASSING_SAFETY_CONTROLS"
+    rule_name: "Bypassing Safety Controls"
+    description: "Obtain authorization before overriding or disabling safety controls."
+    trigger_barrier_states:
+      - "BYPASSED"
+      - "REMOVED"
+    trigger_barriers:
+      - "INTERLOCK_GUARD"
+      - "EXCLUSION_ZONE"
+      - "ENERGY_ISOLATION"
+
+  - id: "ENERGY_ISOLATION"
+    rule_name: "Energy Isolation"
+    description: "Verify isolation and zero energy before work begins."
+    trigger_activities:
+      - "ENERGY_ISOLATION_LOTO"
+    trigger_energies:
+      - "ELECTRICAL_ENERGY"
+      - "HIGH_PRESSURE_STORED"
+    trigger_barriers:
+      - "ENERGY_ISOLATION"
+
+  - id: "WORKING_AT_HEIGHT"
+    rule_name: "Working at Height"
+    description: "Protect yourself against a fall when working at height."
+    trigger_activities:
+      - "WORKING_AT_HEIGHT"
+    trigger_energies:
+      - "GRAVITATIONAL_HEIGHT"
+    trigger_barriers:
+      - "FALL_PROTECTION"
+    trigger_exposures:
+      - "UNPROTECTED_EDGE"
+
+  - id: "CONFINED_SPACE"
+    rule_name: "Confined Space"
+    description: "Obtain authorization before entering a confined space."
+    trigger_activities:
+      - "CONFINED_SPACE_ENTRY"
+    trigger_barriers:
+      - "GAS_TESTING"
+      - "WORK_AUTHORIZATION"
+    trigger_exposures:
+      - "UNTESTED_ATMOSPHERE"
+
+  - id: "HOT_WORK"
+    rule_name: "Hot Work"
+    description: "Control flammables and ignition sources."
+    trigger_activities:
+      - "HOT_WORK"
+    trigger_energies:
+      - "THERMAL_IGNITION"
+    trigger_barriers:
+      - "GAS_TESTING"
+      - "WORK_AUTHORIZATION"
+
+  - id: "WORK_AUTHORISATION"
+    rule_name: "Work Authorisation"
+    description: "Work with a valid permit when required."
+    trigger_barriers:
+      - "WORK_AUTHORIZATION"
+
+  - id: "DRIVING"
+    rule_name: "Driving"
+    description: "Follow safe driving rules and maintain traffic separation."
+    trigger_activities:
+      - "VEHICLE_LOGISTICS"
+    trigger_energies:
+      - "KINETIC_VEHICULAR"
+    trigger_barriers:
+      - "TRAFFIC_SEGREGATION"

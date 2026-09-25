@@ -1,0 +1,74 @@
+version: "1.0.0"
+exposures:
+  - id: "INSIDE_EXCLUSION_ZONE"
+    name: "Person Inside Exclusion Zone"
+    description: "Worker entered or present within designated lifting, high-pressure, or restricted perimeter."
+    keywords:
+      - "entered the exclusion zone"
+      - "inside the exclusion zone"
+      - "inside restricted zone"
+      - "crossed the boundary"
+      - "entered the red zone"
+      - "entered danger zone"
+      - "walked into zone"
+      - "stood inside barricade"
+      - "entered without authorization"
+    severity_multiplier: 1.0
+
+  - id: "BENEATH_SUSPENDED_LOAD"
+    name: "Person Beneath Suspended Load"
+    description: "Worker directly under suspended pipe, drill collar, container, or hoisted machinery."
+    keywords:
+      - "under suspended load"
+      - "beneath suspended load"
+      - "under the load"
+      - "standing below crane"
+      - "walked under pipe"
+      - "under lifted load"
+    severity_multiplier: 1.2
+
+  - id: "LINE_OF_FIRE"
+    name: "In the Line of Fire"
+    description: "Worker situated in trajectory of recoiling line, projectile, swinging pipe, or pressurized release."
+    keywords:
+      - "line of fire"
+      - "in trajectory"
+      - "path of movement"
+      - "swing path"
+      - "pinch line"
+      - "recoil zone"
+    severity_multiplier: 1.0
+
+  - id: "UNPROTECTED_EDGE"
+    name: "Exposed to Unprotected Elevation Edge"
+    description: "Personnel working near edge without harness, guardrails, or active fall arrest."
+    keywords:
+      - "unprotected edge"
+      - "without harness"
+      - "unclipped"
+      - "unlatched"
+      - "no fall arrest"
+      - "missing guardrail"
+      - "open hatch"
+    severity_multiplier: 1.1
+
+  - id: "UNTESTED_ATMOSPHERE"
+    name: "Entry into Untested / Toxic Atmosphere"
+    description: "Personnel entering vessel, pit, or cell without confirmed 4-gas test or breathing apparatus."
+    keywords:
+      - "entered without gas test"
+      - "untested atmosphere"
+      - "toxic atmosphere"
+      - "gas present"
+      - "in confined space without ba"
+    severity_multiplier: 1.2
+
+  - id: "CONTACT_LIVE_ENERGY"
+    name: "Direct Contact with Energized Source"
+    description: "Worker manipulating live conductors, pressurized lines, or un-isolated rotating machinery."
+    keywords:
+      - "live circuit"
+      - "pressurized pipe opened"
+      - "un-isolated equipment"
+      - "energized terminal"
+    severity_multiplier: 1.1

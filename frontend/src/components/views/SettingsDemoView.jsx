@@ -13,7 +13,7 @@ import {
   Info,
   ExternalLink
 } from 'lucide-react';
-import { executeDemoPhase, resetEnterpriseDemo } from '../../services/api';
+import { executeDemoPhase, resetEnterpriseDemo, analyzeRawText } from '../../services/api';
 
 export default function SettingsDemoView({ onNavigate }) {
   const [currentPhase, setCurrentPhase] = useState(1);
@@ -21,6 +21,25 @@ export default function SettingsDemoView({ onNavigate }) {
   const [phaseResult, setPhaseResult] = useState(null);
   const [resetting, setResetting] = useState(false);
   const [feedback, setFeedback] = useState(null);
+
+  // Interactive Live NLP Assertion Lab (Phase 8)
+  const [nlpText, setNlpText] = useState('Worker entered lifting exclusion zone while 15T pipe was suspended.');
+  const [isNlpAnalyzing, setIsNlpAnalyzing] = useState(false);
+  const [nlpResult, setNlpResult] = useState(null);
+
+  const handleRunNlpAnalysis = async (textToAnalyze) => {
+    const t = textToAnalyze || nlpText;
+    if (!t.trim()) return;
+    try {
+      setIsNlpAnalyzing(true);
+      const res = await analyzeRawText(t);
+      setNlpResult(res);
+    } catch (err) {
+      console.error('NLP Analysis failed:', err);
+    } finally {
+      setIsNlpAnalyzing(false);
+    }
+  };
 
   const demoPhases = [
     {
@@ -242,6 +261,116 @@ export default function SettingsDemoView({ onNavigate }) {
             );
           })}
         </div>
+      </div>
+
+      {/* 4. Interactive NLP Modality & Negation Testing Lab (Phase 8 Relocation) */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-slate-100 pb-3">
+          <div className="flex items-center space-x-2">
+            <span className="p-1.5 rounded-lg bg-purple-50 text-purple-600 font-bold">
+              NLP
+            </span>
+            <div>
+              <h2 className="text-xs font-black uppercase tracking-wider text-slate-900">
+                Interactive SIF Modality & Negation Testing Lab
+              </h2>
+              <p className="text-[11px] text-slate-500">
+                Test arbitrary narratives for Assertion, Negation, Hypothetical, Post-Event & Evidence Binding
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Presets */}
+        <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+          <span className="text-slate-400 font-bold mr-1">Presets:</span>
+          {[
+            { label: 'Negation', text: 'No worker entered the exclusion zone during pipe handling.' },
+            { label: 'Hypothetical', text: 'If the sling fails, the load could fall into the manifold area.' },
+            { label: 'Post-Event', text: 'The barricade was installed after the incident occurred.' },
+            { label: 'Active SIF', text: 'Worker crossed the barricade into the crane exclusion zone while a drill collar was suspended overhead.' },
+            { label: 'Aborted', text: 'Worker almost entered the zone but stopped before crossing.' },
+            { label: 'Temporal', text: 'Worker entered the zone after lifting was completed.' },
+            { label: 'Compromised Barrier', text: 'No worker entered the zone despite the barricade being removed.' }
+          ].map((item, idx) => (
+            <button
+              key={idx}
+              onClick={() => {
+                setNlpText(item.text);
+                handleRunNlpAnalysis(item.text);
+              }}
+              className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-[11px] transition-colors"
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="space-y-2">
+          <textarea
+            rows={2}
+            value={nlpText}
+            onChange={(e) => setNlpText(e.target.value)}
+            className="w-full p-3 rounded-xl border border-slate-300 text-xs text-slate-900 font-sans focus:outline-none focus:ring-1 focus:ring-purple-500"
+            placeholder="Type or paste any safety narrative here..."
+          />
+          <div className="flex justify-end">
+            <button
+              onClick={() => handleRunNlpAnalysis(nlpText)}
+              disabled={isNlpAnalyzing}
+              className="px-4 py-2 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs shadow flex items-center gap-1.5 transition-colors disabled:opacity-50"
+            >
+              <Play className="w-3.5 h-3.5 fill-white" />
+              <span>{isNlpAnalyzing ? 'Analyzing Narrative...' : 'Run Modality Analysis'}</span>
+            </button>
+          </div>
+        </div>
+
+        {nlpResult && (
+          <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3 animate-fade-in text-xs">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <span className="text-[10px] font-bold text-slate-500 uppercase">Result:</span>
+                <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
+                  nlpResult.sif_potential ? 'bg-red-600 text-white' : 'bg-slate-200 text-slate-800'
+                }`}>
+                  SIF: {nlpResult.sif_potential ? 'HIGH PRECURSOR' : 'NOT SIF'}
+                </span>
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-200">
+                  Modality: {nlpResult.assertion_status || 'ASSERTED'}
+                </span>
+              </div>
+              <span className="text-[10px] font-mono text-slate-500">
+                Score: {nlpResult.sif_score ?? 95}/100
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+              <div className="p-2 rounded bg-white border border-slate-200">
+                <span className="text-slate-400 block text-[9px] uppercase font-bold">Hazard:</span>
+                <span className="font-bold text-slate-800">{nlpResult.hazard || 'Mechanical Lifting'}</span>
+              </div>
+              <div className="p-2 rounded bg-white border border-slate-200">
+                <span className="text-slate-400 block text-[9px] uppercase font-bold">Exposure:</span>
+                <span className="font-bold text-slate-800">{nlpResult.exposure || 'Inside exclusion zone'}</span>
+              </div>
+              <div className="p-2 rounded bg-white border border-slate-200">
+                <span className="text-slate-400 block text-[9px] uppercase font-bold">Barrier:</span>
+                <span className="font-bold text-slate-800">{nlpResult.barrier || 'Exclusion Boundary'}</span>
+              </div>
+              <div className="p-2 rounded bg-white border border-slate-200">
+                <span className="text-slate-400 block text-[9px] uppercase font-bold">LSR:</span>
+                <span className="font-bold text-slate-800">{nlpResult.life_saving_rule || 'Line of Fire'}</span>
+              </div>
+            </div>
+
+            {nlpResult.explanation && (
+              <p className="text-[11px] text-slate-600 font-serif italic bg-white p-2.5 rounded-lg border border-slate-200">
+                "{nlpResult.explanation}"
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
     </div>

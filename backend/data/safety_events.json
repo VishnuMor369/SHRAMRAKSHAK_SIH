@@ -1,0 +1,289 @@
+[
+  {
+    "event_id": "EVT-20260925-0046",
+    "source": "CCTV",
+    "timestamp": "2026-09-25T15:11:36.302223",
+    "location": "Compressor Exclusion Area",
+    "activity": "Active Plant Machinery Area",
+    "narrative": "Machine-Generated Safety Observation: 1 person(s) detected inside restricted Compressor Exclusion Area on camera C-01.",
+    "hazard": "Unauthorized / Unsafe Restricted Zone Entry",
+    "exposure": "1 worker(s) inside configured restricted zone (Compressor Restricted Area)",
+    "critical_barrier": "Exclusion zone physical barricade & boundary controls",
+    "barrier_condition": "VIOLATED",
+    "consequence": "Mechanical entanglement / struck-by rotating machinery",
+    "sif_potential": "HIGH",
+    "lsr": "Bypassing Safety Controls",
+    "assertion_status": "ASSERTED",
+    "temporal_status": "CURRENT",
+    "evidence_spans": [],
+    "evidence_sources": [
+      "CCTV"
+    ],
+    "recurrence_classification": "INDEPENDENT_RECURRENCE",
+    "corroboration_status": "CCTV_ONLY",
+    "lifecycle_state": "ACTION_REQUIRED",
+    "machine_observation": true,
+    "camera_id": "C-01",
+    "created_at": "2026-09-25T15:11:36.304956",
+    "updated_at": "2026-09-25T15:11:36.304956",
+    "metadata": {}
+  },
+  {
+    "event_id": "EVT-OIL-2026-001",
+    "source": "HUMAN",
+    "timestamp": "2026-09-24T10:14:00",
+    "location": "Drilling Rig 04 - Drill Floor",
+    "activity": "Mechanical Lifting Operations",
+    "narrative": "Worker crossed red barricade tape into crane exclusion zone while drill collar was suspended 2m overhead.",
+    "hazard": "Suspended 15T Drill Collar",
+    "exposure": "Roustabout inside lifting radius",
+    "critical_barrier": "Lifting Exclusion Zone & Segregation",
+    "barrier_condition": "VIOLATED",
+    "consequence": "Fatal crush or severe blunt impact trauma",
+    "sif_potential": "HIGH",
+    "lsr": "Line of Fire / Safe Mechanical Lifting",
+    "assertion_status": "ASSERTED",
+    "temporal_status": "CURRENT",
+    "evidence_spans": [
+      {
+        "category": "HAZARD",
+        "span_text": "drill collar was suspended 2m overhead",
+        "start_char": 56,
+        "end_char": 96
+      },
+      {
+        "category": "EXPOSURE",
+        "span_text": "Worker crossed red barricade tape into crane exclusion zone",
+        "start_char": 0,
+        "end_char": 59
+      },
+      {
+        "category": "BARRIER",
+        "span_text": "red barricade tape into crane exclusion zone",
+        "start_char": 15,
+        "end_char": 59
+      }
+    ],
+    "evidence_sources": [
+      "HUMAN_REPORT"
+    ],
+    "recurrence_classification": "INDEPENDENT_RECURRENCE",
+    "corroboration_status": null,
+    "lifecycle_state": "RESOLVED",
+    "machine_observation": false,
+    "camera_id": null,
+    "created_at": "2026-09-25T15:11:36.300838",
+    "updated_at": "2026-09-25T15:11:36.300838",
+    "metadata": {}
+  },
+  {
+    "event_id": "EVT-OIL-2026-002",
+    "source": "HUMAN",
+    "timestamp": "2026-09-24T11:30:00",
+    "location": "Pipe Yard 02",
+    "activity": "Tubular Pipe Handling",
+    "narrative": "No worker entered the exclusion zone during pipe offloading operation. Perimeter remained clear.",
+    "hazard": "Moving Mobile Crane Boom",
+    "exposure": "NEGATED (No worker entry)",
+    "critical_barrier": "Physical Hard Barricading",
+    "barrier_condition": "INTACT",
+    "consequence": "None - safety perimeter held intact",
+    "sif_potential": "NOT_SIF",
+    "lsr": "Work Authorization",
+    "assertion_status": "NEGATED",
+    "temporal_status": "CURRENT",
+    "evidence_spans": [
+      {
+        "category": "ASSERTION",
+        "span_text": "No worker entered",
+        "start_char": 0,
+        "end_char": 17
+      },
+      {
+        "category": "BARRIER",
+        "span_text": "exclusion zone",
+        "start_char": 22,
+        "end_char": 36
+      }
+    ],
+    "evidence_sources": [
+      "HUMAN_REPORT"
+    ],
+    "recurrence_classification": "RELATED_BUT_DIFFERENT",
+    "corroboration_status": null,
+    "lifecycle_state": "RESOLVED",
+    "machine_observation": false,
+    "camera_id": null,
+    "created_at": "2026-09-25T15:11:36.300838",
+    "updated_at": "2026-09-25T15:11:36.300838",
+    "metadata": {}
+  },
+  {
+    "event_id": "EVT-OIL-2026-003",
+    "source": "HUMAN",
+    "timestamp": "2026-09-24T14:15:00",
+    "location": "Wellhead 08 - Manifold Area",
+    "activity": "Rigging and Crane Hoisting",
+    "narrative": "If the sling fails, the suspended load could fall into the active wellhead manifold area.",
+    "hazard": "Potential Dropped Object",
+    "exposure": "Hypothetical line-of-fire exposure",
+    "critical_barrier": "Certified Webbing Sling",
+    "barrier_condition": "INTACT",
+    "consequence": "Hypothetical high-pressure release and equipment damage",
+    "sif_potential": "LOW",
+    "lsr": "Line of Fire",
+    "assertion_status": "HYPOTHETICAL",
+    "temporal_status": "HYPOTHETICAL",
+    "evidence_spans": [
+      {
+        "category": "ASSERTION",
+        "span_text": "If the sling fails",
+        "start_char": 0,
+        "end_char": 18
+      },
+      {
+        "category": "CONSEQUENCE",
+        "span_text": "suspended load could fall",
+        "start_char": 24,
+        "end_char": 49
+      }
+    ],
+    "evidence_sources": [
+      "HUMAN_REPORT"
+    ],
+    "recurrence_classification": "RELATED_BUT_DIFFERENT",
+    "corroboration_status": null,
+    "lifecycle_state": "RESOLVED",
+    "machine_observation": false,
+    "camera_id": null,
+    "created_at": "2026-09-25T15:11:36.300838",
+    "updated_at": "2026-09-25T15:11:36.300838",
+    "metadata": {}
+  },
+  {
+    "event_id": "EVT-OIL-2026-004",
+    "source": "HUMAN",
+    "timestamp": "2026-09-24T16:45:00",
+    "location": "Compressor Station 01",
+    "activity": "High-Pressure Gas Line Maintenance",
+    "narrative": "Maintenance commenced on discharge manifold without verified zero-energy bleed or physical isolation lock applied.",
+    "hazard": "Flammable Pressurized Gas",
+    "exposure": "Maintenance technician at valve flange",
+    "critical_barrier": "LOTO / Positive Isolation Verification",
+    "barrier_condition": "INEFFECTIVE",
+    "consequence": "High-pressure gas explosion or toxic release",
+    "sif_potential": "HIGH",
+    "lsr": "Energy Isolation (LOTO)",
+    "assertion_status": "ASSERTED",
+    "temporal_status": "CURRENT",
+    "evidence_spans": [
+      {
+        "category": "HAZARD",
+        "span_text": "discharge manifold",
+        "start_char": 25,
+        "end_char": 43
+      },
+      {
+        "category": "BARRIER",
+        "span_text": "without verified zero-energy bleed or physical isolation lock",
+        "start_char": 44,
+        "end_char": 105
+      }
+    ],
+    "evidence_sources": [
+      "HUMAN_REPORT"
+    ],
+    "recurrence_classification": "INDEPENDENT_RECURRENCE",
+    "corroboration_status": null,
+    "lifecycle_state": "RESOLVED",
+    "machine_observation": false,
+    "camera_id": null,
+    "created_at": "2026-09-25T15:11:36.300838",
+    "updated_at": "2026-09-25T15:11:36.300838",
+    "metadata": {}
+  },
+  {
+    "event_id": "EVT-OIL-2026-005",
+    "source": "HUMAN",
+    "timestamp": "2026-09-25T08:20:00",
+    "location": "Substation B - Switchgear Room",
+    "activity": "Electrical Control Panel Overhaul",
+    "narrative": "Danger barricade was installed after the incident occurred. Breaker was found unlocked during earlier shift inspection.",
+    "hazard": "415V Energized Busbars",
+    "exposure": "Post-incident barrier installation",
+    "critical_barrier": "Safety Lockout Hasps & Padlocks",
+    "barrier_condition": "POST_EVENT_REMEDY",
+    "consequence": "Historical arc flash potential rectified retrospectively",
+    "sif_potential": "MEDIUM",
+    "lsr": "Energy Isolation",
+    "assertion_status": "POST_EVENT",
+    "temporal_status": "POST_EVENT",
+    "evidence_spans": [
+      {
+        "category": "ASSERTION",
+        "span_text": "installed after the incident occurred",
+        "start_char": 22,
+        "end_char": 59
+      },
+      {
+        "category": "BARRIER",
+        "span_text": "Breaker was found unlocked",
+        "start_char": 61,
+        "end_char": 87
+      }
+    ],
+    "evidence_sources": [
+      "HUMAN_REPORT"
+    ],
+    "recurrence_classification": "RELATED_BUT_DIFFERENT",
+    "corroboration_status": null,
+    "lifecycle_state": "RESOLVED",
+    "machine_observation": false,
+    "camera_id": null,
+    "created_at": "2026-09-25T15:11:36.300838",
+    "updated_at": "2026-09-25T15:11:36.300838",
+    "metadata": {}
+  },
+  {
+    "event_id": "EVT-CCTV-2026-001",
+    "source": "CCTV",
+    "timestamp": "2026-09-25T10:42:18",
+    "location": "Lifting Zone 03",
+    "activity": "Mechanical Crane Hoisting",
+    "narrative": "Machine-Generated Safety Observation: Worker detected inside restricted lifting exclusion zone for 5 consecutive frames.",
+    "hazard": "Suspended 10T Mud Motor",
+    "exposure": "Person bottom-center inside exclusion polygon",
+    "critical_barrier": "CCTV Defined Exclusion Zone",
+    "barrier_condition": "VIOLATED",
+    "consequence": "Fatal crush trauma under suspended load",
+    "sif_potential": "HIGH",
+    "lsr": "Line of Fire / Safe Mechanical Lifting",
+    "assertion_status": "ASSERTED",
+    "temporal_status": "CURRENT",
+    "evidence_spans": [
+      {
+        "category": "EXPOSURE",
+        "span_text": "Worker detected inside restricted lifting exclusion zone",
+        "start_char": 38,
+        "end_char": 94
+      },
+      {
+        "category": "BARRIER",
+        "span_text": "restricted lifting exclusion zone",
+        "start_char": 61,
+        "end_char": 94
+      }
+    ],
+    "evidence_sources": [
+      "CCTV"
+    ],
+    "recurrence_classification": "INDEPENDENT_RECURRENCE",
+    "corroboration_status": "CCTV_ONLY",
+    "lifecycle_state": "ACTION_REQUIRED",
+    "machine_observation": true,
+    "camera_id": "C-01",
+    "created_at": "2026-09-25T15:11:36.300838",
+    "updated_at": "2026-09-25T15:11:36.300838",
+    "metadata": {}
+  }
+]

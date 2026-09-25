@@ -32,7 +32,8 @@ from pydantic import BaseModel, Field
 
 
 class AssertionStatus(str, Enum):
-    OBSERVED_FACT = "OBSERVED_FACT"
+    ASSERTED = "ASSERTED"
+    OBSERVED_FACT = "ASSERTED"
     NEGATED = "NEGATED"
     HYPOTHETICAL = "HYPOTHETICAL"
     POST_EVENT = "POST_EVENT"

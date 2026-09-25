@@ -2,23 +2,27 @@ import React from 'react';
 import { 
   Shield, 
   LayoutDashboard, 
-  Video, 
-  CheckCircle2, 
-  X, 
+  FileText,
   BrainCircuit,
   Database,
+  Video, 
+  CheckCircle2, 
+  FileSpreadsheet,
   SlidersHorizontal,
+  X, 
   Bell
 } from 'lucide-react';
 
 export default function Sidebar({ isOpen, onClose, activeTab = 'OVERVIEW', onTabChange, activeAlertsCount = 0 }) {
   const navItems = [
     { id: 'OVERVIEW', label: '1. OVERVIEW', icon: LayoutDashboard },
-    { id: 'SAFETY INTELLIGENCE', label: '2. SAFETY INTELLIGENCE', icon: BrainCircuit, badge: 'NLP SIF' },
-    { id: 'SAFETY MEMORY', label: '3. SAFETY MEMORY', icon: Database, badge: 'RECURRENCE' },
-    { id: 'LIVE SAFETY', label: '4. LIVE SAFETY', icon: Video, badge: 'CCTV' },
-    { id: 'ACTIONS / VERIFICATION', label: '5. ACTIONS / VERIFICATION', icon: CheckCircle2, badge: activeAlertsCount > 0 ? `${activeAlertsCount}` : null, badgeClass: activeAlertsCount > 0 ? 'bg-red-500/20 text-red-400 border-red-500/30' : null },
-    { id: 'SETTINGS / DEMO', label: '6. SETTINGS / DEMO', icon: SlidersHorizontal, badge: 'DEMO 1-9' },
+    { id: 'REPORTS', label: '2. REPORTS', icon: FileText, badge: 'UNIFIED' },
+    { id: 'SAFETY INTELLIGENCE', label: '3. SAFETY INTELLIGENCE', icon: BrainCircuit, badge: 'NLP SIF' },
+    { id: 'SAFETY MEMORY', label: '4. SAFETY MEMORY', icon: Database, badge: 'RECURRENCE' },
+    { id: 'LIVE SAFETY', label: '5. LIVE SAFETY', icon: Video, badge: 'CCTV' },
+    { id: 'ACTIONS', label: '6. ACTIONS', icon: CheckCircle2, badge: activeAlertsCount > 0 ? `${activeAlertsCount}` : null, badgeClass: activeAlertsCount > 0 ? 'bg-red-500/20 text-red-400 border-red-500/30' : null },
+    { id: 'IMPORT DATA', label: '7. IMPORT DATA', icon: FileSpreadsheet, badge: 'CSV / PDF' },
+    { id: 'SETTINGS / DEMO', label: '8. SETTINGS / DEMO', icon: SlidersHorizontal, badge: 'DEMO 1-9' },
   ];
 
   return (

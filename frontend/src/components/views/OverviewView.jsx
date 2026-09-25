@@ -11,10 +11,11 @@ import {
   Video,
   FileCheck
 } from 'lucide-react';
-import { fetchSafetyMemorySummary } from '../../services/api';
+import { fetchSafetyMemorySummary, fetchUnifiedEventSummary } from '../../services/api';
 
 export default function OverviewView({ status, onNavigate, onSelectAlert }) {
   const [memorySummary, setMemorySummary] = useState(null);
+  const [eventSummary, setEventSummary] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const activeAlerts = status?.active_alerts || (status?.active_alert ? [status.active_alert] : []);
@@ -27,6 +28,10 @@ export default function OverviewView({ status, onNavigate, onSelectAlert }) {
     fetchSafetyMemorySummary()
       .then(data => setMemorySummary(data))
       .catch(err => console.error('Failed to load memory summary in overview:', err));
+
+    fetchUnifiedEventSummary()
+      .then(data => setEventSummary(data))
+      .catch(err => console.error('Failed to load event summary in overview:', err));
   }, [status]);
 
   const topPattern = memorySummary?.recurring_patterns?.[0] || {
@@ -78,7 +83,7 @@ export default function OverviewView({ status, onNavigate, onSelectAlert }) {
         
         {/* Card 1: Active Critical Alerts */}
         <div 
-          onClick={() => onNavigate('ACTIONS / VERIFICATION')}
+          onClick={() => onNavigate('ACTIONS')}
           className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-red-300 transition-all cursor-pointer group"
         >
           <div className="flex items-center justify-between text-xs text-slate-500 mb-2">
@@ -108,7 +113,7 @@ export default function OverviewView({ status, onNavigate, onSelectAlert }) {
             </span>
           </div>
           <div className="text-2xl font-black text-slate-900">
-            {memorySummary?.total_events || 6}
+            {eventSummary?.sif_potential_count ?? (memorySummary?.total_events || 6)}
           </div>
           <div className="mt-2 text-[11px] text-slate-500 flex items-center justify-between">
             <span className="text-amber-700 font-semibold">Exclusion zone & LOTO precursors</span>
@@ -128,7 +133,7 @@ export default function OverviewView({ status, onNavigate, onSelectAlert }) {
             </span>
           </div>
           <div className="text-2xl font-black text-slate-900">
-            {memorySummary?.pattern_count || 2}
+            {eventSummary?.recurring_patterns_count ?? (memorySummary?.pattern_count || 2)}
           </div>
           <div className="mt-2 text-[11px] text-slate-500 flex items-center justify-between">
             <span>{topPattern.independent_occurrences} independent occurrences</span>
@@ -138,7 +143,7 @@ export default function OverviewView({ status, onNavigate, onSelectAlert }) {
 
         {/* Card 4: Actions Awaiting Verification */}
         <div 
-          onClick={() => onNavigate('ACTIONS / VERIFICATION')}
+          onClick={() => onNavigate('ACTIONS')}
           className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-blue-300 transition-all cursor-pointer group"
         >
           <div className="flex items-center justify-between text-xs text-slate-500 mb-2">
@@ -148,7 +153,7 @@ export default function OverviewView({ status, onNavigate, onSelectAlert }) {
             </span>
           </div>
           <div className="text-2xl font-black text-slate-900">
-            {awaitingVerificationAlerts.length}
+            {eventSummary?.awaiting_verification_count ?? awaitingVerificationAlerts.length}
           </div>
           <div className="mt-2 text-[11px] text-slate-500 flex items-center justify-between">
             <span className="text-blue-700 font-semibold">"Completion is not proof"</span>
@@ -156,6 +161,35 @@ export default function OverviewView({ status, onNavigate, onSelectAlert }) {
           </div>
         </div>
       </div>
+
+      {/* 2.5 Unified Source Registry Banner */}
+      {eventSummary && (
+        <div className="bg-white px-4 py-3 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div className="flex items-center space-x-2 font-bold text-slate-700">
+            <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+            <span>Unified Safety Event Pipeline:</span>
+            <span className="font-mono text-slate-900">{eventSummary.total_events} Total Events Processed</span>
+          </div>
+
+          <div className="flex items-center space-x-3 text-[11px] font-mono">
+            <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-800 border border-blue-200 font-bold">
+              👤 Human: {eventSummary.source_breakdown?.HUMAN || 0}
+            </span>
+            <span className="px-2 py-0.5 rounded bg-purple-50 text-purple-800 border border-purple-200 font-bold">
+              📹 CCTV: {eventSummary.source_breakdown?.CCTV || 0}
+            </span>
+            <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold">
+              📄 Imported: {eventSummary.source_breakdown?.IMPORTED || 0}
+            </span>
+            <button
+              onClick={() => onNavigate('REPORTS')}
+              className="font-sans font-bold text-amber-600 hover:text-amber-700 ml-2"
+            >
+              Open Reports →
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 3. Two Focused Operational Panels */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">

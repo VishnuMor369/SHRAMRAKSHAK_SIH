@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, ShieldAlert, CheckCircle2, AlertOctagon, HelpCircle, FileText, Video, Eye, Scale } from 'lucide-react';
+import { X, ShieldAlert, CheckCircle2, AlertOctagon, HelpCircle, FileText, Video, Eye, Scale, Clock } from 'lucide-react';
 
 export default function EvidenceDetailDrawer({ event, isOpen, onClose }) {
   if (!isOpen || !event) return null;
@@ -70,7 +70,7 @@ export default function EvidenceDetailDrawer({ event, isOpen, onClose }) {
               <span className="uppercase tracking-wider text-[11px] flex items-center gap-1.5">
                 {isNegated && <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
                 {isHypothetical && <HelpCircle className="w-4 h-4 text-blue-600" />}
-                {isPostEvent && <ClockIcon className="w-4 h-4 text-purple-600" />}
+                {isPostEvent && <Clock className="w-4 h-4 text-purple-600" />}
                 {!isNegated && !isHypothetical && !isPostEvent && <ShieldAlert className="w-4 h-4 text-red-600" />}
                 Assertion Modality: {assertion}
               </span>

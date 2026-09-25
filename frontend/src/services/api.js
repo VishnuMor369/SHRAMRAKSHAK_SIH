@@ -683,4 +683,99 @@ export async function resetEnterpriseDemo() {
   return res.json();
 }
 
+// ============================================================
+// UNIFIED SAFETY EVENT & DATASET IMPORT API
+// ============================================================
+
+export async function submitHumanReport(payload) {
+  const res = await fetch(`${API_BASE}/api/events/human`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to submit human safety report');
+  }
+  return res.json();
+}
+
+export async function fetchUnifiedEvents(params = {}) {
+  const query = new URLSearchParams();
+  if (params.source) query.set('source', params.source);
+  if (params.sif_potential) query.set('sif_potential', params.sif_potential);
+  if (params.limit) query.set('limit', params.limit);
+  if (params.offset) query.set('offset', params.offset);
+  const qStr = query.toString();
+  const url = `${API_BASE}/api/events${qStr ? '?' + qStr : ''}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('Failed to fetch unified safety events');
+  return res.json();
+}
+
+export async function fetchUnifiedEventById(eventId) {
+  const res = await fetch(`${API_BASE}/api/events/${eventId}`);
+  if (!res.ok) throw new Error('Failed to fetch safety event details');
+  return res.json();
+}
+
+export async function fetchUnifiedEventSummary() {
+  const res = await fetch(`${API_BASE}/api/events/stats/summary`);
+  if (!res.ok) throw new Error('Failed to fetch unified event summary');
+  return res.json();
+}
+
+export async function updateEventAction(eventId, supervisorId = 'SUP-01', notes = '') {
+  const res = await fetch(`${API_BASE}/api/events/${eventId}/action`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ supervisor_id: supervisorId, notes })
+  });
+  if (!res.ok) throw new Error('Failed to update event action');
+  return res.json();
+}
+
+export async function verifyEventCondition(eventId, simulateRebreach = false, supervisorId = 'SUP-01', notes = '') {
+  const res = await fetch(`${API_BASE}/api/events/${eventId}/verify`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      simulate_rebreach: simulateRebreach,
+      supervisor_id: supervisorId,
+      notes
+    })
+  });
+  if (!res.ok) throw new Error('Failed to verify event condition');
+  return res.json();
+}
+
+export async function uploadDatasetFile(formData) {
+  const res = await fetch(`${API_BASE}/api/dataset/import-file`, {
+    method: 'POST',
+    body: formData
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to upload dataset file');
+  }
+  return res.json();
+}
+
+export async function executeDatasetImport(maxRows = 1000) {
+  const res = await fetch(`${API_BASE}/api/dataset/import-execute?max_rows=${maxRows}`, {
+    method: 'POST'
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to execute dataset import');
+  }
+  return res.json();
+}
+
+export async function fetchDatasetImportStatus() {
+  const res = await fetch(`${API_BASE}/api/dataset/import-status`);
+  if (!res.ok) throw new Error('Failed to fetch dataset import status');
+  return res.json();
+}
+
 

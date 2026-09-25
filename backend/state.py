@@ -1856,6 +1856,36 @@ class AlertStateManager:
             except Exception as e:
                 print(f"[State] Safety Memory record notice: {e}")
 
+            # Also register into canonical Unified Event Store (Phase 1 & 19)
+            try:
+                from unified_event_store import unified_event_store, SafetyEvent as CanonicalSafetyEvent
+                canonical_event = CanonicalSafetyEvent(
+                    event_id=new_alert.event_id or f"EVT-CCTV-{now.strftime('%Y%m%d-%H%M%S')}",
+                    source="CCTV",
+                    timestamp=now.isoformat(),
+                    location=location,
+                    activity=sif_rec["activity"],
+                    narrative=f"Machine-Generated Safety Observation: {person_count} person(s) detected inside restricted {location} on camera {camera}.",
+                    hazard=hazard or sif_rec.get("critical_barrier"),
+                    exposure=sif_rec["exposure"],
+                    critical_barrier=sif_rec["critical_barrier"],
+                    barrier_condition=(sif_rec.get("barrier_condition") or "VIOLATED").upper(),
+                    consequence=sif_rec["potential_consequence"],
+                    sif_potential="HIGH" if sif_rec.get("sif_level") in ["HIGH", "CRITICAL"] else "MEDIUM",
+                    lsr=sif_rec.get("life_saving_rule"),
+                    assertion_status="ASSERTED",
+                    temporal_status="CURRENT",
+                    evidence_sources=["CCTV"],
+                    recurrence_classification=new_alert.recurrence_classification or "INDEPENDENT_RECURRENCE",
+                    corroboration_status="CCTV_ONLY",
+                    lifecycle_state="ACTION_REQUIRED",
+                    machine_observation=True,
+                    camera_id=camera
+                )
+                unified_event_store.add_event(canonical_event)
+            except Exception as ue_err:
+                print(f"[State] Unified event store record notice: {ue_err}")
+
             self._active_alerts[alert_id] = new_alert
             self._last_resolved_alert = None
             self.current_safety_state = "VIOLATION"
@@ -2228,6 +2258,15 @@ class AlertStateManager:
                 safety_memory.reset()
             except Exception as e:
                 print(f"[State] Safety Memory reset notice: {e}")
+
+            # Reset Unified Event Store & Dataset Importer
+            try:
+                from unified_event_store import unified_event_store
+                from dataset_importer import dataset_import_manager
+                unified_event_store.reset()
+                dataset_import_manager.reset()
+            except Exception as e:
+                print(f"[State] Unified store reset notice: {e}")
 
             # CHANGE 15: Remove temporary Passport zones only!
             temp_ids = [zid for zid, z in self.zones.items() if z.zone_category == "PASSPORT_TEMPORARY"]

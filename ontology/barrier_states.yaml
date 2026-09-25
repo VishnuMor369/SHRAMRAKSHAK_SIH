@@ -1,0 +1,96 @@
+version: "1.0.0"
+barrier_states:
+  - id: "EFFECTIVE_VERIFIED"
+    name: "Effective & Verified Intact"
+    description: "Barrier is in place, inspected, and confirmed performing its intended safety function before or during work."
+    keywords:
+      - "inspected and confirmed intact"
+      - "barrier was intact"
+      - "exclusion zone was fine"
+      - "barricade was maintained"
+      - "tested and certified"
+      - "effectively in place"
+      - "fully secured"
+      - "verified effective"
+      - "zero energy confirmed"
+    is_compromised: false
+
+  - id: "PRESENT_UNVERIFIED"
+    name: "Present but Unverified"
+    description: "Barrier exists or is referenced as in place, but has not undergone formal inspection, sign-off, or physical verification."
+    keywords:
+      - "barrier was present"
+      - "barricade existed"
+      - "guards installed"
+      - "tape was strung"
+      - "in place without check"
+    is_compromised: false
+
+  - id: "DEGRADED"
+    name: "Degraded or Partially Compromised"
+    description: "Barrier is present but suffering mechanical wear, partial coverage gap, sagging, or reduced capacity."
+    keywords:
+      - "degraded"
+      - "sagging tape"
+      - "damaged guard"
+      - "partial barrier"
+      - "worn sling"
+      - "frayed rope"
+      - "corroded bolt"
+      - "loose railing"
+    is_compromised: true
+
+  - id: "FAILED"
+    name: "Failed / Ruptured / Breached"
+    description: "Barrier experienced functional failure under load, broke, ruptured, or failed to hold hazardous energy."
+    keywords:
+      - "barrier failed"
+      - "sling snapped"
+      - "hose burst"
+      - "relief valve stuck closed"
+      - "guardrail collapsed"
+      - "tape broke"
+      - "rope snapped"
+      - "seal blew out"
+    is_compromised: true
+
+  - id: "BYPASSED"
+    name: "Bypassed / Circumvented"
+    description: "Barrier remained physically in place or active conceptually, but was circumvented, ducked under, overridden, ignored, or bridged without removing it."
+    keywords:
+      - "bypassed"
+      - "ducked under"
+      - "stepped over"
+      - "climbed over"
+      - "jumped over barricade"
+      - "ignored warning"
+      - "bridged interlock"
+      - "circumvented"
+      - "entered despite tape"
+      - "crossed the boundary"
+    distinction_from_removed: "The barrier remains on site and intact, but personnel or signals circumvented its protection."
+    is_compromised: true
+
+  - id: "REMOVED"
+    name: "Removed / Disassembled / Taken Out of Service"
+    description: "Barrier was physically uninstalled, unbolted, taken down, detached, or deliberately placed out of service."
+    keywords:
+      - "barrier was removed"
+      - "guard taken off"
+      - "unbolted"
+      - "barricade removed"
+      - "taken down"
+      - "dismantled"
+      - "lock removed prematurely"
+      - "uninstalled"
+    distinction_from_bypassed: "The barrier physical hardware is detached, dismantled, or no longer present in position."
+    is_compromised: true
+
+  - id: "UNKNOWN"
+    name: "Unknown / Unspecified"
+    description: "Report does not supply sufficient information regarding barrier existence or health."
+    keywords:
+      - "unknown"
+      - "unspecified"
+      - "not mentioned"
+    is_compromised: false

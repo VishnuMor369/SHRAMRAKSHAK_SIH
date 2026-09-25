@@ -1,0 +1,26 @@
+{
+  "run_id": "RUN-6e3e1969",
+  "timestamp": "2026-09-25T15:43:18.711815",
+  "dataset_name": "January2015toNovember2025.csv",
+  "dataset_hash": "406ffe7bc0758a447ad1650171b9c3f6990f901e8b73f167dad7cf60a97f13cd",
+  "code_version": "SHRAMRAKSHAK-2.0-SIH26165",
+  "model_name": "intfloat/e5-small-v2",
+  "model_version": "e5-small-v2-transformers-torch",
+  "ontology_version": "1.0.0",
+  "config_hash": "497e818fee0fac13",
+  "records_seen": 50,
+  "records_processed": 50,
+  "records_failed": 0,
+  "events_created": 50,
+  "patterns_created": 5,
+  "reviews_executed": 2,
+  "embeddings_created": 50,
+  "execution_time_seconds": 9.66,
+  "extra_metadata": {
+    "sif_potential_count": 0,
+    "review_required_count": 2,
+    "no_sif_count": 48,
+    "is_oil_data": false,
+    "provenance_note": "UNLABELED STRESS-TEST DATA; injury outcome fields not used as SIF ground truth."
+  }
+}

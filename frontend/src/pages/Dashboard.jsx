@@ -4,12 +4,14 @@ import Header from '../components/Header';
 import AlertDetailModal from '../components/AlertDetailModal';
 import MobileAccessModal from '../components/MobileAccessModal';
 
-// 6 Enterprise SIH Views
+// 8 Enterprise SIH Views
 import OverviewView from '../components/views/OverviewView';
+import ReportsView from '../components/views/ReportsView';
 import SafetyIntelligenceView from '../components/views/SafetyIntelligenceView';
 import SafetyMemoryView from '../components/views/SafetyMemoryView';
 import LiveSafetyView from '../components/views/LiveSafetyView';
 import ActionsVerificationView from '../components/views/ActionsVerificationView';
+import ImportDataView from '../components/views/ImportDataView';
 import SettingsDemoView from '../components/views/SettingsDemoView';
 
 // Field / Supporting Modals & Views (Secondary)
@@ -39,7 +41,7 @@ export default function Dashboard({ stateData }) {
 
   return (
     <div className="min-h-screen bg-slate-50 flex text-slate-900 font-sans">
-      {/* 1. LEFT SIDEBAR (6 Enterprise Views) */}
+      {/* 1. LEFT SIDEBAR (8 Enterprise Views) */}
       <Sidebar 
         isOpen={isSidebarOpen} 
         onClose={() => setIsSidebarOpen(false)}
@@ -59,7 +61,7 @@ export default function Dashboard({ stateData }) {
           onOpenSafetyAnalysis={() => setActiveTab('SAFETY INTELLIGENCE')}
         />
 
-        {/* ENTERPRISE 6-VIEW ROUTING */}
+        {/* ENTERPRISE 8-VIEW ROUTING */}
         <main className="flex-1">
           {activeTab === 'OVERVIEW' || activeTab === 'Dashboard' ? (
             <OverviewView 
@@ -67,8 +69,12 @@ export default function Dashboard({ stateData }) {
               onNavigate={(tab) => setActiveTab(tab)}
               onSelectAlert={handleSelectAlert}
             />
+          ) : activeTab === 'REPORTS' ? (
+            <ReportsView />
           ) : activeTab === 'SAFETY INTELLIGENCE' || activeTab === 'AI Risk Intelligence' || activeTab === 'AI Safety Analysis' ? (
-            <SafetyIntelligenceView />
+            <SafetyIntelligenceView 
+              onNavigate={(tab) => setActiveTab(tab)}
+            />
           ) : activeTab === 'SAFETY MEMORY' ? (
             <SafetyMemoryView />
           ) : activeTab === 'LIVE SAFETY' || activeTab === 'Live Monitoring' ? (
@@ -77,10 +83,14 @@ export default function Dashboard({ stateData }) {
               onSelectAlert={handleSelectAlert}
               onNavigate={(tab) => setActiveTab(tab)}
             />
-          ) : activeTab === 'ACTIONS / VERIFICATION' || activeTab === 'Alerts' ? (
+          ) : activeTab === 'ACTIONS' || activeTab === 'ACTIONS / VERIFICATION' || activeTab === 'Alerts' ? (
             <ActionsVerificationView 
               status={status}
               onSelectAlert={handleSelectAlert}
+            />
+          ) : activeTab === 'IMPORT DATA' ? (
+            <ImportDataView 
+              onNavigate={(tab) => setActiveTab(tab)}
             />
           ) : activeTab === 'SETTINGS / DEMO' ? (
             <SettingsDemoView 
@@ -91,7 +101,7 @@ export default function Dashboard({ stateData }) {
               status={status}
               onClose={() => setActiveTab('OVERVIEW')}
               onSelectAlert={handleSelectAlert}
-              onOpenAlerts={() => setActiveTab('ACTIONS / VERIFICATION')}
+              onOpenAlerts={() => setActiveTab('ACTIONS')}
             />
           ) : activeTab === 'Safety Passport' ? (
             <SafetyPassportView 

@@ -1,0 +1,68 @@
+version: "1.0.0"
+uncertainty_rules:
+  modal_expressions:
+    - "could be"
+    - "might be"
+    - "may be"
+    - "would have"
+    - "should have"
+    - "potential to"
+    - "possibly"
+    - "perhaps"
+    - "plausible"
+
+  conditional_constructions:
+    - "if the"
+    - "in case of"
+    - "provided that"
+    - "assuming that"
+    - "were to fail"
+    - "had it not been"
+    - "in the event of"
+
+  negation_cues:
+    - "no"
+    - "not"
+    - "never"
+    - "none"
+    - "neither"
+    - "without"
+    - "failed to occur"
+    - "was avoided"
+    - "did not"
+    - "didn't"
+    - "was not"
+    - "wasn't"
+    - "remained outside"
+
+  double_negation_ambiguity:
+    - "not true that no"
+    - "not the case that no"
+    - "not impossible"
+    - "never without"
+    - "hardly absent"
+    - "not completely unverified"
+
+  temporal_cues:
+    post_event:
+      - "after the event"
+      - "after the incident"
+      - "following the incident"
+      - "post-incident"
+      - "subsequently installed"
+      - "was installed after"
+      - "rectified later"
+      - "corrective action taken"
+    during_event:
+      - "during the operation"
+      - "while lifting"
+      - "while the load was suspended"
+      - "at the time of"
+      - "concurrently"
+      - "as the pipe moved"
+    pre_event:
+      - "before lifting"
+      - "prior to start"
+      - "inspected beforehand"
+      - "during toolbox talk"
+      - "pre-job check"
