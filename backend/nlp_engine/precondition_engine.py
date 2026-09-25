@@ -135,7 +135,7 @@ class PreconditionEngine:
                 package_id=package_id,
                 activity=activity,
                 location=location,
-                precondition_id="NONE",
+                precondition_id=None,
                 status="NOT_APPLICABLE",
                 findings=["No specialized high-consequence recurring preconditions active for this standard activity."],
                 missing_evidence=[],

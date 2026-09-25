@@ -1,5 +1,527 @@
 [
   {
+    "event_id": "EVT-HUMAN-20260925-201137-05F8",
+    "source": "HUMAN",
+    "timestamp": "2026-09-25T20:11:37.437408",
+    "location": "Mud Pump House",
+    "activity": "Well Drilling & Tripping Operations",
+    "narrative": "The mechanic reached his arm inside the belt guard opening while the triplex mud pump was actively pumping drilling fluid at 60 strokes per minute.",
+    "hazard": "Rotating Equipment / Pinch Points",
+    "exposure": "Personnel referenced on site; zone proximity unconfirmed",
+    "critical_barrier": "GENERAL_ADMINISTRATIVE_CONTROL",
+    "barrier_condition": "PRESENT_UNVERIFIED",
+    "consequence": "Potential industrial trauma",
+    "sif_potential": "MEDIUM",
+    "lsr": "General Safety",
+    "assertion_status": "AFFIRMED",
+    "temporal_status": "DURING_EVENT",
+    "evidence_spans": [
+      {
+        "field": "activity",
+        "value": "WELL_INTERVENTION_DRILLING",
+        "start_offset": 107,
+        "end_offset": 115,
+        "text": "drilling",
+        "confidence": 1.0,
+        "source": "NLP_EXTRACTION"
+      },
+      {
+        "field": "energy",
+        "value": "MECHANICAL_ROTATING",
+        "start_offset": 77,
+        "end_offset": 85,
+        "text": "mud pump",
+        "confidence": 1.0,
+        "source": "NLP_EXTRACTION"
+      }
+    ],
+    "evidence_sources": [
+      "HUMAN_REPORT"
+    ],
+    "recurrence_classification": "INDEPENDENT_RECURRENCE",
+    "corroboration_status": null,
+    "lifecycle_state": "RESOLVED",
+    "machine_observation": false,
+    "camera_id": null,
+    "created_at": "2026-09-25T20:11:37.682803",
+    "updated_at": "2026-09-25T20:11:37.682803",
+    "metadata": {
+      "reporter": "Field Safety Auditor (Runtime Test)"
+    }
+  },
+  {
+    "event_id": "EVT-HUMAN-20260925-201137-45B8",
+    "source": "HUMAN",
+    "timestamp": "2026-09-25T20:11:37.226185",
+    "location": "Pipeline Right-of-Way",
+    "activity": "General Rig Maintenance",
+    "narrative": "Warning stanchions and perimeter ropes were erected around the excavated trench three hours after the evening shift concluded.",
+    "hazard": "Mechanical / Kinetic Energy",
+    "exposure": "Personnel exposure unspecified in report",
+    "critical_barrier": "EXCLUSION_ZONE",
+    "barrier_condition": "PRESENT_UNVERIFIED",
+    "consequence": "Potential industrial trauma",
+    "sif_potential": "NOT_SIF",
+    "lsr": "General Safety",
+    "assertion_status": "AFFIRMED",
+    "temporal_status": "DURING_EVENT",
+    "evidence_spans": [
+      {
+        "field": "barrier",
+        "value": "EXCLUSION_ZONE",
+        "start_offset": 23,
+        "end_offset": 32,
+        "text": "perimeter",
+        "confidence": 1.0,
+        "source": "NLP_EXTRACTION"
+      }
+    ],
+    "evidence_sources": [
+      "HUMAN_REPORT"
+    ],
+    "recurrence_classification": "RELATED_BUT_DIFFERENT",
+    "corroboration_status": null,
+    "lifecycle_state": "RESOLVED",
+    "machine_observation": false,
+    "camera_id": null,
+    "created_at": "2026-09-25T20:11:37.407960",
+    "updated_at": "2026-09-25T20:11:37.407960",
+    "metadata": {
+      "reporter": "Field Safety Auditor (Runtime Test)"
+    }
+  },
+  {
+    "event_id": "EVT-HUMAN-20260925-201136-5360",
+    "source": "HUMAN",
+    "timestamp": "2026-09-25T20:11:36.952798",
+    "location": "Central Stores Bay 01",
+    "activity": "Mechanical Lifting Operations",
+    "narrative": "A heavy diesel forklift reversed rapidly around a blind blind corner of the warehouse where two roustabouts were manually restacking wooden pallets.",
+    "hazard": "Heavy Mobile Equipment / Traffic",
+    "exposure": "Personnel exposure unspecified in report",
+    "critical_barrier": "GENERAL_ADMINISTRATIVE_CONTROL",
+    "barrier_condition": "PRESENT_UNVERIFIED",
+    "consequence": "Potential industrial trauma",
+    "sif_potential": "MEDIUM",
+    "lsr": "SAFE_MECHANICAL_LIFTING",
+    "assertion_status": "AFFIRMED",
+    "temporal_status": "DURING_EVENT",
+    "evidence_spans": [
+      {
+        "field": "activity",
+        "value": "MECHANICAL_LIFTING",
+        "start_offset": 19,
+        "end_offset": 23,
+        "text": "lift",
+        "confidence": 1.0,
+        "source": "NLP_EXTRACTION"
+      },
+      {
+        "field": "energy",
+        "value": "KINETIC_VEHICULAR",
+        "start_offset": 15,
+        "end_offset": 23,
+        "text": "forklift",
+        "confidence": 1.0,
+        "source": "NLP_EXTRACTION"
+      }
+    ],
+    "evidence_sources": [
+      "HUMAN_REPORT"
+    ],
+    "recurrence_classification": "INDEPENDENT_RECURRENCE",
+    "corroboration_status": null,
+    "lifecycle_state": "RESOLVED",
+    "machine_observation": false,
+    "camera_id": null,
+    "created_at": "2026-09-25T20:11:37.208124",
+    "updated_at": "2026-09-25T20:11:37.208124",
+    "metadata": {
+      "reporter": "Field Safety Auditor (Runtime Test)"
+    }
+  },
+  {
+    "event_id": "EVT-HUMAN-20260925-201136-1959",
+    "source": "HUMAN",
+    "timestamp": "2026-09-25T20:11:36.788043",
+    "location": "Drill Floor Substructure",
+    "activity": "Well Drilling & Tripping Operations",
+    "narrative": "What would happen if the accumulator backup nitrogen charge drops below 1000 psi during emergency BOP actuation?",
+    "hazard": "Mechanical / Kinetic Energy",
+    "exposure": "Personnel exposure unspecified in report",
+    "critical_barrier": "BOP_INTEGRITY",
+    "barrier_condition": "PRESENT_UNVERIFIED",
+    "consequence": "Potential industrial trauma",
+    "sif_potential": "NOT_SIF",
+    "lsr": "General Safety",
+    "assertion_status": "AFFIRMED",
+    "temporal_status": "DURING_EVENT",
+    "evidence_spans": [
+      {
+        "field": "activity",
+        "value": "WELL_INTERVENTION_DRILLING",
+        "start_offset": 98,
+        "end_offset": 101,
+        "text": "BOP",
+        "confidence": 1.0,
+        "source": "NLP_EXTRACTION"
+      },
+      {
+        "field": "barrier",
+        "value": "BOP_INTEGRITY",
+        "start_offset": 98,
+        "end_offset": 101,
+        "text": "BOP",
+        "confidence": 1.0,
+        "source": "NLP_EXTRACTION"
+      }
+    ],
+    "evidence_sources": [
+      "HUMAN_REPORT"
+    ],
+    "recurrence_classification": "RELATED_BUT_DIFFERENT",
+    "corroboration_status": null,
+    "lifecycle_state": "RESOLVED",
+    "machine_observation": false,
+    "camera_id": null,
+    "created_at": "2026-09-25T20:11:36.937129",
+    "updated_at": "2026-09-25T20:11:36.937129",
+    "metadata": {
+      "reporter": "Field Safety Auditor (Runtime Test)"
+    }
+  },
+  {
+    "event_id": "EVT-HUMAN-20260925-201136-828E",
+    "source": "HUMAN",
+    "timestamp": "2026-09-25T20:11:36.538869",
+    "location": "Wellhead Platform 09",
+    "activity": "High Pressure Testing",
+    "narrative": "No personnel were anywhere near the chemical injection skid when the stainless steel tubing fitting blew out under 4500 psi hydraulic pressure.",
+    "hazard": "High Pressure / Stored Pneumatic or Hydraulic",
+    "exposure": "Personnel exposure unspecified in report",
+    "critical_barrier": "GENERAL_ADMINISTRATIVE_CONTROL",
+    "barrier_condition": "PRESENT_UNVERIFIED",
+    "consequence": "Potential industrial trauma",
+    "sif_potential": "MEDIUM",
+    "lsr": "General Safety",
+    "assertion_status": "AFFIRMED",
+    "temporal_status": "DURING_EVENT",
+    "evidence_spans": [
+      {
+        "field": "activity",
+        "value": "PRESSURE_TESTING",
+        "start_offset": 120,
+        "end_offset": 123,
+        "text": "psi",
+        "confidence": 1.0,
+        "source": "NLP_EXTRACTION"
+      },
+      {
+        "field": "energy",
+        "value": "HIGH_PRESSURE_STORED",
+        "start_offset": 124,
+        "end_offset": 133,
+        "text": "hydraulic",
+        "confidence": 1.0,
+        "source": "NLP_EXTRACTION"
+      }
+    ],
+    "evidence_sources": [
+      "HUMAN_REPORT"
+    ],
+    "recurrence_classification": "INDEPENDENT_RECURRENCE",
+    "corroboration_status": null,
+    "lifecycle_state": "RESOLVED",
+    "machine_observation": false,
+    "camera_id": null,
+    "created_at": "2026-09-25T20:11:36.775357",
+    "updated_at": "2026-09-25T20:11:36.775357",
+    "metadata": {
+      "reporter": "Field Safety Auditor (Runtime Test)"
+    }
+  },
+  {
+    "event_id": "EVT-HUMAN-20260925-201136-C344",
+    "source": "HUMAN",
+    "timestamp": "2026-09-25T20:11:36.291224",
+    "location": "Effluent Treatment Plant",
+    "activity": "General Rig Maintenance",
+    "narrative": "A welder ignited an oxy-propane torch inside the oily water treatment bay right next to an open inspection hatch emitting hydrocarbon fumes.",
+    "hazard": "Thermal / Flammable Atmosphere / Sparks",
+    "exposure": "Personnel referenced on site; zone proximity unconfirmed",
+    "critical_barrier": "GENERAL_ADMINISTRATIVE_CONTROL",
+    "barrier_condition": "PRESENT_UNVERIFIED",
+    "consequence": "Potential industrial trauma",
+    "sif_potential": "MEDIUM",
+    "lsr": "General Safety",
+    "assertion_status": "AFFIRMED",
+    "temporal_status": "DURING_EVENT",
+    "evidence_spans": [
+      {
+        "field": "energy",
+        "value": "THERMAL_IGNITION",
+        "start_offset": 2,
+        "end_offset": 8,
+        "text": "welder",
+        "confidence": 1.0,
+        "source": "NLP_EXTRACTION"
+      }
+    ],
+    "evidence_sources": [
+      "HUMAN_REPORT"
+    ],
+    "recurrence_classification": "INDEPENDENT_RECURRENCE",
+    "corroboration_status": null,
+    "lifecycle_state": "RESOLVED",
+    "machine_observation": false,
+    "camera_id": null,
+    "created_at": "2026-09-25T20:11:36.529396",
+    "updated_at": "2026-09-25T20:11:36.529396",
+    "metadata": {
+      "reporter": "Field Safety Auditor (Runtime Test)"
+    }
+  },
+  {
+    "event_id": "EVT-HUMAN-20260925-201136-2579",
+    "source": "HUMAN",
+    "timestamp": "2026-09-25T20:11:36.063659",
+    "location": "Pipe Storage Yard",
+    "activity": "Mechanical Lifting Operations",
+    "narrative": "While transferring casing pipes, the nylon web sling began unravelling, yet all deck crew remained at a safe distance behind the designated red barrier tape.",
+    "hazard": "Gravity / Suspended Load",
+    "exposure": "Personnel referenced on site; zone proximity unconfirmed",
+    "critical_barrier": "EXCLUSION_ZONE",
+    "barrier_condition": "PRESENT_UNVERIFIED",
+    "consequence": "Potential industrial trauma",
+    "sif_potential": "MEDIUM",
+    "lsr": "SAFE_MECHANICAL_LIFTING",
+    "assertion_status": "AFFIRMED",
+    "temporal_status": "DURING_EVENT",
+    "evidence_spans": [
+      {
+        "field": "activity",
+        "value": "MECHANICAL_LIFTING",
+        "start_offset": 47,
+        "end_offset": 52,
+        "text": "sling",
+        "confidence": 1.0,
+        "source": "NLP_EXTRACTION"
+      },
+      {
+        "field": "energy",
+        "value": "GRAVITATIONAL_KINETIC",
+        "start_offset": 19,
+        "end_offset": 25,
+        "text": "casing",
+        "confidence": 1.0,
+        "source": "NLP_EXTRACTION"
+      },
+      {
+        "field": "barrier",
+        "value": "EXCLUSION_ZONE",
+        "start_offset": 144,
+        "end_offset": 156,
+        "text": "barrier tape",
+        "confidence": 1.0,
+        "source": "NLP_EXTRACTION"
+      }
+    ],
+    "evidence_sources": [
+      "HUMAN_REPORT"
+    ],
+    "recurrence_classification": "INDEPENDENT_RECURRENCE",
+    "corroboration_status": null,
+    "lifecycle_state": "RESOLVED",
+    "machine_observation": false,
+    "camera_id": null,
+    "created_at": "2026-09-25T20:11:36.279098",
+    "updated_at": "2026-09-25T20:11:36.279098",
+    "metadata": {
+      "reporter": "Field Safety Auditor (Runtime Test)"
+    }
+  },
+  {
+    "event_id": "EVT-HUMAN-20260925-201135-2420",
+    "source": "HUMAN",
+    "timestamp": "2026-09-25T20:11:35.822613",
+    "location": "Separator Battery 02",
+    "activity": "General Rig Maintenance",
+    "narrative": "Two contract cleaners prepared to enter the catalyst reactor, but no air blower had been turned on and atmospheric oxygen percentage remained undetermined.",
+    "hazard": "Mechanical / Kinetic Energy",
+    "exposure": "Personnel exposure unspecified in report",
+    "critical_barrier": "GENERAL_ADMINISTRATIVE_CONTROL",
+    "barrier_condition": "PRESENT_UNVERIFIED",
+    "consequence": "Potential industrial trauma",
+    "sif_potential": "NOT_SIF",
+    "lsr": "General Safety",
+    "assertion_status": "AFFIRMED",
+    "temporal_status": "DURING_EVENT",
+    "evidence_spans": [],
+    "evidence_sources": [
+      "HUMAN_REPORT"
+    ],
+    "recurrence_classification": "INDEPENDENT_RECURRENCE",
+    "corroboration_status": null,
+    "lifecycle_state": "RESOLVED",
+    "machine_observation": false,
+    "camera_id": null,
+    "created_at": "2026-09-25T20:11:36.049637",
+    "updated_at": "2026-09-25T20:11:36.049637",
+    "metadata": {
+      "reporter": "Field Safety Auditor (Runtime Test)"
+    }
+  },
+  {
+    "event_id": "EVT-HUMAN-20260925-201135-CBBB",
+    "source": "HUMAN",
+    "timestamp": "2026-09-25T20:11:35.624913",
+    "location": "Compressor Station 04",
+    "activity": "Energy Isolation / Lockout Tagout",
+    "narrative": "During morning turnover, the technician confirmed that the motor control center 480V circuit breaker had its lock in place and zero voltage was verified.",
+    "hazard": "Live Electrical Conductors",
+    "exposure": "Personnel referenced on site; zone proximity unconfirmed",
+    "critical_barrier": "GENERAL_ADMINISTRATIVE_CONTROL",
+    "barrier_condition": "EFFECTIVE_VERIFIED",
+    "consequence": "Potential industrial trauma",
+    "sif_potential": "NOT_SIF",
+    "lsr": "ENERGY_ISOLATION",
+    "assertion_status": "AFFIRMED",
+    "temporal_status": "DURING_EVENT",
+    "evidence_spans": [
+      {
+        "field": "activity",
+        "value": "ENERGY_ISOLATION_LOTO",
+        "start_offset": 93,
+        "end_offset": 100,
+        "text": "breaker",
+        "confidence": 1.0,
+        "source": "NLP_EXTRACTION"
+      },
+      {
+        "field": "energy",
+        "value": "ELECTRICAL_ENERGY",
+        "start_offset": 93,
+        "end_offset": 100,
+        "text": "breaker",
+        "confidence": 1.0,
+        "source": "NLP_EXTRACTION"
+      }
+    ],
+    "evidence_sources": [
+      "HUMAN_REPORT"
+    ],
+    "recurrence_classification": "RELATED_BUT_DIFFERENT",
+    "corroboration_status": null,
+    "lifecycle_state": "RESOLVED",
+    "machine_observation": false,
+    "camera_id": null,
+    "created_at": "2026-09-25T20:11:35.810112",
+    "updated_at": "2026-09-25T20:11:35.810112",
+    "metadata": {
+      "reporter": "Field Safety Auditor (Runtime Test)"
+    }
+  },
+  {
+    "event_id": "EVT-HUMAN-20260925-201135-79FE",
+    "source": "HUMAN",
+    "timestamp": "2026-09-25T20:11:35.403065",
+    "location": "Drill Rig 18 - Cellar Approach",
+    "activity": "Mechanical Lifting Operations",
+    "narrative": "A roustabout was observed walking directly underneath an elevated 8-inch steel flowline while it was being hoisted by the mobile crane.",
+    "hazard": "Gravity / Suspended Load",
+    "exposure": "Personnel exposure unspecified in report",
+    "critical_barrier": "GENERAL_ADMINISTRATIVE_CONTROL",
+    "barrier_condition": "PRESENT_UNVERIFIED",
+    "consequence": "Potential industrial trauma",
+    "sif_potential": "MEDIUM",
+    "lsr": "SAFE_MECHANICAL_LIFTING",
+    "assertion_status": "AFFIRMED",
+    "temporal_status": "DURING_EVENT",
+    "evidence_spans": [
+      {
+        "field": "activity",
+        "value": "MECHANICAL_LIFTING",
+        "start_offset": 129,
+        "end_offset": 134,
+        "text": "crane",
+        "confidence": 1.0,
+        "source": "NLP_EXTRACTION"
+      },
+      {
+        "field": "energy",
+        "value": "GRAVITATIONAL_KINETIC",
+        "start_offset": 129,
+        "end_offset": 134,
+        "text": "crane",
+        "confidence": 1.0,
+        "source": "NLP_EXTRACTION"
+      }
+    ],
+    "evidence_sources": [
+      "HUMAN_REPORT"
+    ],
+    "recurrence_classification": "INDEPENDENT_RECURRENCE",
+    "corroboration_status": null,
+    "lifecycle_state": "RESOLVED",
+    "machine_observation": false,
+    "camera_id": null,
+    "created_at": "2026-09-25T20:11:35.612149",
+    "updated_at": "2026-09-25T20:11:35.612149",
+    "metadata": {
+      "reporter": "Field Safety Auditor (Runtime Test)"
+    }
+  },
+  {
+    "event_id": "EVT-HUMAN-20260925-200753-E649",
+    "source": "HUMAN",
+    "timestamp": "2026-09-25T20:07:53.779060",
+    "location": "Drill Rig 18 - Cellar Approach",
+    "activity": "Mechanical Lifting Operations",
+    "narrative": "A roustabout was observed walking directly underneath an elevated 8-inch steel flowline while it was being hoisted by the mobile crane.",
+    "hazard": "Gravity / Suspended Load",
+    "exposure": "Personnel exposure unspecified in report",
+    "critical_barrier": "GENERAL_ADMINISTRATIVE_CONTROL",
+    "barrier_condition": "PRESENT_UNVERIFIED",
+    "consequence": "Potential industrial trauma",
+    "sif_potential": "MEDIUM",
+    "lsr": "SAFE_MECHANICAL_LIFTING",
+    "assertion_status": "AFFIRMED",
+    "temporal_status": "DURING_EVENT",
+    "evidence_spans": [
+      {
+        "field": "activity",
+        "value": "MECHANICAL_LIFTING",
+        "start_offset": 129,
+        "end_offset": 134,
+        "text": "crane",
+        "confidence": 1.0,
+        "source": "NLP_EXTRACTION"
+      },
+      {
+        "field": "energy",
+        "value": "GRAVITATIONAL_KINETIC",
+        "start_offset": 129,
+        "end_offset": 134,
+        "text": "crane",
+        "confidence": 1.0,
+        "source": "NLP_EXTRACTION"
+      }
+    ],
+    "evidence_sources": [
+      "HUMAN_REPORT"
+    ],
+    "recurrence_classification": "INDEPENDENT_RECURRENCE",
+    "corroboration_status": null,
+    "lifecycle_state": "RESOLVED",
+    "machine_observation": false,
+    "camera_id": null,
+    "created_at": "2026-09-25T20:07:54.141371",
+    "updated_at": "2026-09-25T20:07:54.141371",
+    "metadata": {
+      "reporter": "Field Safety Auditor (Runtime Test)"
+    }
+  },
+  {
     "event_id": "EVT-20260925-0043",
     "source": "CCTV",
     "timestamp": "2026-09-25T16:51:09.493338",

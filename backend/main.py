@@ -586,6 +586,7 @@ def cctv_verify_alert(alert_id: Optional[str] = None, req: Dict[str, Any] = {}):
 # ==========================================
 
 @app.get("/api/safety-memory/summary")
+@app.get("/api/safety-memory/status")
 def get_safety_memory_summary():
     """Returns consolidated Safety Memory status, recurring patterns, candidate vs validated counts from SQLite"""
     counts = db.count_events()
@@ -812,6 +813,13 @@ def get_unified_safety_events(
         page_size=page_size
     )
 
+@app.get("/api/events/stats/summary")
+@app.get("/api/events/summary-stats")
+@app.get("/api/events/summary")
+def get_unified_safety_event_summary():
+    """Returns dynamically computed SIF intelligence metrics from real stored events."""
+    return unified_event_store.get_summary_stats()
+
 @app.get("/api/events/{event_id}")
 def get_unified_safety_event_by_id(event_id: str):
     """Returns complete details, evidence spans, and audit trail for a single event."""
@@ -819,11 +827,6 @@ def get_unified_safety_event_by_id(event_id: str):
     if not ev:
         raise HTTPException(status_code=404, detail=f"Safety Event '{event_id}' not found")
     return ev.to_dict()
-
-@app.get("/api/events/stats/summary")
-def get_unified_safety_event_summary():
-    """Returns dynamically computed SIF intelligence metrics from real stored events."""
-    return unified_event_store.get_summary_stats()
 
 @app.post("/api/events/{event_id}/action")
 def update_event_action_state(event_id: str, req: Dict[str, Any]):

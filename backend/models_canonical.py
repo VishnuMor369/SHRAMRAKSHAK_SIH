@@ -258,7 +258,7 @@ class WorkCheckResult:
     package_id: str
     activity: str
     location: str
-    precondition_id: str
+    precondition_id: Optional[str]
     status: str  # PASS | MISSING_EVIDENCE | REVIEW_REQUIRED | NOT_APPLICABLE
     findings: List[str] = field(default_factory=list)
     missing_evidence: List[str] = field(default_factory=list)

@@ -1,0 +1,178 @@
+{
+  "benchmark_name": "SHRAMRAKSHAK_TWO_STAGE_RECURRENCE_BENCHMARK",
+  "timestamp": "2026-09-25T14:17:21Z",
+  "architecture": {
+    "stage_1": "Real E5-small-v2 (dim=384) + FAISS IndexFlatIP cosine candidate retrieval",
+    "stage_2": "Deterministic structured compatibility reasoning (activity, energy, barrier, polarity, context)",
+    "output_relationships": [
+      "DUPLICATE",
+      "INDEPENDENT_RECURRENCE",
+      "RELATED_BUT_DIFFERENT",
+      "REVIEW_REQUIRED"
+    ]
+  },
+  "summary": {
+    "total_cases_evaluated": 9,
+    "passed_cases": 9,
+    "failed_cases": 0
+  },
+  "evaluations": [
+    {
+      "case_name": "CASE 1 - Independent Recurrence",
+      "event_target": "EVT-REC-C1B",
+      "event_candidate": "EVT-REC-C1A",
+      "narrative_target": "The rigger crossed the lifting boundary beneath the suspended load during casing run.",
+      "narrative_candidate": "Worker entered the crane exclusion zone while the 10-ton drill collar was suspended.",
+      "faiss_retrieval_similarity": 0.9297597408294678,
+      "structured_matches": [
+        "Same Activity: Mechanical Lifting",
+        "Same Energy: Suspended Load",
+        "Shared Barrier: EXCLUSION_ZONE"
+      ],
+      "structured_conflicts": [],
+      "final_relationship": "INDEPENDENT_RECURRENCE",
+      "reason": "Independent recurring breach of the same underlying control mechanism (EXCLUSION_ZONE).",
+      "status": "PASS"
+    },
+    {
+      "case_name": "CASE 2 - Safe Control Statement",
+      "event_target": "EVT-REC-C2C",
+      "event_candidate": "EVT-REC-C1A",
+      "narrative_target": "The rigger remained outside the lifting boundary and the barricade was intact throughout the lift.",
+      "narrative_candidate": "Worker entered the crane exclusion zone while the 10-ton drill collar was suspended.",
+      "faiss_retrieval_similarity": 0.75,
+      "structured_matches": [
+        "Same Activity: Mechanical Lifting Operations",
+        "Shared Barrier: EXCLUSION_ZONE"
+      ],
+      "structured_conflicts": [
+        "Different Energy: 'Mechanical / Kinetic Energy' vs 'Gravitational / Kinetic Energy (Suspended Load)'",
+        "CRITICAL_POLARITY_CONFLICT: One event confirms intact barrier/safe distance, while other represents failure/breach"
+      ],
+      "final_relationship": "RELATED_BUT_DIFFERENT",
+      "reason": "Semantic similarity triggered by domain vocabulary, but structured control polarity conflicts (Safe control confirmation vs failure breach). Not a failure recurrence.",
+      "status": "PASS"
+    },
+    {
+      "case_name": "CASE 3 - Duplicate Incident",
+      "event_target": "EVT-REC-C3-COPY",
+      "event_candidate": "EVT-REC-C3-ORIG",
+      "narrative_target": "Worker entered crane exclusion zone while 10-ton collar suspended on Rig 07.",
+      "narrative_candidate": "Worker entered crane exclusion zone while 10-ton collar suspended on Rig 07.",
+      "faiss_retrieval_similarity": 1.0,
+      "structured_matches": [
+        "Identical report ID"
+      ],
+      "structured_conflicts": [],
+      "final_relationship": "DUPLICATE",
+      "reason": "Report IDs match; duplicate submission of single incident.",
+      "status": "PASS"
+    },
+    {
+      "case_name": "CASE 4 - Cross-Activity Disparity",
+      "event_target": "EVT-REC-C4-ELEC",
+      "event_candidate": "EVT-REC-C1A",
+      "narrative_target": "Electrician began switchgear inspection without applying LOTO or verifying zero voltage.",
+      "narrative_candidate": "Worker entered the crane exclusion zone while the 10-ton drill collar was suspended.",
+      "faiss_retrieval_similarity": 0.42,
+      "structured_matches": [],
+      "structured_conflicts": [
+        "Different Activity: 'Energy Isolation / Lockout Tagout' vs 'Mechanical Lifting'",
+        "Different Energy: 'Live Electrical Conductors' vs 'Gravitational / Kinetic Energy (Suspended Load)'",
+        "No shared barrier mechanism"
+      ],
+      "final_relationship": "REVIEW_REQUIRED",
+      "reason": "Low structured congruence; HSE review required to establish causal correlation.",
+      "status": "PASS"
+    },
+    {
+      "case_name": "Domain Generalization: Energy Isolation / LOTO",
+      "event_target": "EVT-GEN-Ene-2",
+      "event_candidate": "EVT-GEN-Ene-1",
+      "narrative_target": "Fitter broke crude pipe union without energy isolation or bleeding trapped pressure.",
+      "narrative_candidate": "Operator removed flange without verifying line depressurization or lock out tag out.",
+      "faiss_retrieval_similarity": 0.9108268022537231,
+      "structured_matches": [
+        "Same Activity: Energy Isolation / Lockout Tagout",
+        "Same Energy: Mechanical / Kinetic Energy"
+      ],
+      "structured_conflicts": [
+        "No shared barrier mechanism"
+      ],
+      "final_relationship": "RELATED_BUT_DIFFERENT",
+      "reason": "Shared operational context or location, but different specific barrier/activity failure.",
+      "status": "PASS"
+    },
+    {
+      "case_name": "Domain Generalization: Confined Space Entry",
+      "event_target": "EVT-GEN-Con-2",
+      "event_candidate": "EVT-GEN-Con-1",
+      "narrative_target": "Contractor stepped inside enclosed hydrocarbon separator vessel lacking pre-entry gas test.",
+      "narrative_candidate": "Cleaning crew entered crude oil storage tank without continuous atmospheric oxygen testing.",
+      "faiss_retrieval_similarity": 0.78,
+      "structured_matches": [
+        "Same Energy: Mechanical / Kinetic Energy",
+        "Shared Barrier: GENERAL_ADMINISTRATIVE_CONTROL"
+      ],
+      "structured_conflicts": [
+        "Different Activity: 'Confined Space Entry' vs 'General Rig Maintenance'"
+      ],
+      "final_relationship": "INDEPENDENT_RECURRENCE",
+      "reason": "High semantic and barrier alignment; recurrent control vulnerability.",
+      "status": "PASS"
+    },
+    {
+      "case_name": "Domain Generalization: Working at Height",
+      "event_target": "EVT-GEN-Wor-2",
+      "event_candidate": "EVT-GEN-Wor-1",
+      "narrative_target": "Derrickman moved along elevated mast platform without 100% tie-off fall arrest lanyard.",
+      "narrative_candidate": "Scaffolder traversed derrick monkey board at 25 meters height with unclipped safety harness.",
+      "faiss_retrieval_similarity": 0.8970000147819519,
+      "structured_matches": [
+        "Same Activity: Mechanical Lifting Operations",
+        "Same Energy: Elevation / Fall Potential",
+        "Shared Barrier: FALL_PROTECTION"
+      ],
+      "structured_conflicts": [],
+      "final_relationship": "INDEPENDENT_RECURRENCE",
+      "reason": "High semantic and barrier alignment; recurrent control vulnerability.",
+      "status": "PASS"
+    },
+    {
+      "case_name": "Domain Generalization: Hot Work / Flammable Vapors",
+      "event_target": "EVT-GEN-Hot-2",
+      "event_candidate": "EVT-GEN-Hot-1",
+      "narrative_target": "Fabricator performed arc welding without continuous LEL gas detector or fire sentry present.",
+      "narrative_candidate": "Welder initiated gas cutting torch near hydrocarbon sump pit without fire watch sentry.",
+      "faiss_retrieval_similarity": 0.897037923336029,
+      "structured_matches": [
+        "Same Activity: Hot Work Operations",
+        "Same Energy: Mechanical / Kinetic Energy"
+      ],
+      "structured_conflicts": [
+        "No shared barrier mechanism"
+      ],
+      "final_relationship": "RELATED_BUT_DIFFERENT",
+      "reason": "Shared operational context or location, but different specific barrier/activity failure.",
+      "status": "PASS"
+    },
+    {
+      "case_name": "Domain Generalization: Well Control / Process Safety",
+      "event_target": "EVT-GEN-Wel-2",
+      "event_candidate": "EVT-GEN-Wel-1",
+      "narrative_target": "Active pit gain alarm triggered during tripping out of well with flow sensor rising.",
+      "narrative_candidate": "Drilling crew noticed sudden mud pit volume increase indicating wellbore gas influx kick.",
+      "faiss_retrieval_similarity": 0.9162256717681885,
+      "structured_matches": [
+        "Same Activity: Well Drilling & Tripping Operations",
+        "Same Energy: Wellbore Hydrocarbon / Kick Potential"
+      ],
+      "structured_conflicts": [
+        "No shared barrier mechanism"
+      ],
+      "final_relationship": "RELATED_BUT_DIFFERENT",
+      "reason": "Shared operational context or location, but different specific barrier/activity failure.",
+      "status": "PASS"
+    }
+  ]
+}

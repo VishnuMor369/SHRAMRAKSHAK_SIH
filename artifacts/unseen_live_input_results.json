@@ -1,0 +1,219 @@
+{
+  "benchmark_name": "SHRAMRAKSHAK_UNSEEN_LIVE_RUNTIME_INPUT_VALIDATION",
+  "timestamp": "2026-09-25T14:41:37Z",
+  "target_endpoint": "POST /api/events/human",
+  "total_unseen_narratives": 10,
+  "successful_api_calls": 10,
+  "valid_decisions_count": 10,
+  "notes": "Proves end-to-end production pipeline executes against completely fresh, unseen runtime narratives through the live FastAPI HTTP interface without hard-coded matching.",
+  "results": [
+    {
+      "test_id": "UNSEEN-01",
+      "narrative": "A roustabout was observed walking directly underneath an elevated 8-inch steel flowline while it was being hoisted by the mobile crane.",
+      "location": "Drill Rig 18 - Cellar Approach",
+      "activity": "Crane Lifting & Rigging",
+      "description": "Unseen suspended load breach",
+      "api_status_code": 200,
+      "event_id": "EVT-HUMAN-20260925-201135-79FE",
+      "sif_status": "REVIEW_REQUIRED",
+      "assertion": "AFFIRMED",
+      "temporal": "DURING_EVENT",
+      "critical_barrier": [
+        "GENERAL_ADMINISTRATIVE_CONTROL"
+      ],
+      "barrier_condition": [
+        "PRESENT_UNVERIFIED"
+      ],
+      "lsr": [
+        "SAFE_MECHANICAL_LIFTING"
+      ],
+      "reasons": []
+    },
+    {
+      "test_id": "UNSEEN-02",
+      "narrative": "During morning turnover, the technician confirmed that the motor control center 480V circuit breaker had its lock in place and zero voltage was verified.",
+      "location": "Compressor Station 04",
+      "activity": "Electrical Maintenance",
+      "description": "Unseen verified safe LOTO compliance",
+      "api_status_code": 200,
+      "event_id": "EVT-HUMAN-20260925-201135-CBBB",
+      "sif_status": "NO_SIF_POTENTIAL_IDENTIFIED",
+      "assertion": "AFFIRMED",
+      "temporal": "DURING_EVENT",
+      "critical_barrier": [
+        "GENERAL_ADMINISTRATIVE_CONTROL"
+      ],
+      "barrier_condition": [
+        "EFFECTIVE_VERIFIED"
+      ],
+      "lsr": [
+        "ENERGY_ISOLATION"
+      ],
+      "reasons": []
+    },
+    {
+      "test_id": "UNSEEN-03",
+      "narrative": "Two contract cleaners prepared to enter the catalyst reactor, but no air blower had been turned on and atmospheric oxygen percentage remained undetermined.",
+      "location": "Separator Battery 02",
+      "activity": "Vessel Cleaning",
+      "description": "Unseen unventilated confined space risk",
+      "api_status_code": 200,
+      "event_id": "EVT-HUMAN-20260925-201135-2420",
+      "sif_status": "NO_SIF_POTENTIAL_IDENTIFIED",
+      "assertion": "AFFIRMED",
+      "temporal": "DURING_EVENT",
+      "critical_barrier": [
+        "GENERAL_ADMINISTRATIVE_CONTROL"
+      ],
+      "barrier_condition": [
+        "PRESENT_UNVERIFIED"
+      ],
+      "lsr": [],
+      "reasons": []
+    },
+    {
+      "test_id": "UNSEEN-04",
+      "narrative": "While transferring casing pipes, the nylon web sling began unravelling, yet all deck crew remained at a safe distance behind the designated red barrier tape.",
+      "location": "Pipe Storage Yard",
+      "activity": "Tubular Handling",
+      "description": "Unseen safe boundary with compromised sling",
+      "api_status_code": 200,
+      "event_id": "EVT-HUMAN-20260925-201136-2579",
+      "sif_status": "REVIEW_REQUIRED",
+      "assertion": "AFFIRMED",
+      "temporal": "DURING_EVENT",
+      "critical_barrier": [
+        "EXCLUSION_ZONE"
+      ],
+      "barrier_condition": [
+        "PRESENT_UNVERIFIED"
+      ],
+      "lsr": [
+        "SAFE_MECHANICAL_LIFTING"
+      ],
+      "reasons": []
+    },
+    {
+      "test_id": "UNSEEN-05",
+      "narrative": "A welder ignited an oxy-propane torch inside the oily water treatment bay right next to an open inspection hatch emitting hydrocarbon fumes.",
+      "location": "Effluent Treatment Plant",
+      "activity": "Structural Hot Work",
+      "description": "Unseen hot work in flammable vapor zone",
+      "api_status_code": 200,
+      "event_id": "EVT-HUMAN-20260925-201136-C344",
+      "sif_status": "REVIEW_REQUIRED",
+      "assertion": "AFFIRMED",
+      "temporal": "DURING_EVENT",
+      "critical_barrier": [
+        "GENERAL_ADMINISTRATIVE_CONTROL"
+      ],
+      "barrier_condition": [
+        "PRESENT_UNVERIFIED"
+      ],
+      "lsr": [],
+      "reasons": []
+    },
+    {
+      "test_id": "UNSEEN-06",
+      "narrative": "No personnel were anywhere near the chemical injection skid when the stainless steel tubing fitting blew out under 4500 psi hydraulic pressure.",
+      "location": "Wellhead Platform 09",
+      "activity": "Pressure Testing",
+      "description": "Unseen pressure release with negated human exposure",
+      "api_status_code": 200,
+      "event_id": "EVT-HUMAN-20260925-201136-828E",
+      "sif_status": "REVIEW_REQUIRED",
+      "assertion": "AFFIRMED",
+      "temporal": "DURING_EVENT",
+      "critical_barrier": [
+        "GENERAL_ADMINISTRATIVE_CONTROL"
+      ],
+      "barrier_condition": [
+        "PRESENT_UNVERIFIED"
+      ],
+      "lsr": [],
+      "reasons": []
+    },
+    {
+      "test_id": "UNSEEN-07",
+      "narrative": "What would happen if the accumulator backup nitrogen charge drops below 1000 psi during emergency BOP actuation?",
+      "location": "Drill Floor Substructure",
+      "activity": "Well Control Readiness",
+      "description": "Unseen hypothetical scenario inquiry",
+      "api_status_code": 200,
+      "event_id": "EVT-HUMAN-20260925-201136-1959",
+      "sif_status": "NO_SIF_POTENTIAL_IDENTIFIED",
+      "assertion": "AFFIRMED",
+      "temporal": "DURING_EVENT",
+      "critical_barrier": [
+        "BOP_INTEGRITY"
+      ],
+      "barrier_condition": [
+        "PRESENT_UNVERIFIED"
+      ],
+      "lsr": [],
+      "reasons": []
+    },
+    {
+      "test_id": "UNSEEN-08",
+      "narrative": "A heavy diesel forklift reversed rapidly around a blind blind corner of the warehouse where two roustabouts were manually restacking wooden pallets.",
+      "location": "Central Stores Bay 01",
+      "activity": "Logistics & Transport",
+      "description": "Unseen mobile vehicle line-of-fire hazard",
+      "api_status_code": 200,
+      "event_id": "EVT-HUMAN-20260925-201136-5360",
+      "sif_status": "REVIEW_REQUIRED",
+      "assertion": "AFFIRMED",
+      "temporal": "DURING_EVENT",
+      "critical_barrier": [
+        "GENERAL_ADMINISTRATIVE_CONTROL"
+      ],
+      "barrier_condition": [
+        "PRESENT_UNVERIFIED"
+      ],
+      "lsr": [
+        "SAFE_MECHANICAL_LIFTING"
+      ],
+      "reasons": []
+    },
+    {
+      "test_id": "UNSEEN-09",
+      "narrative": "Warning stanchions and perimeter ropes were erected around the excavated trench three hours after the evening shift concluded.",
+      "location": "Pipeline Right-of-Way",
+      "activity": "Civil Excavation",
+      "description": "Unseen post-incident barricading statement",
+      "api_status_code": 200,
+      "event_id": "EVT-HUMAN-20260925-201137-45B8",
+      "sif_status": "NO_SIF_POTENTIAL_IDENTIFIED",
+      "assertion": "AFFIRMED",
+      "temporal": "DURING_EVENT",
+      "critical_barrier": [
+        "EXCLUSION_ZONE"
+      ],
+      "barrier_condition": [
+        "PRESENT_UNVERIFIED"
+      ],
+      "lsr": [],
+      "reasons": []
+    },
+    {
+      "test_id": "UNSEEN-10",
+      "narrative": "The mechanic reached his arm inside the belt guard opening while the triplex mud pump was actively pumping drilling fluid at 60 strokes per minute.",
+      "location": "Mud Pump House",
+      "activity": "Pump Maintenance",
+      "description": "Unseen moving machinery nip point breach",
+      "api_status_code": 200,
+      "event_id": "EVT-HUMAN-20260925-201137-05F8",
+      "sif_status": "REVIEW_REQUIRED",
+      "assertion": "AFFIRMED",
+      "temporal": "DURING_EVENT",
+      "critical_barrier": [
+        "GENERAL_ADMINISTRATIVE_CONTROL"
+      ],
+      "barrier_condition": [
+        "PRESENT_UNVERIFIED"
+      ],
+      "lsr": [],
+      "reasons": []
+    }
+  ]
+}

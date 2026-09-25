@@ -1,0 +1,29 @@
+{
+  "test": "genuine_subprocess_restart_persistence",
+  "result": "PASS",
+  "phase_1_writer_process": {
+    "event_id": "EVT-REST-85c608",
+    "faiss_id": 65,
+    "pattern_id": "PAT-LIFT-01",
+    "review_id": "REV-EVT-REST-85c608",
+    "model_name": "intfloat/e5-small-v2",
+    "dim": 384,
+    "pid": 9036
+  },
+  "phase_2_verifier_process": {
+    "status": "PASS",
+    "verified_event_id": "EVT-REST-85c608",
+    "verified_faiss_id": 65,
+    "verified_review_id": "REV-EVT-REST-85c608",
+    "faiss_total_vectors": 66,
+    "pid": 8564
+  },
+  "verified_invariants": [
+    "SafetyEvent persisted and retrieved from SQLite across process termination",
+    "Real E5-small-v2 normalized embeddings (dim=384) verified",
+    "FAISS binary index and JSON mapping reloaded from disk",
+    "1-to-1 correspondence: faiss_id <-> event_id <-> SQLite embeddings metadata",
+    "Human review audit record persisted and retrieved"
+  ],
+  "timestamp": "2026-09-25T14:13:00Z"
+}

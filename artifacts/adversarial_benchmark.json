@@ -1,0 +1,2581 @@
+{
+  "benchmark_name": "SHRAMRAKSHAK_FROZEN_100_CASE_ADVERSARIAL_SUITE",
+  "timestamp": "2026-09-25T14:35:06Z",
+  "summary": {
+    "case_count": 100,
+    "passed": 77,
+    "failed": 23,
+    "review_required": 36,
+    "pass_rate_percentage": 77.0,
+    "failure_categories": {
+      "direct_affirmed": 3,
+      "explicit_negation": 1,
+      "hypothetical_conditional": 1,
+      "temporal_post_event": 1,
+      "multiple_event_red_herring": 4,
+      "barrier_state": 1,
+      "semantic_paraphrases": 7,
+      "recurrence_detection": 5
+    }
+  },
+  "governance_note": "SHRAMRAKSHAK enforces ABSTENTION > HALLUCINATION. Cases with ambiguous double-negation, hypothetical conditions, or unverified exposure route deterministically to REVIEW_REQUIRED, guaranteeing zero unauthorized auto-closure and zero false certainty.",
+  "cases": [
+    {
+      "id": "ADV-001",
+      "category": "direct_affirmed",
+      "narrative": "Worker stepped into the crane swing radius directly beneath the suspended casing string.",
+      "output_sif": "SIF-POTENTIAL",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_CONFIRMED",
+      "barriers": [
+        "SECONDARY_WELL_BARRIER"
+      ],
+      "barrier_states": [
+        "BYPASSED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: Gravity / Suspended Load",
+        "Safety barrier compromised: BYPASSED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: CONFIRMED (worker entered / present within hazardous perimeter)",
+        "SIF-Potential Precursor Confirmed: high energy + compromised barrier + affirmed human exposure"
+      ],
+      "lsr_rules": [
+        "SAFE_MECHANICAL_LIFTING",
+        "BYPASSING_SAFETY_CONTROLS",
+        "LINE_OF_FIRE"
+      ],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-002",
+      "category": "direct_affirmed",
+      "narrative": "Electrician touched live energized 440V busbar while changing transformer fuse without PPE.",
+      "output_sif": "SIF-POTENTIAL",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_CONFIRMED",
+      "barriers": [
+        "GENERAL_ADMINISTRATIVE_CONTROL"
+      ],
+      "barrier_states": [
+        "BYPASSED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: Live Electrical Conductors",
+        "Safety barrier compromised: BYPASSED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: CONFIRMED (worker entered / present within hazardous perimeter)",
+        "SIF-Potential Precursor Confirmed: high energy + compromised barrier + affirmed human exposure"
+      ],
+      "lsr_rules": [
+        "ENERGY_ISOLATION",
+        "BYPASSING_SAFETY_CONTROLS"
+      ],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-003",
+      "category": "direct_affirmed",
+      "narrative": "Rigger entered the lifting exclusion zone while the 5-ton drill collar was moving overhead.",
+      "output_sif": "SIF-POTENTIAL",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_CONFIRMED",
+      "barriers": [
+        "EXCLUSION_ZONE",
+        "LIFTING_CONTROL"
+      ],
+      "barrier_states": [
+        "BYPASSED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: Gravity / Suspended Load",
+        "Safety barrier compromised: BYPASSED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: CONFIRMED (worker entered / present within hazardous perimeter)",
+        "SIF-Potential Precursor Confirmed: high energy + compromised barrier + affirmed human exposure"
+      ],
+      "lsr_rules": [
+        "SAFE_MECHANICAL_LIFTING",
+        "BYPASSING_SAFETY_CONTROLS",
+        "LINE_OF_FIRE"
+      ],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-004",
+      "category": "direct_affirmed",
+      "narrative": "Derrickman was working on monkey board at 28 meters height with harness lanyard unclipped.",
+      "output_sif": "SIF-POTENTIAL",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_CONFIRMED",
+      "barriers": [
+        "FALL_PROTECTION"
+      ],
+      "barrier_states": [
+        "BYPASSED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: Elevation / Fall Potential",
+        "Safety barrier compromised: BYPASSED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: CONFIRMED (worker entered / present within hazardous perimeter)",
+        "SIF-Potential Precursor Confirmed: high energy + compromised barrier + affirmed human exposure"
+      ],
+      "lsr_rules": [
+        "SAFE_MECHANICAL_LIFTING",
+        "WORKING_AT_HEIGHT",
+        "BYPASSING_SAFETY_CONTROLS",
+        "LINE_OF_FIRE"
+      ],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-005",
+      "category": "direct_affirmed",
+      "narrative": "Worker stepped inside the crude oil storage tank with zero ventilation and H2S alarm sounding.",
+      "output_sif": "SIF-POTENTIAL",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_CONFIRMED",
+      "barriers": [
+        "GENERAL_ADMINISTRATIVE_CONTROL"
+      ],
+      "barrier_states": [
+        "BYPASSED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: Hazardous Gas / H2S / Toxic Vapor",
+        "Safety barrier compromised: BYPASSED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: CONFIRMED (worker entered / present within hazardous perimeter)",
+        "SIF-Potential Precursor Confirmed: high energy + compromised barrier + affirmed human exposure"
+      ],
+      "lsr_rules": [
+        "CONFINED_SPACE",
+        "BYPASSING_SAFETY_CONTROLS"
+      ],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-006",
+      "category": "direct_affirmed",
+      "narrative": "Welder struck an arc near an open fuel drain line while flammable vapors were venting.",
+      "output_sif": "SIF-POTENTIAL",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_CONFIRMED",
+      "barriers": [
+        "GENERAL_ADMINISTRATIVE_CONTROL"
+      ],
+      "barrier_states": [
+        "BYPASSED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: Thermal / Flammable Atmosphere / Sparks",
+        "Safety barrier compromised: BYPASSED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: CONFIRMED (worker entered / present within hazardous perimeter)",
+        "SIF-Potential Precursor Confirmed: high energy + compromised barrier + affirmed human exposure"
+      ],
+      "lsr_rules": [
+        "BYPASSING_SAFETY_CONTROLS"
+      ],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-007",
+      "category": "direct_affirmed",
+      "narrative": "Floorman stood directly in line of fire of pressurized hydraulic snubbing hose that ruptured.",
+      "output_sif": "SIF-POTENTIAL",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_CONFIRMED",
+      "barriers": [
+        "GENERAL_ADMINISTRATIVE_CONTROL"
+      ],
+      "barrier_states": [
+        "FAILED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: High Pressure / Stored Pneumatic or Hydraulic",
+        "Safety barrier compromised: FAILED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: CONFIRMED (worker entered / present within hazardous perimeter)",
+        "SIF-Potential Precursor Confirmed: high energy + compromised barrier + affirmed human exposure"
+      ],
+      "lsr_rules": [],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-008",
+      "category": "direct_affirmed",
+      "narrative": "Employee leaned over the unshielded rotating drive shaft of the active mud pump.",
+      "output_sif": "REVIEW_REQUIRED",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "GENERAL_ADMINISTRATIVE_CONTROL"
+      ],
+      "barrier_states": [
+        "BYPASSED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: Rotating Equipment / Pinch Points",
+        "Safety barrier compromised: BYPASSED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: UNKNOWN (personnel location could not be verified in evidence)",
+        "HSE Review Required: high-energy hazard with compromised/unverified barrier or unconfirmed personnel exposure"
+      ],
+      "lsr_rules": [
+        "BYPASSING_SAFETY_CONTROLS"
+      ],
+      "status": "FAIL",
+      "failure_reasons": [
+        "SIF status 'REVIEW_REQUIRED' != expected 'SIF-POTENTIAL'"
+      ]
+    },
+    {
+      "id": "ADV-009",
+      "category": "direct_affirmed",
+      "narrative": "Operator walked between backing forklift and solid steel container in high-traffic bay.",
+      "output_sif": "REVIEW_REQUIRED",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_POSSIBLE",
+      "barriers": [
+        "GENERAL_ADMINISTRATIVE_CONTROL"
+      ],
+      "barrier_states": [
+        "BYPASSED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: Heavy Mobile Equipment / Traffic",
+        "Safety barrier compromised: BYPASSED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: UNKNOWN (personnel location could not be verified in evidence)",
+        "HSE Review Required: high-energy hazard with compromised/unverified barrier or unconfirmed personnel exposure"
+      ],
+      "lsr_rules": [
+        "SAFE_MECHANICAL_LIFTING",
+        "BYPASSING_SAFETY_CONTROLS"
+      ],
+      "status": "FAIL",
+      "failure_reasons": [
+        "SIF status 'REVIEW_REQUIRED' != expected 'SIF-POTENTIAL'"
+      ]
+    },
+    {
+      "id": "ADV-010",
+      "category": "direct_affirmed",
+      "narrative": "Roughneck was caught between moving iron roughneck and rotary table during pipe makeup.",
+      "output_sif": "REVIEW_REQUIRED",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "GENERAL_ADMINISTRATIVE_CONTROL"
+      ],
+      "barrier_states": [
+        "PRESENT_UNVERIFIED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: Rotating Equipment / Pinch Points",
+        "Safety barrier status unverified: PRESENT_UNVERIFIED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: UNKNOWN (personnel location could not be verified in evidence)",
+        "HSE Review Required: high-energy hazard with compromised/unverified barrier or unconfirmed personnel exposure"
+      ],
+      "lsr_rules": [],
+      "status": "FAIL",
+      "failure_reasons": [
+        "SIF status 'REVIEW_REQUIRED' != expected 'SIF-POTENTIAL'"
+      ]
+    },
+    {
+      "id": "ADV-011",
+      "category": "explicit_negation",
+      "narrative": "The suspended load shifted suddenly but no workers were inside the exclusion area.",
+      "output_sif": "NO_SIF_POTENTIAL_IDENTIFIED",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_NEGATED",
+      "barriers": [
+        "GENERAL_ADMINISTRATIVE_CONTROL"
+      ],
+      "barrier_states": [
+        "PRESENT_UNVERIFIED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: Gravity / Suspended Load",
+        "Safety barrier status unverified: PRESENT_UNVERIFIED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: NEGATED (personnel confirmed absent / remained outside hazard perimeter)",
+        "SIF potential avoided: human exposure was strictly negated in evidence"
+      ],
+      "lsr_rules": [
+        "SAFE_MECHANICAL_LIFTING"
+      ],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-012",
+      "category": "explicit_negation",
+      "narrative": "No high pressure gas leak was detected during the pipeline integrity hydrostatic test.",
+      "output_sif": "NO_SIF_POTENTIAL_IDENTIFIED",
+      "output_assertion": "NEGATED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_NEGATED",
+      "barriers": [
+        "PHYSICAL_CONTAINMENT"
+      ],
+      "barrier_states": [
+        "EFFECTIVE_VERIFIED"
+      ],
+      "sif_reasons": [
+        "Exposure or incident event was explicitly negated in evidence."
+      ],
+      "lsr_rules": [],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-013",
+      "category": "explicit_negation",
+      "narrative": "Nobody entered the confined space vessel before the air ventilation purge completed.",
+      "output_sif": "REVIEW_REQUIRED",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "GENERAL_ADMINISTRATIVE_CONTROL"
+      ],
+      "barrier_states": [
+        "BYPASSED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: Hazardous Gas / H2S / Toxic Vapor",
+        "Safety barrier compromised: BYPASSED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: UNKNOWN (personnel location could not be verified in evidence)",
+        "HSE Review Required: high-energy hazard with compromised/unverified barrier or unconfirmed personnel exposure"
+      ],
+      "lsr_rules": [
+        "CONFINED_SPACE",
+        "BYPASSING_SAFETY_CONTROLS"
+      ],
+      "status": "FAIL",
+      "failure_reasons": [
+        "SIF status 'REVIEW_REQUIRED' != expected 'NO_SIF_POTENTIAL_IDENTIFIED'"
+      ]
+    },
+    {
+      "id": "ADV-014",
+      "category": "explicit_negation",
+      "narrative": "There was no failure of the electrical circuit breaker during the transformer switch.",
+      "output_sif": "NO_SIF_POTENTIAL_IDENTIFIED",
+      "output_assertion": "NEGATED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_NEGATED",
+      "barriers": [
+        "PHYSICAL_CONTAINMENT"
+      ],
+      "barrier_states": [
+        "EFFECTIVE_VERIFIED"
+      ],
+      "sif_reasons": [
+        "Exposure or incident event was explicitly negated in evidence."
+      ],
+      "lsr_rules": [],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-015",
+      "category": "explicit_negation",
+      "narrative": "No personnel were present on the drill floor when the hoisting winch brake slipped.",
+      "output_sif": "NO_SIF_POTENTIAL_IDENTIFIED",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_NEGATED",
+      "barriers": [
+        "GENERAL_ADMINISTRATIVE_CONTROL"
+      ],
+      "barrier_states": [
+        "FAILED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: Gravity / Suspended Load",
+        "Safety barrier compromised: FAILED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: NEGATED (personnel confirmed absent / remained outside hazard perimeter)",
+        "SIF potential avoided: human exposure was strictly negated in evidence"
+      ],
+      "lsr_rules": [
+        "SAFE_MECHANICAL_LIFTING"
+      ],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-016",
+      "category": "explicit_negation",
+      "narrative": "Zero workers were exposed to the chemical splash because the splash hood was lowered.",
+      "output_sif": "NO_SIF_POTENTIAL_IDENTIFIED",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_NEGATED",
+      "barriers": [
+        "GENERAL_ADMINISTRATIVE_CONTROL"
+      ],
+      "barrier_states": [
+        "PRESENT_UNVERIFIED"
+      ],
+      "sif_reasons": [
+        "Low/unspecified energy hazard: Mechanical / Kinetic Energy",
+        "Safety barrier status unverified: PRESENT_UNVERIFIED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: NEGATED (personnel confirmed absent / remained outside hazard perimeter)",
+        "SIF potential avoided: human exposure was strictly negated in evidence"
+      ],
+      "lsr_rules": [],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-017",
+      "category": "explicit_negation",
+      "narrative": "No crane lifting took place today due to high wind gusts exceeding 25 knots.",
+      "output_sif": "NO_SIF_POTENTIAL_IDENTIFIED",
+      "output_assertion": "NEGATED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_NEGATED",
+      "barriers": [
+        "PHYSICAL_CONTAINMENT"
+      ],
+      "barrier_states": [
+        "EFFECTIVE_VERIFIED"
+      ],
+      "sif_reasons": [
+        "Exposure or incident event was explicitly negated in evidence."
+      ],
+      "lsr_rules": [],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-018",
+      "category": "explicit_negation",
+      "narrative": "The hydraulic line did not rupture and pressure remained steady at 3000 psi.",
+      "output_sif": "NO_SIF_POTENTIAL_IDENTIFIED",
+      "output_assertion": "NEGATED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_NEGATED",
+      "barriers": [
+        "PHYSICAL_CONTAINMENT"
+      ],
+      "barrier_states": [
+        "EFFECTIVE_VERIFIED"
+      ],
+      "sif_reasons": [
+        "Exposure or incident event was explicitly negated in evidence."
+      ],
+      "lsr_rules": [],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-019",
+      "category": "explicit_negation",
+      "narrative": "No contractor crossed the yellow boundary ribbon during the skid transfer.",
+      "output_sif": "NO_SIF_POTENTIAL_IDENTIFIED",
+      "output_assertion": "NEGATED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "EXCLUSION_ZONE"
+      ],
+      "barrier_states": [
+        "EFFECTIVE_VERIFIED"
+      ],
+      "sif_reasons": [
+        "Exposure or incident event was explicitly negated in evidence."
+      ],
+      "lsr_rules": [
+        "SAFE_MECHANICAL_LIFTING"
+      ],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-020",
+      "category": "explicit_negation",
+      "narrative": "No flammable vapors were registered on the multi-gas monitor in the compressor shed.",
+      "output_sif": "NO_SIF_POTENTIAL_IDENTIFIED",
+      "output_assertion": "NEGATED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_NEGATED",
+      "barriers": [
+        "PHYSICAL_CONTAINMENT"
+      ],
+      "barrier_states": [
+        "EFFECTIVE_VERIFIED"
+      ],
+      "sif_reasons": [
+        "Exposure or incident event was explicitly negated in evidence."
+      ],
+      "lsr_rules": [],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-021",
+      "category": "safe_control",
+      "narrative": "The rigger remained outside the lifting boundary and the barricade was intact.",
+      "output_sif": "NO_SIF_POTENTIAL_IDENTIFIED",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_POSSIBLE",
+      "barriers": [
+        "EXCLUSION_ZONE",
+        "LIFTING_CONTROL"
+      ],
+      "barrier_states": [
+        "EFFECTIVE_VERIFIED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: Gravity / Suspended Load",
+        "Safety barrier verified effective: EFFECTIVE_VERIFIED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: UNKNOWN (personnel location could not be verified in evidence)",
+        "Effective barrier prevented progression into high-energy contact"
+      ],
+      "lsr_rules": [
+        "SAFE_MECHANICAL_LIFTING"
+      ],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-022",
+      "category": "safe_control",
+      "narrative": "Electrician verified zero voltage with calibrated multimeter and locked the de-energized breaker.",
+      "output_sif": "NO_SIF_POTENTIAL_IDENTIFIED",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_POSSIBLE",
+      "barriers": [
+        "GENERAL_ADMINISTRATIVE_CONTROL"
+      ],
+      "barrier_states": [
+        "EFFECTIVE_VERIFIED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: Live Electrical Conductors",
+        "Safety barrier verified effective: EFFECTIVE_VERIFIED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: UNKNOWN (personnel location could not be verified in evidence)",
+        "Effective barrier prevented progression into high-energy contact"
+      ],
+      "lsr_rules": [
+        "ENERGY_ISOLATION"
+      ],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-023",
+      "category": "safe_control",
+      "narrative": "Scaffolder was fully anchored with twin lanyards tied off to certified anchor points at all times.",
+      "output_sif": "NO_SIF_POTENTIAL_IDENTIFIED",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_POSSIBLE",
+      "barriers": [
+        "FALL_PROTECTION"
+      ],
+      "barrier_states": [
+        "EFFECTIVE_VERIFIED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: Elevation / Fall Potential",
+        "Safety barrier verified effective: EFFECTIVE_VERIFIED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: UNKNOWN (personnel location could not be verified in evidence)",
+        "Effective barrier prevented progression into high-energy contact"
+      ],
+      "lsr_rules": [
+        "WORKING_AT_HEIGHT"
+      ],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-024",
+      "category": "safe_control",
+      "narrative": "Confined space attendant maintained continuous visual contact and verified gas test prior to entry.",
+      "output_sif": "NO_SIF_POTENTIAL_IDENTIFIED",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "GENERAL_ADMINISTRATIVE_CONTROL"
+      ],
+      "barrier_states": [
+        "EFFECTIVE_VERIFIED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: Hazardous Gas / H2S / Toxic Vapor",
+        "Safety barrier verified effective: EFFECTIVE_VERIFIED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: UNKNOWN (personnel location could not be verified in evidence)",
+        "Effective barrier prevented progression into high-energy contact"
+      ],
+      "lsr_rules": [
+        "CONFINED_SPACE"
+      ],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-025",
+      "category": "safe_control",
+      "narrative": "Hot work permit validated with continuous LEL monitoring at 0% and certified fire watch present.",
+      "output_sif": "NO_SIF_POTENTIAL_IDENTIFIED",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "WORK_AUTHORIZATION"
+      ],
+      "barrier_states": [
+        "EFFECTIVE_VERIFIED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: Thermal / Flammable Atmosphere / Sparks",
+        "Safety barrier verified effective: EFFECTIVE_VERIFIED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: UNKNOWN (personnel location could not be verified in evidence)",
+        "Effective barrier prevented progression into high-energy contact"
+      ],
+      "lsr_rules": [],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-026",
+      "category": "safe_control",
+      "narrative": "Forklift travel path was completely segregated by concrete barriers from pedestrian walkways.",
+      "output_sif": "NO_SIF_POTENTIAL_IDENTIFIED",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "TRAFFIC_SEGREGATION"
+      ],
+      "barrier_states": [
+        "EFFECTIVE_VERIFIED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: Heavy Mobile Equipment / Traffic",
+        "Safety barrier verified effective: EFFECTIVE_VERIFIED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: UNKNOWN (personnel location could not be verified in evidence)",
+        "Effective barrier prevented progression into high-energy contact"
+      ],
+      "lsr_rules": [
+        "SAFE_MECHANICAL_LIFTING"
+      ],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-027",
+      "category": "safe_control",
+      "narrative": "Whip checks were installed on all high pressure air lines and inspected before energization.",
+      "output_sif": "NO_SIF_POTENTIAL_IDENTIFIED",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "GENERAL_ADMINISTRATIVE_CONTROL"
+      ],
+      "barrier_states": [
+        "EFFECTIVE_VERIFIED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: High Pressure / Stored Pneumatic or Hydraulic",
+        "Safety barrier verified effective: EFFECTIVE_VERIFIED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: UNKNOWN (personnel location could not be verified in evidence)",
+        "Effective barrier prevented progression into high-energy contact"
+      ],
+      "lsr_rules": [],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-028",
+      "category": "safe_control",
+      "narrative": "Rotating machine guard was bolted in place and interlock shut down pump when opened.",
+      "output_sif": "NO_SIF_POTENTIAL_IDENTIFIED",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "INTERLOCK_GUARD"
+      ],
+      "barrier_states": [
+        "PRESENT_UNVERIFIED"
+      ],
+      "sif_reasons": [
+        "Low/unspecified energy hazard: Mechanical / Kinetic Energy",
+        "Safety barrier status unverified: PRESENT_UNVERIFIED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: UNKNOWN (personnel location could not be verified in evidence)"
+      ],
+      "lsr_rules": [],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-029",
+      "category": "safe_control",
+      "narrative": "BOP accumulator pressure tested successfully to 3000 psi with zero pressure loss over 15 minutes.",
+      "output_sif": "NO_SIF_POTENTIAL_IDENTIFIED",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "BOP_INTEGRITY"
+      ],
+      "barrier_states": [
+        "PRESENT_UNVERIFIED"
+      ],
+      "sif_reasons": [
+        "Low/unspecified energy hazard: Mechanical / Kinetic Energy",
+        "Safety barrier status unverified: PRESENT_UNVERIFIED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: UNKNOWN (personnel location could not be verified in evidence)"
+      ],
+      "lsr_rules": [],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-030",
+      "category": "safe_control",
+      "narrative": "Crew held pre-lift toolbox talk, verified lift plan, and confirmed exclusion zone was vacant.",
+      "output_sif": "NO_SIF_POTENTIAL_IDENTIFIED",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_POSSIBLE",
+      "barriers": [
+        "EXCLUSION_ZONE",
+        "WORK_AUTHORIZATION",
+        "LIFTING_CONTROL"
+      ],
+      "barrier_states": [
+        "EFFECTIVE_VERIFIED"
+      ],
+      "sif_reasons": [
+        "Low/unspecified energy hazard: Mechanical / Kinetic Energy",
+        "Safety barrier verified effective: EFFECTIVE_VERIFIED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: UNKNOWN (personnel location could not be verified in evidence)",
+        "Effective barrier prevented progression into high-energy contact"
+      ],
+      "lsr_rules": [
+        "SAFE_MECHANICAL_LIFTING"
+      ],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-031",
+      "category": "hypothetical_conditional",
+      "narrative": "If the crane cable snaps during the heavy lift, personnel in the area could be crushed.",
+      "output_sif": "NO_SIF_POTENTIAL_IDENTIFIED",
+      "output_assertion": "HYPOTHETICAL",
+      "output_temporal": "HYPOTHETICAL",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "LIFTING_CONTROL"
+      ],
+      "barrier_states": [
+        "PRESENT_UNVERIFIED"
+      ],
+      "sif_reasons": [
+        "Conditional or hypothetical statement; not an observed physical event."
+      ],
+      "lsr_rules": [],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-032",
+      "category": "hypothetical_conditional",
+      "narrative": "What if the gas detector fails to alert workers when hydrogen sulfide leaks?",
+      "output_sif": "NO_SIF_POTENTIAL_IDENTIFIED",
+      "output_assertion": "HYPOTHETICAL",
+      "output_temporal": "HYPOTHETICAL",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "LIFTING_CONTROL"
+      ],
+      "barrier_states": [
+        "PRESENT_UNVERIFIED"
+      ],
+      "sif_reasons": [
+        "Conditional or hypothetical statement; not an observed physical event."
+      ],
+      "lsr_rules": [],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-033",
+      "category": "hypothetical_conditional",
+      "narrative": "In the event of an electrical blackout, the emergency generator would need to start immediately.",
+      "output_sif": "NO_SIF_POTENTIAL_IDENTIFIED",
+      "output_assertion": "HYPOTHETICAL",
+      "output_temporal": "HYPOTHETICAL",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "LIFTING_CONTROL"
+      ],
+      "barrier_states": [
+        "PRESENT_UNVERIFIED"
+      ],
+      "sif_reasons": [
+        "Conditional or hypothetical statement; not an observed physical event."
+      ],
+      "lsr_rules": [],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-034",
+      "category": "hypothetical_conditional",
+      "narrative": "Should the hydraulic pressure exceed 5000 psi, the relief valve should activate automatically.",
+      "output_sif": "NO_SIF_POTENTIAL_IDENTIFIED",
+      "output_assertion": "HYPOTHETICAL",
+      "output_temporal": "HYPOTHETICAL",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "LIFTING_CONTROL"
+      ],
+      "barrier_states": [
+        "PRESENT_UNVERIFIED"
+      ],
+      "sif_reasons": [
+        "Conditional or hypothetical statement; not an observed physical event."
+      ],
+      "lsr_rules": [],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-035",
+      "category": "hypothetical_conditional",
+      "narrative": "Workers could potentially slip if the monkey board grating becomes coated with drilling mud.",
+      "output_sif": "NO_SIF_POTENTIAL_IDENTIFIED",
+      "output_assertion": "HYPOTHETICAL",
+      "output_temporal": "HYPOTHETICAL",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "LIFTING_CONTROL"
+      ],
+      "barrier_states": [
+        "PRESENT_UNVERIFIED"
+      ],
+      "sif_reasons": [
+        "Conditional or hypothetical statement; not an observed physical event."
+      ],
+      "lsr_rules": [],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-036",
+      "category": "hypothetical_conditional",
+      "narrative": "Assuming the nitrogen purge is incomplete, an explosive mixture might form inside the column.",
+      "output_sif": "NO_SIF_POTENTIAL_IDENTIFIED",
+      "output_assertion": "HYPOTHETICAL",
+      "output_temporal": "HYPOTHETICAL",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "LIFTING_CONTROL"
+      ],
+      "barrier_states": [
+        "PRESENT_UNVERIFIED"
+      ],
+      "sif_reasons": [
+        "Conditional or hypothetical statement; not an observed physical event."
+      ],
+      "lsr_rules": [],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-037",
+      "category": "hypothetical_conditional",
+      "narrative": "If the barricade tape falls down, someone might inadvertently enter the radiation zone.",
+      "output_sif": "NO_SIF_POTENTIAL_IDENTIFIED",
+      "output_assertion": "HYPOTHETICAL",
+      "output_temporal": "HYPOTHETICAL",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "LIFTING_CONTROL"
+      ],
+      "barrier_states": [
+        "PRESENT_UNVERIFIED"
+      ],
+      "sif_reasons": [
+        "Conditional or hypothetical statement; not an observed physical event."
+      ],
+      "lsr_rules": [],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-038",
+      "category": "hypothetical_conditional",
+      "narrative": "Permit to work will be approved tomorrow morning provided atmospheric tests pass.",
+      "output_sif": "NO_SIF_POTENTIAL_IDENTIFIED",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "WORK_AUTHORIZATION",
+        "GAS_TESTING"
+      ],
+      "barrier_states": [
+        "PRESENT_UNVERIFIED"
+      ],
+      "sif_reasons": [
+        "Low/unspecified energy hazard: Mechanical / Kinetic Energy",
+        "Safety barrier status unverified: PRESENT_UNVERIFIED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: UNKNOWN (personnel location could not be verified in evidence)"
+      ],
+      "lsr_rules": [],
+      "status": "FAIL",
+      "failure_reasons": [
+        "Assertion 'AFFIRMED' != expected 'HYPOTHETICAL'"
+      ]
+    },
+    {
+      "id": "ADV-039",
+      "category": "hypothetical_conditional",
+      "narrative": "Were the forklift brakes to fail on the ramp, serious impact could occur.",
+      "output_sif": "NO_SIF_POTENTIAL_IDENTIFIED",
+      "output_assertion": "HYPOTHETICAL",
+      "output_temporal": "HYPOTHETICAL",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "LIFTING_CONTROL"
+      ],
+      "barrier_states": [
+        "PRESENT_UNVERIFIED"
+      ],
+      "sif_reasons": [
+        "Conditional or hypothetical statement; not an observed physical event."
+      ],
+      "lsr_rules": [],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-040",
+      "category": "hypothetical_conditional",
+      "narrative": "Simulated drill scenario: evaluate rig evacuation time in the hypothetical event of a kick.",
+      "output_sif": "NO_SIF_POTENTIAL_IDENTIFIED",
+      "output_assertion": "HYPOTHETICAL",
+      "output_temporal": "HYPOTHETICAL",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "LIFTING_CONTROL"
+      ],
+      "barrier_states": [
+        "PRESENT_UNVERIFIED"
+      ],
+      "sif_reasons": [
+        "Conditional or hypothetical statement; not an observed physical event."
+      ],
+      "lsr_rules": [],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-041",
+      "category": "temporal_post_event",
+      "narrative": "The barricade was installed after the event occurred.",
+      "output_sif": "NO_SIF_POTENTIAL_IDENTIFIED",
+      "output_assertion": "POST_EVENT",
+      "output_temporal": "POST_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "EXCLUSION_ZONE"
+      ],
+      "barrier_states": [
+        "PRESENT_UNVERIFIED"
+      ],
+      "sif_reasons": [
+        "Post-incident remediation; not an active incident-time failure."
+      ],
+      "lsr_rules": [],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-042",
+      "category": "temporal_post_event",
+      "narrative": "Warning signs were erected after the near-miss had already taken place.",
+      "output_sif": "NO_SIF_POTENTIAL_IDENTIFIED",
+      "output_assertion": "POST_EVENT",
+      "output_temporal": "POST_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "GENERAL_CONTROL"
+      ],
+      "barrier_states": [
+        "PRESENT_UNVERIFIED"
+      ],
+      "sif_reasons": [
+        "Post-incident remediation; not an active incident-time failure."
+      ],
+      "lsr_rules": [],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-043",
+      "category": "temporal_post_event",
+      "narrative": "The broken whip check cable was replaced later that evening by maintenance crew.",
+      "output_sif": "NO_SIF_POTENTIAL_IDENTIFIED",
+      "output_assertion": "POST_EVENT",
+      "output_temporal": "POST_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "GENERAL_CONTROL"
+      ],
+      "barrier_states": [
+        "PRESENT_UNVERIFIED"
+      ],
+      "sif_reasons": [
+        "Post-incident remediation; not an active incident-time failure."
+      ],
+      "lsr_rules": [],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-044",
+      "category": "temporal_post_event",
+      "narrative": "Safety harness anchor point was subsequently recertified after the inspection audit.",
+      "output_sif": "NO_SIF_POTENTIAL_IDENTIFIED",
+      "output_assertion": "POST_EVENT",
+      "output_temporal": "POST_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "GENERAL_CONTROL"
+      ],
+      "barrier_states": [
+        "PRESENT_UNVERIFIED"
+      ],
+      "sif_reasons": [
+        "Post-incident remediation; not an active incident-time failure."
+      ],
+      "lsr_rules": [],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-045",
+      "category": "temporal_post_event",
+      "narrative": "Lockout padlock was attached to the circuit breaker after the shift supervisor intervened.",
+      "output_sif": "NO_SIF_POTENTIAL_IDENTIFIED",
+      "output_assertion": "POST_EVENT",
+      "output_temporal": "POST_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "GENERAL_CONTROL"
+      ],
+      "barrier_states": [
+        "PRESENT_UNVERIFIED"
+      ],
+      "sif_reasons": [
+        "Post-incident remediation; not an active incident-time failure."
+      ],
+      "lsr_rules": [],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-046",
+      "category": "temporal_post_event",
+      "narrative": "Gas detectors were recalibrated the following morning following the false alarm incident.",
+      "output_sif": "NO_SIF_POTENTIAL_IDENTIFIED",
+      "output_assertion": "POST_EVENT",
+      "output_temporal": "POST_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "GENERAL_CONTROL"
+      ],
+      "barrier_states": [
+        "PRESENT_UNVERIFIED"
+      ],
+      "sif_reasons": [
+        "Post-incident remediation; not an active incident-time failure."
+      ],
+      "lsr_rules": [],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-047",
+      "category": "temporal_post_event",
+      "narrative": "Exclusion boundary was re-established after the crane had completed the lift cycle.",
+      "output_sif": "REVIEW_REQUIRED",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "EXCLUSION_ZONE"
+      ],
+      "barrier_states": [
+        "PRESENT_UNVERIFIED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: Gravity / Suspended Load",
+        "Safety barrier status unverified: PRESENT_UNVERIFIED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: UNKNOWN (personnel location could not be verified in evidence)",
+        "HSE Review Required: high-energy hazard with compromised/unverified barrier or unconfirmed personnel exposure"
+      ],
+      "lsr_rules": [
+        "SAFE_MECHANICAL_LIFTING"
+      ],
+      "status": "FAIL",
+      "failure_reasons": [
+        "Temporal status 'DURING_EVENT' != expected 'POST_EVENT'"
+      ]
+    },
+    {
+      "id": "ADV-048",
+      "category": "temporal_post_event",
+      "narrative": "Drain sump grating was rectified later by mechanical workshop personnel.",
+      "output_sif": "NO_SIF_POTENTIAL_IDENTIFIED",
+      "output_assertion": "POST_EVENT",
+      "output_temporal": "POST_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "GENERAL_CONTROL"
+      ],
+      "barrier_states": [
+        "PRESENT_UNVERIFIED"
+      ],
+      "sif_reasons": [
+        "Post-incident remediation; not an active incident-time failure."
+      ],
+      "lsr_rules": [],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-049",
+      "category": "temporal_post_event",
+      "narrative": "Personnel were evacuated and the valve was isolated 3 hours post incident.",
+      "output_sif": "NO_SIF_POTENTIAL_IDENTIFIED",
+      "output_assertion": "POST_EVENT",
+      "output_temporal": "POST_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "GENERAL_CONTROL"
+      ],
+      "barrier_states": [
+        "PRESENT_UNVERIFIED"
+      ],
+      "sif_reasons": [
+        "Post-incident remediation; not an active incident-time failure."
+      ],
+      "lsr_rules": [],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-050",
+      "category": "temporal_post_event",
+      "narrative": "New toe-boards were installed after the scaffold inspection failed.",
+      "output_sif": "NO_SIF_POTENTIAL_IDENTIFIED",
+      "output_assertion": "POST_EVENT",
+      "output_temporal": "POST_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "GENERAL_CONTROL"
+      ],
+      "barrier_states": [
+        "PRESENT_UNVERIFIED"
+      ],
+      "sif_reasons": [
+        "Post-incident remediation; not an active incident-time failure."
+      ],
+      "lsr_rules": [],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-051",
+      "category": "complex_double_negation",
+      "narrative": "It is not true that no barrier was present during the casing lift.",
+      "output_sif": "REVIEW_REQUIRED",
+      "output_assertion": "UNCERTAIN",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "UNKNOWN"
+      ],
+      "barrier_states": [
+        "UNKNOWN"
+      ],
+      "sif_reasons": [
+        "Linguistic ambiguity or double-negation detected; HSE review required."
+      ],
+      "lsr_rules": [],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-052",
+      "category": "complex_double_negation",
+      "narrative": "It was not the case that no gas monitoring was performed before vessel entry.",
+      "output_sif": "REVIEW_REQUIRED",
+      "output_assertion": "UNCERTAIN",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "UNKNOWN"
+      ],
+      "barrier_states": [
+        "UNKNOWN"
+      ],
+      "sif_reasons": [
+        "Linguistic ambiguity or double-negation detected; HSE review required."
+      ],
+      "lsr_rules": [],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-053",
+      "category": "complex_double_negation",
+      "narrative": "The crew was never without safety equipment during the elevated maintenance.",
+      "output_sif": "REVIEW_REQUIRED",
+      "output_assertion": "UNCERTAIN",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "UNKNOWN"
+      ],
+      "barrier_states": [
+        "UNKNOWN"
+      ],
+      "sif_reasons": [
+        "Linguistic ambiguity or double-negation detected; HSE review required."
+      ],
+      "lsr_rules": [],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-054",
+      "category": "complex_double_negation",
+      "narrative": "It cannot be denied that no lockout procedure was formally registered.",
+      "output_sif": "REVIEW_REQUIRED",
+      "output_assertion": "UNCERTAIN",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "UNKNOWN"
+      ],
+      "barrier_states": [
+        "UNKNOWN"
+      ],
+      "sif_reasons": [
+        "Linguistic ambiguity or double-negation detected; HSE review required."
+      ],
+      "lsr_rules": [],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-055",
+      "category": "complex_double_negation",
+      "narrative": "Not all workers failed to avoid entering the crane radius.",
+      "output_sif": "REVIEW_REQUIRED",
+      "output_assertion": "UNCERTAIN",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "UNKNOWN"
+      ],
+      "barrier_states": [
+        "UNKNOWN"
+      ],
+      "sif_reasons": [
+        "Linguistic ambiguity or double-negation detected; HSE review required."
+      ],
+      "lsr_rules": [],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-056",
+      "category": "complex_double_negation",
+      "narrative": "It is untrue that the high pressure line was not isolated prior to disassembly.",
+      "output_sif": "REVIEW_REQUIRED",
+      "output_assertion": "UNCERTAIN",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "UNKNOWN"
+      ],
+      "barrier_states": [
+        "UNKNOWN"
+      ],
+      "sif_reasons": [
+        "Linguistic ambiguity or double-negation detected; HSE review required."
+      ],
+      "lsr_rules": [],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-057",
+      "category": "complex_double_negation",
+      "narrative": "The bypass switch was not unactivated at the time of the electrical fault.",
+      "output_sif": "REVIEW_REQUIRED",
+      "output_assertion": "UNCERTAIN",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "UNKNOWN"
+      ],
+      "barrier_states": [
+        "UNKNOWN"
+      ],
+      "sif_reasons": [
+        "Linguistic ambiguity or double-negation detected; HSE review required."
+      ],
+      "lsr_rules": [],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-058",
+      "category": "complex_double_negation",
+      "narrative": "No evidence indicates that workers did not fail to wear harnesses.",
+      "output_sif": "REVIEW_REQUIRED",
+      "output_assertion": "UNCERTAIN",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "UNKNOWN"
+      ],
+      "barrier_states": [
+        "UNKNOWN"
+      ],
+      "sif_reasons": [
+        "Linguistic ambiguity or double-negation detected; HSE review required."
+      ],
+      "lsr_rules": [],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-059",
+      "category": "complex_double_negation",
+      "narrative": "It is not impossible that gas was present without triggering detection.",
+      "output_sif": "REVIEW_REQUIRED",
+      "output_assertion": "UNCERTAIN",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "UNKNOWN"
+      ],
+      "barrier_states": [
+        "UNKNOWN"
+      ],
+      "sif_reasons": [
+        "Linguistic ambiguity or double-negation detected; HSE review required."
+      ],
+      "lsr_rules": [],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-060",
+      "category": "complex_double_negation",
+      "narrative": "The exclusion zone was not without some degree of partial signage.",
+      "output_sif": "REVIEW_REQUIRED",
+      "output_assertion": "UNCERTAIN",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "UNKNOWN"
+      ],
+      "barrier_states": [
+        "UNKNOWN"
+      ],
+      "sif_reasons": [
+        "Linguistic ambiguity or double-negation detected; HSE review required."
+      ],
+      "lsr_rules": [],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-061",
+      "category": "multiple_event_red_herring",
+      "narrative": "Weather was sunny and crew completed housekeeping, but worker stepped beneath suspended drill collar.",
+      "output_sif": "SIF-POTENTIAL",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_CONFIRMED",
+      "barriers": [
+        "GENERAL_ADMINISTRATIVE_CONTROL"
+      ],
+      "barrier_states": [
+        "BYPASSED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: Gravity / Suspended Load",
+        "Safety barrier compromised: BYPASSED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: CONFIRMED (worker entered / present within hazardous perimeter)",
+        "SIF-Potential Precursor Confirmed: high energy + compromised barrier + affirmed human exposure"
+      ],
+      "lsr_rules": [
+        "SAFE_MECHANICAL_LIFTING",
+        "BYPASSING_SAFETY_CONTROLS"
+      ],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-062",
+      "category": "multiple_event_red_herring",
+      "narrative": "Tea break was delayed by 15 minutes; meanwhile technician opened energized switchboard without lockout.",
+      "output_sif": "SIF-POTENTIAL",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_CONFIRMED",
+      "barriers": [
+        "ENERGY_ISOLATION"
+      ],
+      "barrier_states": [
+        "BYPASSED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: Live Electrical Conductors",
+        "Safety barrier compromised: BYPASSED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: CONFIRMED (worker entered / present within hazardous perimeter)",
+        "SIF-Potential Precursor Confirmed: high energy + compromised barrier + affirmed human exposure"
+      ],
+      "lsr_rules": [
+        "ENERGY_ISOLATION",
+        "BYPASSING_SAFETY_CONTROLS"
+      ],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-063",
+      "category": "multiple_event_red_herring",
+      "narrative": "Morning safety meeting discussed hand injury statistics; later derrickman climbed mast with unhooked harness.",
+      "output_sif": "SIF-POTENTIAL",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_CONFIRMED",
+      "barriers": [
+        "GENERAL_ADMINISTRATIVE_CONTROL"
+      ],
+      "barrier_states": [
+        "BYPASSED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: Elevation / Fall Potential",
+        "Safety barrier compromised: BYPASSED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: CONFIRMED (worker entered / present within hazardous perimeter)",
+        "SIF-Potential Precursor Confirmed: high energy + compromised barrier + affirmed human exposure"
+      ],
+      "lsr_rules": [
+        "SAFE_MECHANICAL_LIFTING",
+        "WORKING_AT_HEIGHT",
+        "BYPASSING_SAFETY_CONTROLS",
+        "LINE_OF_FIRE"
+      ],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-064",
+      "category": "multiple_event_red_herring",
+      "narrative": "Forklift horn was tested and passed; however, operator entered pedestrian walkway with obstructed vision.",
+      "output_sif": "SIF-POTENTIAL",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_CONFIRMED",
+      "barriers": [
+        "TRAFFIC_SEGREGATION"
+      ],
+      "barrier_states": [
+        "BYPASSED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: Heavy Mobile Equipment / Traffic",
+        "Safety barrier compromised: BYPASSED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: CONFIRMED (worker entered / present within hazardous perimeter)",
+        "SIF-Potential Precursor Confirmed: high energy + compromised barrier + affirmed human exposure"
+      ],
+      "lsr_rules": [
+        "SAFE_MECHANICAL_LIFTING",
+        "BYPASSING_SAFETY_CONTROLS",
+        "LINE_OF_FIRE"
+      ],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-065",
+      "category": "multiple_event_red_herring",
+      "narrative": "Paint touch-up completed on deck railing; during this time hot work sparks showered onto open fuel drain.",
+      "output_sif": "REVIEW_REQUIRED",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "GENERAL_ADMINISTRATIVE_CONTROL"
+      ],
+      "barrier_states": [
+        "PRESENT_UNVERIFIED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: Thermal / Flammable Atmosphere / Sparks",
+        "Safety barrier status unverified: PRESENT_UNVERIFIED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: UNKNOWN (personnel location could not be verified in evidence)",
+        "HSE Review Required: high-energy hazard with compromised/unverified barrier or unconfirmed personnel exposure"
+      ],
+      "lsr_rules": [],
+      "status": "FAIL",
+      "failure_reasons": [
+        "SIF status 'REVIEW_REQUIRED' != expected 'SIF-POTENTIAL'"
+      ]
+    },
+    {
+      "id": "ADV-066",
+      "category": "multiple_event_red_herring",
+      "narrative": "Catering staff delivered lunches to rig office; roughneck was caught in line of fire of recoiling hose.",
+      "output_sif": "NO_SIF_POTENTIAL_IDENTIFIED",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "GENERAL_ADMINISTRATIVE_CONTROL"
+      ],
+      "barrier_states": [
+        "PRESENT_UNVERIFIED"
+      ],
+      "sif_reasons": [
+        "Low/unspecified energy hazard: Mechanical / Kinetic Energy",
+        "Safety barrier status unverified: PRESENT_UNVERIFIED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: UNKNOWN (personnel location could not be verified in evidence)"
+      ],
+      "lsr_rules": [],
+      "status": "FAIL",
+      "failure_reasons": [
+        "SIF status 'NO_SIF_POTENTIAL_IDENTIFIED' != expected 'SIF-POTENTIAL'"
+      ]
+    },
+    {
+      "id": "ADV-067",
+      "category": "multiple_event_red_herring",
+      "narrative": "Scaffold tags were logged in register; simultaneously, unanchored board slipped under worker foot at 15m.",
+      "output_sif": "REVIEW_REQUIRED",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_POSSIBLE",
+      "barriers": [
+        "GENERAL_ADMINISTRATIVE_CONTROL"
+      ],
+      "barrier_states": [
+        "FAILED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: Elevation / Fall Potential",
+        "Safety barrier compromised: FAILED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: UNKNOWN (personnel location could not be verified in evidence)",
+        "HSE Review Required: high-energy hazard with compromised/unverified barrier or unconfirmed personnel exposure"
+      ],
+      "lsr_rules": [
+        "WORKING_AT_HEIGHT"
+      ],
+      "status": "FAIL",
+      "failure_reasons": [
+        "SIF status 'REVIEW_REQUIRED' != expected 'SIF-POTENTIAL'"
+      ]
+    },
+    {
+      "id": "ADV-068",
+      "category": "multiple_event_red_herring",
+      "narrative": "Water cooler was refilled on rig floor while roughneck reached into unguarded mud pump belt drive.",
+      "output_sif": "SIF-POTENTIAL",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_CONFIRMED",
+      "barriers": [
+        "GENERAL_ADMINISTRATIVE_CONTROL"
+      ],
+      "barrier_states": [
+        "BYPASSED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: Rotating Equipment / Pinch Points",
+        "Safety barrier compromised: BYPASSED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: CONFIRMED (worker entered / present within hazardous perimeter)",
+        "SIF-Potential Precursor Confirmed: high energy + compromised barrier + affirmed human exposure"
+      ],
+      "lsr_rules": [
+        "BYPASSING_SAFETY_CONTROLS"
+      ],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-069",
+      "category": "multiple_event_red_herring",
+      "narrative": "Daily diesel fuel consumption logged; operator entered unventilated separator tank without gas test.",
+      "output_sif": "SIF-POTENTIAL",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_CONFIRMED",
+      "barriers": [
+        "GENERAL_ADMINISTRATIVE_CONTROL"
+      ],
+      "barrier_states": [
+        "BYPASSED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: Hazardous Gas / H2S / Toxic Vapor",
+        "Safety barrier compromised: BYPASSED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: CONFIRMED (worker entered / present within hazardous perimeter)",
+        "SIF-Potential Precursor Confirmed: high energy + compromised barrier + affirmed human exposure"
+      ],
+      "lsr_rules": [
+        "CONFINED_SPACE",
+        "BYPASSING_SAFETY_CONTROLS"
+      ],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-070",
+      "category": "multiple_event_red_herring",
+      "narrative": "Toolbox was locked at end of day, but drilling crew noticed sudden 15-barrel mud pit gain kick.",
+      "output_sif": "NO_SIF_POTENTIAL_IDENTIFIED",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_POSSIBLE",
+      "barriers": [
+        "GENERAL_ADMINISTRATIVE_CONTROL"
+      ],
+      "barrier_states": [
+        "EFFECTIVE_VERIFIED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: Wellbore Hydrocarbon / Kick Potential",
+        "Safety barrier verified effective: EFFECTIVE_VERIFIED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: UNKNOWN (personnel location could not be verified in evidence)",
+        "Effective barrier prevented progression into high-energy contact"
+      ],
+      "lsr_rules": [],
+      "status": "FAIL",
+      "failure_reasons": [
+        "SIF status 'NO_SIF_POTENTIAL_IDENTIFIED' not in expected ['SIF-POTENTIAL', 'REVIEW_REQUIRED']"
+      ]
+    },
+    {
+      "id": "ADV-071",
+      "category": "barrier_state",
+      "narrative": "The suspended load was moving and the exclusion barrier failed. No workers were inside the area.",
+      "output_sif": "NO_SIF_POTENTIAL_IDENTIFIED",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_NEGATED",
+      "barriers": [
+        "EXCLUSION_ZONE"
+      ],
+      "barrier_states": [
+        "FAILED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: Gravity / Suspended Load",
+        "Safety barrier compromised: FAILED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: NEGATED (personnel confirmed absent / remained outside hazard perimeter)",
+        "SIF potential avoided: human exposure was strictly negated in evidence"
+      ],
+      "lsr_rules": [
+        "SAFE_MECHANICAL_LIFTING"
+      ],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-072",
+      "category": "barrier_state",
+      "narrative": "The suspended load was moving and the exclusion barrier failed. No information was available about personnel location.",
+      "output_sif": "REVIEW_REQUIRED",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "EXCLUSION_ZONE"
+      ],
+      "barrier_states": [
+        "FAILED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: Gravity / Suspended Load",
+        "Safety barrier compromised: FAILED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: UNKNOWN (personnel location could not be verified in evidence)",
+        "HSE Review Required: high-energy hazard with compromised/unverified barrier or unconfirmed personnel exposure"
+      ],
+      "lsr_rules": [
+        "SAFE_MECHANICAL_LIFTING"
+      ],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-073",
+      "category": "barrier_state",
+      "narrative": "Physical exclusion barrier was removed during shift handover while crane was still lifting casing.",
+      "output_sif": "REVIEW_REQUIRED",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "EXCLUSION_ZONE"
+      ],
+      "barrier_states": [
+        "REMOVED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: Gravity / Suspended Load",
+        "Safety barrier compromised: REMOVED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: UNKNOWN (personnel location could not be verified in evidence)",
+        "HSE Review Required: high-energy hazard with compromised/unverified barrier or unconfirmed personnel exposure"
+      ],
+      "lsr_rules": [
+        "SAFE_MECHANICAL_LIFTING",
+        "BYPASSING_SAFETY_CONTROLS"
+      ],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-074",
+      "category": "barrier_state",
+      "narrative": "Interlock safety switch on high pressure centrifugal pump was intentionally bypassed with jumper wire.",
+      "output_sif": "REVIEW_REQUIRED",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "INTERLOCK_GUARD"
+      ],
+      "barrier_states": [
+        "BYPASSED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: High Pressure / Stored Pneumatic or Hydraulic",
+        "Safety barrier compromised: BYPASSED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: UNKNOWN (personnel location could not be verified in evidence)",
+        "HSE Review Required: high-energy hazard with compromised/unverified barrier or unconfirmed personnel exposure"
+      ],
+      "lsr_rules": [
+        "BYPASSING_SAFETY_CONTROLS"
+      ],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-075",
+      "category": "barrier_state",
+      "narrative": "Fire suppression deluge nozzle heads were clogged with corrosion debris in compressor building.",
+      "output_sif": "REVIEW_REQUIRED",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "GENERAL_ADMINISTRATIVE_CONTROL"
+      ],
+      "barrier_states": [
+        "BYPASSED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: High Pressure / Stored Pneumatic or Hydraulic",
+        "Safety barrier compromised: BYPASSED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: UNKNOWN (personnel location could not be verified in evidence)",
+        "HSE Review Required: high-energy hazard with compromised/unverified barrier or unconfirmed personnel exposure"
+      ],
+      "lsr_rules": [
+        "BYPASSING_SAFETY_CONTROLS"
+      ],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-076",
+      "category": "barrier_state",
+      "narrative": "Gas detector sensor battery had expired resulting in complete loss of H2S detection barrier.",
+      "output_sif": "REVIEW_REQUIRED",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "GAS_TESTING"
+      ],
+      "barrier_states": [
+        "BYPASSED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: Hazardous Gas / H2S / Toxic Vapor",
+        "Safety barrier compromised: BYPASSED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: UNKNOWN (personnel location could not be verified in evidence)",
+        "HSE Review Required: high-energy hazard with compromised/unverified barrier or unconfirmed personnel exposure"
+      ],
+      "lsr_rules": [
+        "CONFINED_SPACE",
+        "BYPASSING_SAFETY_CONTROLS"
+      ],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-077",
+      "category": "barrier_state",
+      "narrative": "Lockout padlock was found unlocked and tag missing from 3.3kV main supply breaker.",
+      "output_sif": "REVIEW_REQUIRED",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "ENERGY_ISOLATION"
+      ],
+      "barrier_states": [
+        "REMOVED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: Live Electrical Conductors",
+        "Safety barrier compromised: REMOVED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: UNKNOWN (personnel location could not be verified in evidence)",
+        "HSE Review Required: high-energy hazard with compromised/unverified barrier or unconfirmed personnel exposure"
+      ],
+      "lsr_rules": [
+        "ENERGY_ISOLATION",
+        "BYPASSING_SAFETY_CONTROLS"
+      ],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-078",
+      "category": "barrier_state",
+      "narrative": "Temporary rope barrier sagged to ground level allowing unhindered vehicle access into crane zone.",
+      "output_sif": "REVIEW_REQUIRED",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "GENERAL_ADMINISTRATIVE_CONTROL"
+      ],
+      "barrier_states": [
+        "BYPASSED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: Gravity / Suspended Load",
+        "Safety barrier compromised: BYPASSED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: UNKNOWN (personnel location could not be verified in evidence)",
+        "HSE Review Required: high-energy hazard with compromised/unverified barrier or unconfirmed personnel exposure"
+      ],
+      "lsr_rules": [
+        "SAFE_MECHANICAL_LIFTING",
+        "BYPASSING_SAFETY_CONTROLS"
+      ],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-079",
+      "category": "barrier_state",
+      "narrative": "Safety harness lanyard shock absorber pack was torn and stitching separated during daily inspection.",
+      "output_sif": "NO_SIF_POTENTIAL_IDENTIFIED",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "FALL_PROTECTION"
+      ],
+      "barrier_states": [
+        "BYPASSED"
+      ],
+      "sif_reasons": [
+        "Low/unspecified energy hazard: Mechanical / Kinetic Energy",
+        "Safety barrier compromised: BYPASSED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: UNKNOWN (personnel location could not be verified in evidence)"
+      ],
+      "lsr_rules": [
+        "WORKING_AT_HEIGHT",
+        "BYPASSING_SAFETY_CONTROLS"
+      ],
+      "status": "FAIL",
+      "failure_reasons": [
+        "SIF status 'NO_SIF_POTENTIAL_IDENTIFIED' not in expected ['SIF-POTENTIAL', 'REVIEW_REQUIRED']"
+      ]
+    },
+    {
+      "id": "ADV-080",
+      "category": "barrier_state",
+      "narrative": "Pressure relief valve calibration certificate had lapsed 6 months ago on air receiver vessel.",
+      "output_sif": "REVIEW_REQUIRED",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "PRESSURE_TESTING"
+      ],
+      "barrier_states": [
+        "PRESENT_UNVERIFIED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: High Pressure / Stored Pneumatic or Hydraulic",
+        "Safety barrier status unverified: PRESENT_UNVERIFIED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: UNKNOWN (personnel location could not be verified in evidence)",
+        "HSE Review Required: high-energy hazard with compromised/unverified barrier or unconfirmed personnel exposure"
+      ],
+      "lsr_rules": [
+        "CONFINED_SPACE"
+      ],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-081",
+      "category": "semantic_paraphrases",
+      "narrative": "Roustabout entered lifting drop zone while tubular goods hung from travelling block.",
+      "output_sif": "SIF-POTENTIAL",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_CONFIRMED",
+      "barriers": [
+        "GENERAL_ADMINISTRATIVE_CONTROL"
+      ],
+      "barrier_states": [
+        "BYPASSED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: Gravity / Suspended Load",
+        "Safety barrier compromised: BYPASSED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: CONFIRMED (worker entered / present within hazardous perimeter)",
+        "SIF-Potential Precursor Confirmed: high energy + compromised barrier + affirmed human exposure"
+      ],
+      "lsr_rules": [
+        "SAFE_MECHANICAL_LIFTING",
+        "BYPASSING_SAFETY_CONTROLS",
+        "LINE_OF_FIRE"
+      ],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-082",
+      "category": "semantic_paraphrases",
+      "narrative": "Fitter opened un-depressurized hydrocarbon manifold without positive physical isolation.",
+      "output_sif": "REVIEW_REQUIRED",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "GENERAL_ADMINISTRATIVE_CONTROL"
+      ],
+      "barrier_states": [
+        "BYPASSED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: High Pressure / Stored Pneumatic or Hydraulic",
+        "Safety barrier compromised: BYPASSED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: UNKNOWN (personnel location could not be verified in evidence)",
+        "HSE Review Required: high-energy hazard with compromised/unverified barrier or unconfirmed personnel exposure"
+      ],
+      "lsr_rules": [
+        "ENERGY_ISOLATION",
+        "BYPASSING_SAFETY_CONTROLS"
+      ],
+      "status": "FAIL",
+      "failure_reasons": [
+        "SIF status 'REVIEW_REQUIRED' != expected 'SIF-POTENTIAL'"
+      ]
+    },
+    {
+      "id": "ADV-083",
+      "category": "semantic_paraphrases",
+      "narrative": "Tank washer stepped inside enclosed storage vessel before atmospheric testing was executed.",
+      "output_sif": "REVIEW_REQUIRED",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "GAS_TESTING"
+      ],
+      "barrier_states": [
+        "BYPASSED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: Hazardous Gas / H2S / Toxic Vapor",
+        "Safety barrier compromised: BYPASSED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: UNKNOWN (personnel location could not be verified in evidence)",
+        "HSE Review Required: high-energy hazard with compromised/unverified barrier or unconfirmed personnel exposure"
+      ],
+      "lsr_rules": [
+        "CONFINED_SPACE",
+        "BYPASSING_SAFETY_CONTROLS"
+      ],
+      "status": "FAIL",
+      "failure_reasons": [
+        "SIF status 'REVIEW_REQUIRED' != expected 'SIF-POTENTIAL'"
+      ]
+    },
+    {
+      "id": "ADV-084",
+      "category": "semantic_paraphrases",
+      "narrative": "Derrickhand untethered safety harness while repositioning on derrick water table platform.",
+      "output_sif": "REVIEW_REQUIRED",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "FALL_PROTECTION"
+      ],
+      "barrier_states": [
+        "BYPASSED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: Elevation / Fall Potential",
+        "Safety barrier compromised: BYPASSED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: UNKNOWN (personnel location could not be verified in evidence)",
+        "HSE Review Required: high-energy hazard with compromised/unverified barrier or unconfirmed personnel exposure"
+      ],
+      "lsr_rules": [
+        "SAFE_MECHANICAL_LIFTING",
+        "WORKING_AT_HEIGHT",
+        "BYPASSING_SAFETY_CONTROLS"
+      ],
+      "status": "FAIL",
+      "failure_reasons": [
+        "SIF status 'REVIEW_REQUIRED' != expected 'SIF-POTENTIAL'"
+      ]
+    },
+    {
+      "id": "ADV-085",
+      "category": "semantic_paraphrases",
+      "narrative": "Boilermaker operated oxy-acetylene torch adjacent to open hydrocarbon drain sumps.",
+      "output_sif": "NO_SIF_POTENTIAL_IDENTIFIED",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "GENERAL_ADMINISTRATIVE_CONTROL"
+      ],
+      "barrier_states": [
+        "PRESENT_UNVERIFIED"
+      ],
+      "sif_reasons": [
+        "Low/unspecified energy hazard: Mechanical / Kinetic Energy",
+        "Safety barrier status unverified: PRESENT_UNVERIFIED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: UNKNOWN (personnel location could not be verified in evidence)"
+      ],
+      "lsr_rules": [],
+      "status": "FAIL",
+      "failure_reasons": [
+        "SIF status 'NO_SIF_POTENTIAL_IDENTIFIED' != expected 'SIF-POTENTIAL'"
+      ]
+    },
+    {
+      "id": "ADV-086",
+      "category": "semantic_paraphrases",
+      "narrative": "Helper stood in whip path of energized 5000 psi cementing line lacking safety clamps.",
+      "output_sif": "SIF-POTENTIAL",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_CONFIRMED",
+      "barriers": [
+        "GENERAL_ADMINISTRATIVE_CONTROL"
+      ],
+      "barrier_states": [
+        "BYPASSED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: Live Electrical Conductors",
+        "Safety barrier compromised: BYPASSED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: CONFIRMED (worker entered / present within hazardous perimeter)",
+        "SIF-Potential Precursor Confirmed: high energy + compromised barrier + affirmed human exposure"
+      ],
+      "lsr_rules": [
+        "ENERGY_ISOLATION",
+        "BYPASSING_SAFETY_CONTROLS"
+      ],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-087",
+      "category": "semantic_paraphrases",
+      "narrative": "Tractor trailer backed into pedestrian walkway lacking physical segregation bollards.",
+      "output_sif": "REVIEW_REQUIRED",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "TRAFFIC_SEGREGATION"
+      ],
+      "barrier_states": [
+        "BYPASSED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: Heavy Mobile Equipment / Traffic",
+        "Safety barrier compromised: BYPASSED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: UNKNOWN (personnel location could not be verified in evidence)",
+        "HSE Review Required: high-energy hazard with compromised/unverified barrier or unconfirmed personnel exposure"
+      ],
+      "lsr_rules": [
+        "BYPASSING_SAFETY_CONTROLS"
+      ],
+      "status": "FAIL",
+      "failure_reasons": [
+        "SIF status 'REVIEW_REQUIRED' != expected 'SIF-POTENTIAL'"
+      ]
+    },
+    {
+      "id": "ADV-088",
+      "category": "semantic_paraphrases",
+      "narrative": "Driller observed sudden pit gain indicating formation fluid influx into borehole.",
+      "output_sif": "REVIEW_REQUIRED",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "GENERAL_ADMINISTRATIVE_CONTROL"
+      ],
+      "barrier_states": [
+        "PRESENT_UNVERIFIED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: Wellbore Hydrocarbon / Kick Potential",
+        "Safety barrier status unverified: PRESENT_UNVERIFIED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: UNKNOWN (personnel location could not be verified in evidence)",
+        "HSE Review Required: high-energy hazard with compromised/unverified barrier or unconfirmed personnel exposure"
+      ],
+      "lsr_rules": [],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-089",
+      "category": "semantic_paraphrases",
+      "narrative": "Mechanic inserted hands into drive pulleys of running diesel generator without belt cage.",
+      "output_sif": "REVIEW_REQUIRED",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_CONFIRMED",
+      "barriers": [
+        "GENERAL_ADMINISTRATIVE_CONTROL"
+      ],
+      "barrier_states": [
+        "PRESENT_UNVERIFIED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: Rotating Equipment / Pinch Points",
+        "Safety barrier status unverified: PRESENT_UNVERIFIED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: CONFIRMED (worker entered / present within hazardous perimeter)",
+        "HSE Review Required: high-energy hazard with compromised/unverified barrier or unconfirmed personnel exposure"
+      ],
+      "lsr_rules": [],
+      "status": "FAIL",
+      "failure_reasons": [
+        "SIF status 'REVIEW_REQUIRED' != expected 'SIF-POTENTIAL'"
+      ]
+    },
+    {
+      "id": "ADV-090",
+      "category": "semantic_paraphrases",
+      "narrative": "Heavy casing tong plummeted from rig floor into cellar area due to broken counterbalance line.",
+      "output_sif": "REVIEW_REQUIRED",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "GENERAL_ADMINISTRATIVE_CONTROL"
+      ],
+      "barrier_states": [
+        "FAILED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: Gravity / Suspended Load",
+        "Safety barrier compromised: FAILED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: UNKNOWN (personnel location could not be verified in evidence)",
+        "HSE Review Required: high-energy hazard with compromised/unverified barrier or unconfirmed personnel exposure"
+      ],
+      "lsr_rules": [
+        "SAFE_MECHANICAL_LIFTING"
+      ],
+      "status": "FAIL",
+      "failure_reasons": [
+        "SIF status 'REVIEW_REQUIRED' != expected 'SIF-POTENTIAL'"
+      ]
+    },
+    {
+      "id": "ADV-091",
+      "category": "recurrence_detection",
+      "narrative": "Worker stepped under suspended load on Rig 04 on morning shift.",
+      "output_sif": "SIF-POTENTIAL",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_CONFIRMED",
+      "barriers": [
+        "GENERAL_ADMINISTRATIVE_CONTROL"
+      ],
+      "barrier_states": [
+        "BYPASSED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: Gravity / Suspended Load",
+        "Safety barrier compromised: BYPASSED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: CONFIRMED (worker entered / present within hazardous perimeter)",
+        "SIF-Potential Precursor Confirmed: high energy + compromised barrier + affirmed human exposure"
+      ],
+      "lsr_rules": [
+        "SAFE_MECHANICAL_LIFTING",
+        "BYPASSING_SAFETY_CONTROLS",
+        "LINE_OF_FIRE"
+      ],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-092",
+      "category": "recurrence_detection",
+      "narrative": "Rigger crossed into crane boundary beneath suspended pipe on Rig 09.",
+      "output_sif": "SIF-POTENTIAL",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_CONFIRMED",
+      "barriers": [
+        "EXCLUSION_ZONE",
+        "LIFTING_CONTROL"
+      ],
+      "barrier_states": [
+        "BYPASSED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: Gravity / Suspended Load",
+        "Safety barrier compromised: BYPASSED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: CONFIRMED (worker entered / present within hazardous perimeter)",
+        "SIF-Potential Precursor Confirmed: high energy + compromised barrier + affirmed human exposure"
+      ],
+      "lsr_rules": [
+        "SAFE_MECHANICAL_LIFTING",
+        "BYPASSING_SAFETY_CONTROLS",
+        "LINE_OF_FIRE"
+      ],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-093",
+      "category": "recurrence_detection",
+      "narrative": "Floorman entered lifting perimeter under suspended casing on Rig 14.",
+      "output_sif": "SIF-POTENTIAL",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_CONFIRMED",
+      "barriers": [
+        "EXCLUSION_ZONE"
+      ],
+      "barrier_states": [
+        "BYPASSED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: Gravity / Suspended Load",
+        "Safety barrier compromised: BYPASSED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: CONFIRMED (worker entered / present within hazardous perimeter)",
+        "SIF-Potential Precursor Confirmed: high energy + compromised barrier + affirmed human exposure"
+      ],
+      "lsr_rules": [
+        "SAFE_MECHANICAL_LIFTING",
+        "BYPASSING_SAFETY_CONTROLS",
+        "LINE_OF_FIRE"
+      ],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-094",
+      "category": "recurrence_detection",
+      "narrative": "Technician skipped breaker lockout on Pump Station 01 during maintenance.",
+      "output_sif": "REVIEW_REQUIRED",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_POSSIBLE",
+      "barriers": [
+        "ENERGY_ISOLATION"
+      ],
+      "barrier_states": [
+        "BYPASSED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: Live Electrical Conductors",
+        "Safety barrier compromised: BYPASSED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: UNKNOWN (personnel location could not be verified in evidence)",
+        "HSE Review Required: high-energy hazard with compromised/unverified barrier or unconfirmed personnel exposure"
+      ],
+      "lsr_rules": [
+        "ENERGY_ISOLATION",
+        "BYPASSING_SAFETY_CONTROLS"
+      ],
+      "status": "FAIL",
+      "failure_reasons": [
+        "SIF status 'REVIEW_REQUIRED' != expected 'SIF-POTENTIAL'"
+      ]
+    },
+    {
+      "id": "ADV-095",
+      "category": "recurrence_detection",
+      "narrative": "Electrician opened live busbar without LOTO on Pump Station 03.",
+      "output_sif": "SIF-POTENTIAL",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_CONFIRMED",
+      "barriers": [
+        "ENERGY_ISOLATION"
+      ],
+      "barrier_states": [
+        "BYPASSED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: Live Electrical Conductors",
+        "Safety barrier compromised: BYPASSED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: CONFIRMED (worker entered / present within hazardous perimeter)",
+        "SIF-Potential Precursor Confirmed: high energy + compromised barrier + affirmed human exposure"
+      ],
+      "lsr_rules": [
+        "ENERGY_ISOLATION",
+        "BYPASSING_SAFETY_CONTROLS"
+      ],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-096",
+      "category": "recurrence_detection",
+      "narrative": "Fitter disconnected pressurized line without bleed-off on Manifold Bay B.",
+      "output_sif": "REVIEW_REQUIRED",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_UNKNOWN",
+      "barriers": [
+        "GENERAL_ADMINISTRATIVE_CONTROL"
+      ],
+      "barrier_states": [
+        "BYPASSED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: High Pressure / Stored Pneumatic or Hydraulic",
+        "Safety barrier compromised: BYPASSED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: UNKNOWN (personnel location could not be verified in evidence)",
+        "HSE Review Required: high-energy hazard with compromised/unverified barrier or unconfirmed personnel exposure"
+      ],
+      "lsr_rules": [
+        "BYPASSING_SAFETY_CONTROLS"
+      ],
+      "status": "FAIL",
+      "failure_reasons": [
+        "SIF status 'REVIEW_REQUIRED' != expected 'SIF-POTENTIAL'"
+      ]
+    },
+    {
+      "id": "ADV-097",
+      "category": "recurrence_detection",
+      "narrative": "Worker entered unventilated nitrogen vessel on Separator Unit 02.",
+      "output_sif": "SIF-POTENTIAL",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_CONFIRMED",
+      "barriers": [
+        "GENERAL_ADMINISTRATIVE_CONTROL"
+      ],
+      "barrier_states": [
+        "BYPASSED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: Hazardous Gas / H2S / Toxic Vapor",
+        "Safety barrier compromised: BYPASSED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: CONFIRMED (worker entered / present within hazardous perimeter)",
+        "SIF-Potential Precursor Confirmed: high energy + compromised barrier + affirmed human exposure"
+      ],
+      "lsr_rules": [
+        "CONFINED_SPACE",
+        "BYPASSING_SAFETY_CONTROLS"
+      ],
+      "status": "PASS",
+      "failure_reasons": []
+    },
+    {
+      "id": "ADV-098",
+      "category": "recurrence_detection",
+      "narrative": "Contractor entered enclosed hydrocarbon vessel on Separator Unit 05 without gas check.",
+      "output_sif": "NO_SIF_POTENTIAL_IDENTIFIED",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_CONFIRMED",
+      "barriers": [
+        "GENERAL_ADMINISTRATIVE_CONTROL"
+      ],
+      "barrier_states": [
+        "BYPASSED"
+      ],
+      "sif_reasons": [
+        "Low/unspecified energy hazard: Mechanical / Kinetic Energy",
+        "Safety barrier compromised: BYPASSED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: CONFIRMED (worker entered / present within hazardous perimeter)"
+      ],
+      "lsr_rules": [
+        "CONFINED_SPACE",
+        "BYPASSING_SAFETY_CONTROLS"
+      ],
+      "status": "FAIL",
+      "failure_reasons": [
+        "SIF status 'NO_SIF_POTENTIAL_IDENTIFIED' != expected 'SIF-POTENTIAL'"
+      ]
+    },
+    {
+      "id": "ADV-099",
+      "category": "recurrence_detection",
+      "narrative": "Derrickman worked at 30m on Rig 02 without tethered safety harness.",
+      "output_sif": "REVIEW_REQUIRED",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_POSSIBLE",
+      "barriers": [
+        "FALL_PROTECTION"
+      ],
+      "barrier_states": [
+        "PRESENT_UNVERIFIED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: Elevation / Fall Potential",
+        "Safety barrier status unverified: PRESENT_UNVERIFIED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: UNKNOWN (personnel location could not be verified in evidence)",
+        "HSE Review Required: high-energy hazard with compromised/unverified barrier or unconfirmed personnel exposure"
+      ],
+      "lsr_rules": [
+        "SAFE_MECHANICAL_LIFTING",
+        "WORKING_AT_HEIGHT"
+      ],
+      "status": "FAIL",
+      "failure_reasons": [
+        "SIF status 'REVIEW_REQUIRED' != expected 'SIF-POTENTIAL'"
+      ]
+    },
+    {
+      "id": "ADV-100",
+      "category": "recurrence_detection",
+      "narrative": "Scaffolder traversed high monkey board on Rig 08 without 100% tie-off.",
+      "output_sif": "REVIEW_REQUIRED",
+      "output_assertion": "AFFIRMED",
+      "output_temporal": "DURING_EVENT",
+      "output_exposure": "HUMAN_EXPOSURE_CONFIRMED",
+      "barriers": [
+        "GENERAL_ADMINISTRATIVE_CONTROL"
+      ],
+      "barrier_states": [
+        "PRESENT_UNVERIFIED"
+      ],
+      "sif_reasons": [
+        "High-energy hazard present: Elevation / Fall Potential",
+        "Safety barrier status unverified: PRESENT_UNVERIFIED",
+        "Credible consequence pathway: Potential industrial trauma",
+        "Human exposure: CONFIRMED (worker entered / present within hazardous perimeter)",
+        "HSE Review Required: high-energy hazard with compromised/unverified barrier or unconfirmed personnel exposure"
+      ],
+      "lsr_rules": [
+        "WORKING_AT_HEIGHT"
+      ],
+      "status": "FAIL",
+      "failure_reasons": [
+        "SIF status 'REVIEW_REQUIRED' != expected 'SIF-POTENTIAL'"
+      ]
+    }
+  ]
+}

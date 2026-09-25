@@ -1,0 +1,1215 @@
+{
+  "benchmark_name": "SHRAMRAKSHAK_E5_SEMANTIC_RETRIEVAL_BENCHMARK",
+  "timestamp": "2026-09-25T14:14:21Z",
+  "model": {
+    "name": "intfloat/e5-small-v2",
+    "dimension": 384,
+    "normalization": "L2",
+    "query_prefix": "query: ",
+    "passage_prefix": "passage: "
+  },
+  "corpus_size": 40,
+  "domains_covered": [
+    "Lifting Operations",
+    "Energy Isolation",
+    "Confined Space Entry",
+    "Working at Height",
+    "Hot Work",
+    "Line of Fire",
+    "Traffic Segregation",
+    "Well Control / Process Safety"
+  ],
+  "metrics": {
+    "recall_at_1": 0.6,
+    "recall_at_3": 0.85,
+    "recall_at_5": 0.9,
+    "mean_reciprocal_rank": 0.7325108225108224,
+    "positive_pairs_count": 20,
+    "negative_pairs_count": 20
+  },
+  "retrieval_architecture_note": "E5 retrieval operates strictly as candidate generation. High similarity triggers structured Stage 2 compatibility evaluation (RecurrenceEngine). Safe control statements and polarity mismatches are subsequently rejected by structured rules, ensuring semantic candidate generation does not hallucinate SIF recurrence.",
+  "positive_evaluations": [
+    {
+      "pair_id": "POS-01",
+      "domain": "Lifting Operations",
+      "description": "Exclusion perimeter breach under suspended load",
+      "query": "Worker entered the crane exclusion boundary while the drill pipe was suspended.",
+      "target_id": "CORPUS-POS-01",
+      "target_rank": 5,
+      "target_similarity": 0.8268857002258301,
+      "recall_at_1": false,
+      "recall_at_3": false,
+      "recall_at_5": true,
+      "top_candidates": [
+        {
+          "rank": 1,
+          "corpus_id": "CORPUS-NEG-01",
+          "similarity": 0.8399503231048584,
+          "type": "DISTRACTOR",
+          "text_snippet": "Drill pipes were stored neatly on ground pipe racks with chocks secured and cran..."
+        },
+        {
+          "rank": 2,
+          "corpus_id": "CORPUS-POS-16",
+          "similarity": 0.8360843658447266,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Employee placed hand into moving belt drive mechanism of operating compressor...."
+        },
+        {
+          "rank": 3,
+          "corpus_id": "CORPUS-POS-02",
+          "similarity": 0.8327175378799438,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Damaged hoist wire cable with severed wire strands identified during twin crane ..."
+        },
+        {
+          "rank": 4,
+          "corpus_id": "CORPUS-POS-06",
+          "similarity": 0.8303197622299194,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Crew loosened pipe flange bolts on high-pressure line prior to verifying bleed-o..."
+        },
+        {
+          "rank": 5,
+          "corpus_id": "CORPUS-POS-01",
+          "similarity": 0.8268857002258301,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Rigger crossed the perimeter barrier beneath the suspended casing load during ho..."
+        }
+      ]
+    },
+    {
+      "pair_id": "POS-02",
+      "domain": "Lifting Operations",
+      "description": "Wire rope integrity failure during lifting",
+      "query": "Crane wire rope showed snapped strands during tandem lifting operations.",
+      "target_id": "CORPUS-POS-02",
+      "target_rank": 1,
+      "target_similarity": 0.9013638496398926,
+      "recall_at_1": true,
+      "recall_at_3": true,
+      "recall_at_5": true,
+      "top_candidates": [
+        {
+          "rank": 1,
+          "corpus_id": "CORPUS-POS-02",
+          "similarity": 0.9013638496398926,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Damaged hoist wire cable with severed wire strands identified during twin crane ..."
+        },
+        {
+          "rank": 2,
+          "corpus_id": "CORPUS-POS-06",
+          "similarity": 0.8381326198577881,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Crew loosened pipe flange bolts on high-pressure line prior to verifying bleed-o..."
+        },
+        {
+          "rank": 3,
+          "corpus_id": "CORPUS-POS-03",
+          "similarity": 0.8375213742256165,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Ground collapse under hydraulic crane support pad causing vehicle tilt while lif..."
+        },
+        {
+          "rank": 4,
+          "corpus_id": "CORPUS-NEG-19",
+          "similarity": 0.8261463642120361,
+          "type": "DISTRACTOR",
+          "text_snippet": "Supply vessel deckhand inspected synthetic mooring hawser ropes for chafing agai..."
+        },
+        {
+          "rank": 5,
+          "corpus_id": "CORPUS-POS-12",
+          "similarity": 0.8115878701210022,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Dropped pipe tong tool plummeted from rig substructure to cellar area below...."
+        }
+      ]
+    },
+    {
+      "pair_id": "POS-03",
+      "domain": "Lifting Operations",
+      "description": "Outrigger ground instability",
+      "query": "Crane outrigger sank into unstable soil during heavy boiler lift.",
+      "target_id": "CORPUS-POS-03",
+      "target_rank": 1,
+      "target_similarity": 0.8567262887954712,
+      "recall_at_1": true,
+      "recall_at_3": true,
+      "recall_at_5": true,
+      "top_candidates": [
+        {
+          "rank": 1,
+          "corpus_id": "CORPUS-POS-03",
+          "similarity": 0.8567262887954712,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Ground collapse under hydraulic crane support pad causing vehicle tilt while lif..."
+        },
+        {
+          "rank": 2,
+          "corpus_id": "CORPUS-POS-12",
+          "similarity": 0.8288052678108215,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Dropped pipe tong tool plummeted from rig substructure to cellar area below...."
+        },
+        {
+          "rank": 3,
+          "corpus_id": "CORPUS-POS-02",
+          "similarity": 0.8251164555549622,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Damaged hoist wire cable with severed wire strands identified during twin crane ..."
+        },
+        {
+          "rank": 4,
+          "corpus_id": "CORPUS-POS-11",
+          "similarity": 0.807166337966919,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Loose scaffold board dislodged causing worker foot to slip through staging openi..."
+        },
+        {
+          "rank": 5,
+          "corpus_id": "CORPUS-NEG-07",
+          "similarity": 0.7994154691696167,
+          "type": "DISTRACTOR",
+          "text_snippet": "Welder utilized spark-arresting habitat enclosure with pressurized air purge in ..."
+        }
+      ]
+    },
+    {
+      "pair_id": "POS-04",
+      "domain": "Energy Isolation",
+      "description": "Failure to apply LOTO / zero-energy verification",
+      "query": "Technician began pump maintenance without applying lockout tagout or verifying zero energy.",
+      "target_id": "CORPUS-POS-04",
+      "target_rank": 1,
+      "target_similarity": 0.8632009029388428,
+      "recall_at_1": true,
+      "recall_at_3": true,
+      "recall_at_5": true,
+      "top_candidates": [
+        {
+          "rank": 1,
+          "corpus_id": "CORPUS-POS-04",
+          "similarity": 0.8632009029388428,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Mechanic opened crude transfer pump casing without electrical breaker isolation ..."
+        },
+        {
+          "rank": 2,
+          "corpus_id": "CORPUS-POS-05",
+          "similarity": 0.8384231328964233,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Worker opened live 11kV electrical panel board without upstream breaker lockout...."
+        },
+        {
+          "rank": 3,
+          "corpus_id": "CORPUS-NEG-03",
+          "similarity": 0.8381694555282593,
+          "type": "DISTRACTOR",
+          "text_snippet": "Electrician verified zero voltage with calibrated multimeter and locked the de-e..."
+        },
+        {
+          "rank": 4,
+          "corpus_id": "CORPUS-POS-06",
+          "similarity": 0.8274712562561035,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Crew loosened pipe flange bolts on high-pressure line prior to verifying bleed-o..."
+        },
+        {
+          "rank": 5,
+          "corpus_id": "CORPUS-POS-15",
+          "similarity": 0.816045343875885,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Roustabout positioned in whip path of energized pressure testing line lacking wh..."
+        }
+      ]
+    },
+    {
+      "pair_id": "POS-05",
+      "domain": "Energy Isolation",
+      "description": "Live electrical enclosure breach without isolation",
+      "query": "High voltage switchgear cabinet remained energized while electrician attempted busbar inspection.",
+      "target_id": "CORPUS-POS-05",
+      "target_rank": 2,
+      "target_similarity": 0.8165668249130249,
+      "recall_at_1": false,
+      "recall_at_3": true,
+      "recall_at_5": true,
+      "top_candidates": [
+        {
+          "rank": 1,
+          "corpus_id": "CORPUS-NEG-03",
+          "similarity": 0.830830454826355,
+          "type": "DISTRACTOR",
+          "text_snippet": "Electrician verified zero voltage with calibrated multimeter and locked the de-e..."
+        },
+        {
+          "rank": 2,
+          "corpus_id": "CORPUS-POS-05",
+          "similarity": 0.8165668249130249,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Worker opened live 11kV electrical panel board without upstream breaker lockout...."
+        },
+        {
+          "rank": 3,
+          "corpus_id": "CORPUS-NEG-13",
+          "similarity": 0.8152602910995483,
+          "type": "DISTRACTOR",
+          "text_snippet": "Substation high-voltage circuit breaker racked out and grounded for planned tran..."
+        },
+        {
+          "rank": 4,
+          "corpus_id": "CORPUS-POS-06",
+          "similarity": 0.8150233030319214,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Crew loosened pipe flange bolts on high-pressure line prior to verifying bleed-o..."
+        },
+        {
+          "rank": 5,
+          "corpus_id": "CORPUS-NEG-06",
+          "similarity": 0.8071510791778564,
+          "type": "DISTRACTOR",
+          "text_snippet": "Dedicated standby watcher remained stationed at vessel manhole maintaining radio..."
+        }
+      ]
+    },
+    {
+      "pair_id": "POS-06",
+      "domain": "Energy Isolation",
+      "description": "Line breaking under pressure",
+      "query": "Pressurized manifold flange bolts unbolted before line depressurization valve was opened.",
+      "target_id": "CORPUS-POS-06",
+      "target_rank": 1,
+      "target_similarity": 0.8681176900863647,
+      "recall_at_1": true,
+      "recall_at_3": true,
+      "recall_at_5": true,
+      "top_candidates": [
+        {
+          "rank": 1,
+          "corpus_id": "CORPUS-POS-06",
+          "similarity": 0.8681176900863647,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Crew loosened pipe flange bolts on high-pressure line prior to verifying bleed-o..."
+        },
+        {
+          "rank": 2,
+          "corpus_id": "CORPUS-POS-04",
+          "similarity": 0.820263147354126,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Mechanic opened crude transfer pump casing without electrical breaker isolation ..."
+        },
+        {
+          "rank": 3,
+          "corpus_id": "CORPUS-POS-02",
+          "similarity": 0.8059568405151367,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Damaged hoist wire cable with severed wire strands identified during twin crane ..."
+        },
+        {
+          "rank": 4,
+          "corpus_id": "CORPUS-NEG-15",
+          "similarity": 0.8043973445892334,
+          "type": "DISTRACTOR",
+          "text_snippet": "Fresh air blower hose lowered into crude oil storage tank prior to sludge remova..."
+        },
+        {
+          "rank": 5,
+          "corpus_id": "CORPUS-NEG-07",
+          "similarity": 0.8018208742141724,
+          "type": "DISTRACTOR",
+          "text_snippet": "Welder utilized spark-arresting habitat enclosure with pressurized air purge in ..."
+        }
+      ]
+    },
+    {
+      "pair_id": "POS-07",
+      "domain": "Confined Space Entry",
+      "description": "Confined space entry without gas testing",
+      "query": "Operator entered storage tank without atmospheric gas testing or continuous oxygen monitoring.",
+      "target_id": "CORPUS-POS-07",
+      "target_rank": 22,
+      "target_similarity": 0.7871567010879517,
+      "recall_at_1": false,
+      "recall_at_3": false,
+      "recall_at_5": false,
+      "top_candidates": [
+        {
+          "rank": 1,
+          "corpus_id": "CORPUS-NEG-15",
+          "similarity": 0.8340662121772766,
+          "type": "DISTRACTOR",
+          "text_snippet": "Fresh air blower hose lowered into crude oil storage tank prior to sludge remova..."
+        },
+        {
+          "rank": 2,
+          "corpus_id": "CORPUS-POS-04",
+          "similarity": 0.8332428336143494,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Mechanic opened crude transfer pump casing without electrical breaker isolation ..."
+        },
+        {
+          "rank": 3,
+          "corpus_id": "CORPUS-POS-05",
+          "similarity": 0.8266732096672058,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Worker opened live 11kV electrical panel board without upstream breaker lockout...."
+        },
+        {
+          "rank": 4,
+          "corpus_id": "CORPUS-POS-14",
+          "similarity": 0.823224663734436,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Fabricator initiated arc welding without spark containment tarp or fire watch pr..."
+        },
+        {
+          "rank": 5,
+          "corpus_id": "CORPUS-POS-08",
+          "similarity": 0.8193255662918091,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Hole watch departed entrance of separator vessel with internal cleaning crew sti..."
+        }
+      ]
+    },
+    {
+      "pair_id": "POS-08",
+      "domain": "Confined Space Entry",
+      "description": "Standby attendant abandonment",
+      "query": "Confined space standby person left the vessel manway unattended while workers remained inside.",
+      "target_id": "CORPUS-POS-08",
+      "target_rank": 2,
+      "target_similarity": 0.8455916047096252,
+      "recall_at_1": false,
+      "recall_at_3": true,
+      "recall_at_5": true,
+      "top_candidates": [
+        {
+          "rank": 1,
+          "corpus_id": "CORPUS-NEG-06",
+          "similarity": 0.8567014932632446,
+          "type": "DISTRACTOR",
+          "text_snippet": "Dedicated standby watcher remained stationed at vessel manhole maintaining radio..."
+        },
+        {
+          "rank": 2,
+          "corpus_id": "CORPUS-POS-08",
+          "similarity": 0.8455916047096252,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Hole watch departed entrance of separator vessel with internal cleaning crew sti..."
+        },
+        {
+          "rank": 3,
+          "corpus_id": "CORPUS-POS-17",
+          "similarity": 0.8094086647033691,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Material handler vehicle backed into designated walkway lacking visual segregati..."
+        },
+        {
+          "rank": 4,
+          "corpus_id": "CORPUS-POS-05",
+          "similarity": 0.8079878091812134,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Worker opened live 11kV electrical panel board without upstream breaker lockout...."
+        },
+        {
+          "rank": 5,
+          "corpus_id": "CORPUS-NEG-19",
+          "similarity": 0.8072332739830017,
+          "type": "DISTRACTOR",
+          "text_snippet": "Supply vessel deckhand inspected synthetic mooring hawser ropes for chafing agai..."
+        }
+      ]
+    },
+    {
+      "pair_id": "POS-09",
+      "domain": "Confined Space Entry",
+      "description": "Ventilation failure in inert atmosphere",
+      "query": "Forced ventilation blower duct failed during nitrogen purge of catalyst vessel.",
+      "target_id": "CORPUS-POS-09",
+      "target_rank": 1,
+      "target_similarity": 0.8537006378173828,
+      "recall_at_1": true,
+      "recall_at_3": true,
+      "recall_at_5": true,
+      "top_candidates": [
+        {
+          "rank": 1,
+          "corpus_id": "CORPUS-POS-09",
+          "similarity": 0.8537006378173828,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Air extractor exhaust blower stopped operating in confined nitrogen inerted reac..."
+        },
+        {
+          "rank": 2,
+          "corpus_id": "CORPUS-NEG-07",
+          "similarity": 0.8197416067123413,
+          "type": "DISTRACTOR",
+          "text_snippet": "Welder utilized spark-arresting habitat enclosure with pressurized air purge in ..."
+        },
+        {
+          "rank": 3,
+          "corpus_id": "CORPUS-POS-12",
+          "similarity": 0.8189527988433838,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Dropped pipe tong tool plummeted from rig substructure to cellar area below...."
+        },
+        {
+          "rank": 4,
+          "corpus_id": "CORPUS-POS-15",
+          "similarity": 0.8106296062469482,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Roustabout positioned in whip path of energized pressure testing line lacking wh..."
+        },
+        {
+          "rank": 5,
+          "corpus_id": "CORPUS-POS-20",
+          "similarity": 0.810015857219696,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Blowout preventer upper packing element leaked during periodic accumulator actua..."
+        }
+      ]
+    },
+    {
+      "pair_id": "POS-10",
+      "domain": "Working at Height",
+      "description": "Unhooked fall arrest lanyard at elevated mast",
+      "query": "Scaffolder unclipped safety harness lanyard while walking along monkey board beam 20 meters up.",
+      "target_id": "CORPUS-POS-10",
+      "target_rank": 14,
+      "target_similarity": 0.782056450843811,
+      "recall_at_1": false,
+      "recall_at_3": false,
+      "recall_at_5": false,
+      "top_candidates": [
+        {
+          "rank": 1,
+          "corpus_id": "CORPUS-POS-01",
+          "similarity": 0.8079314231872559,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Rigger crossed the perimeter barrier beneath the suspended casing load during ho..."
+        },
+        {
+          "rank": 2,
+          "corpus_id": "CORPUS-POS-17",
+          "similarity": 0.8068932294845581,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Material handler vehicle backed into designated walkway lacking visual segregati..."
+        },
+        {
+          "rank": 3,
+          "corpus_id": "CORPUS-POS-02",
+          "similarity": 0.7995939254760742,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Damaged hoist wire cable with severed wire strands identified during twin crane ..."
+        },
+        {
+          "rank": 4,
+          "corpus_id": "CORPUS-POS-03",
+          "similarity": 0.7980896234512329,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Ground collapse under hydraulic crane support pad causing vehicle tilt while lif..."
+        },
+        {
+          "rank": 5,
+          "corpus_id": "CORPUS-POS-11",
+          "similarity": 0.7977621555328369,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Loose scaffold board dislodged causing worker foot to slip through staging openi..."
+        }
+      ]
+    },
+    {
+      "pair_id": "POS-11",
+      "domain": "Working at Height",
+      "description": "Unsecured scaffold boards / missing toe-boards",
+      "query": "Unsecured scaffolding plank shifted when worker stepped on platform edge.",
+      "target_id": "CORPUS-POS-11",
+      "target_rank": 1,
+      "target_similarity": 0.8528904914855957,
+      "recall_at_1": true,
+      "recall_at_3": true,
+      "recall_at_5": true,
+      "top_candidates": [
+        {
+          "rank": 1,
+          "corpus_id": "CORPUS-POS-11",
+          "similarity": 0.8528904914855957,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Loose scaffold board dislodged causing worker foot to slip through staging openi..."
+        },
+        {
+          "rank": 2,
+          "corpus_id": "CORPUS-POS-12",
+          "similarity": 0.8282573223114014,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Dropped pipe tong tool plummeted from rig substructure to cellar area below...."
+        },
+        {
+          "rank": 3,
+          "corpus_id": "CORPUS-POS-03",
+          "similarity": 0.819189190864563,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Ground collapse under hydraulic crane support pad causing vehicle tilt while lif..."
+        },
+        {
+          "rank": 4,
+          "corpus_id": "CORPUS-POS-06",
+          "similarity": 0.8154494762420654,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Crew loosened pipe flange bolts on high-pressure line prior to verifying bleed-o..."
+        },
+        {
+          "rank": 5,
+          "corpus_id": "CORPUS-POS-16",
+          "similarity": 0.8110113739967346,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Employee placed hand into moving belt drive mechanism of operating compressor...."
+        }
+      ]
+    },
+    {
+      "pair_id": "POS-12",
+      "domain": "Working at Height",
+      "description": "Dropped object from height through grating",
+      "query": "Heavy wrench fell from elevated rig floor through grating opening toward ground walkway.",
+      "target_id": "CORPUS-POS-12",
+      "target_rank": 1,
+      "target_similarity": 0.852556049823761,
+      "recall_at_1": true,
+      "recall_at_3": true,
+      "recall_at_5": true,
+      "top_candidates": [
+        {
+          "rank": 1,
+          "corpus_id": "CORPUS-POS-12",
+          "similarity": 0.852556049823761,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Dropped pipe tong tool plummeted from rig substructure to cellar area below...."
+        },
+        {
+          "rank": 2,
+          "corpus_id": "CORPUS-POS-11",
+          "similarity": 0.8418341279029846,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Loose scaffold board dislodged causing worker foot to slip through staging openi..."
+        },
+        {
+          "rank": 3,
+          "corpus_id": "CORPUS-POS-03",
+          "similarity": 0.8381487727165222,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Ground collapse under hydraulic crane support pad causing vehicle tilt while lif..."
+        },
+        {
+          "rank": 4,
+          "corpus_id": "CORPUS-POS-02",
+          "similarity": 0.8202173709869385,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Damaged hoist wire cable with severed wire strands identified during twin crane ..."
+        },
+        {
+          "rank": 5,
+          "corpus_id": "CORPUS-POS-17",
+          "similarity": 0.8150195479393005,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Material handler vehicle backed into designated walkway lacking visual segregati..."
+        }
+      ]
+    },
+    {
+      "pair_id": "POS-13",
+      "domain": "Hot Work",
+      "description": "Hot work sparks near flammable vapor source",
+      "query": "Gas cutting torch ignited flammable vapors near open hydrocarbon drain sumps.",
+      "target_id": "CORPUS-POS-13",
+      "target_rank": 1,
+      "target_similarity": 0.8496989011764526,
+      "recall_at_1": true,
+      "recall_at_3": true,
+      "recall_at_5": true,
+      "top_candidates": [
+        {
+          "rank": 1,
+          "corpus_id": "CORPUS-POS-13",
+          "similarity": 0.8496989011764526,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Sparks from grinding disc sparked flash fire at oily water separator pit...."
+        },
+        {
+          "rank": 2,
+          "corpus_id": "CORPUS-NEG-07",
+          "similarity": 0.8256213665008545,
+          "type": "DISTRACTOR",
+          "text_snippet": "Welder utilized spark-arresting habitat enclosure with pressurized air purge in ..."
+        },
+        {
+          "rank": 3,
+          "corpus_id": "CORPUS-POS-07",
+          "similarity": 0.8127968311309814,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Welder stepped inside hydrocarbon vessel before multi-gas test was performed...."
+        },
+        {
+          "rank": 4,
+          "corpus_id": "CORPUS-POS-19",
+          "similarity": 0.8116952180862427,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Active pit gain recorded on flow sensors signaling gas kick during drilling oper..."
+        },
+        {
+          "rank": 5,
+          "corpus_id": "CORPUS-POS-06",
+          "similarity": 0.8100637197494507,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Crew loosened pipe flange bolts on high-pressure line prior to verifying bleed-o..."
+        }
+      ]
+    },
+    {
+      "pair_id": "POS-14",
+      "domain": "Hot Work",
+      "description": "Absence of fire watch and spark containment",
+      "query": "Welding operations commenced without fire blanket barrier or designated fire watch sentry.",
+      "target_id": "CORPUS-POS-14",
+      "target_rank": 1,
+      "target_similarity": 0.8974738121032715,
+      "recall_at_1": true,
+      "recall_at_3": true,
+      "recall_at_5": true,
+      "top_candidates": [
+        {
+          "rank": 1,
+          "corpus_id": "CORPUS-POS-14",
+          "similarity": 0.8974738121032715,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Fabricator initiated arc welding without spark containment tarp or fire watch pr..."
+        },
+        {
+          "rank": 2,
+          "corpus_id": "CORPUS-NEG-10",
+          "similarity": 0.8366250395774841,
+          "type": "DISTRACTOR",
+          "text_snippet": "Hot work permit validated with continuous LEL monitoring at 0% and certified fir..."
+        },
+        {
+          "rank": 3,
+          "corpus_id": "CORPUS-POS-04",
+          "similarity": 0.8287471532821655,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Mechanic opened crude transfer pump casing without electrical breaker isolation ..."
+        },
+        {
+          "rank": 4,
+          "corpus_id": "CORPUS-POS-06",
+          "similarity": 0.8279486894607544,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Crew loosened pipe flange bolts on high-pressure line prior to verifying bleed-o..."
+        },
+        {
+          "rank": 5,
+          "corpus_id": "CORPUS-POS-05",
+          "similarity": 0.8166971206665039,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Worker opened live 11kV electrical panel board without upstream breaker lockout...."
+        }
+      ]
+    },
+    {
+      "pair_id": "POS-15",
+      "domain": "Line of Fire",
+      "description": "Positioning in high-pressure hose recoil zone",
+      "query": "Worker stood directly in recoil path of high pressure hydraulic testing hose.",
+      "target_id": "CORPUS-POS-15",
+      "target_rank": 2,
+      "target_similarity": 0.8219101428985596,
+      "recall_at_1": false,
+      "recall_at_3": true,
+      "recall_at_5": true,
+      "top_candidates": [
+        {
+          "rank": 1,
+          "corpus_id": "CORPUS-POS-06",
+          "similarity": 0.8446182608604431,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Crew loosened pipe flange bolts on high-pressure line prior to verifying bleed-o..."
+        },
+        {
+          "rank": 2,
+          "corpus_id": "CORPUS-POS-15",
+          "similarity": 0.8219101428985596,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Roustabout positioned in whip path of energized pressure testing line lacking wh..."
+        },
+        {
+          "rank": 3,
+          "corpus_id": "CORPUS-POS-07",
+          "similarity": 0.8216360211372375,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Welder stepped inside hydrocarbon vessel before multi-gas test was performed...."
+        },
+        {
+          "rank": 4,
+          "corpus_id": "CORPUS-NEG-16",
+          "similarity": 0.8107138872146606,
+          "type": "DISTRACTOR",
+          "text_snippet": "BOP accumulator bottle pre-charge pressure and hydraulic fluid levels verified w..."
+        },
+        {
+          "rank": 5,
+          "corpus_id": "CORPUS-POS-13",
+          "similarity": 0.8063179850578308,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Sparks from grinding disc sparked flash fire at oily water separator pit...."
+        }
+      ]
+    },
+    {
+      "pair_id": "POS-16",
+      "domain": "Line of Fire",
+      "description": "Proximity to rotating machinery pinch points",
+      "query": "Mechanic reached between rotating mud pump flywheel and chassis guard.",
+      "target_id": "CORPUS-POS-16",
+      "target_rank": 1,
+      "target_similarity": 0.8228564262390137,
+      "recall_at_1": true,
+      "recall_at_3": true,
+      "recall_at_5": true,
+      "top_candidates": [
+        {
+          "rank": 1,
+          "corpus_id": "CORPUS-POS-16",
+          "similarity": 0.8228564262390137,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Employee placed hand into moving belt drive mechanism of operating compressor...."
+        },
+        {
+          "rank": 2,
+          "corpus_id": "CORPUS-POS-17",
+          "similarity": 0.8170685172080994,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Material handler vehicle backed into designated walkway lacking visual segregati..."
+        },
+        {
+          "rank": 3,
+          "corpus_id": "CORPUS-POS-15",
+          "similarity": 0.8085953593254089,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Roustabout positioned in whip path of energized pressure testing line lacking wh..."
+        },
+        {
+          "rank": 4,
+          "corpus_id": "CORPUS-POS-03",
+          "similarity": 0.8003462553024292,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Ground collapse under hydraulic crane support pad causing vehicle tilt while lif..."
+        },
+        {
+          "rank": 5,
+          "corpus_id": "CORPUS-POS-04",
+          "similarity": 0.7966210842132568,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Mechanic opened crude transfer pump casing without electrical breaker isolation ..."
+        }
+      ]
+    },
+    {
+      "pair_id": "POS-17",
+      "domain": "Traffic Segregation",
+      "description": "Vehicle-pedestrian collision hazard in logistics bay",
+      "query": "Forklift reversed into active pedestrian walkway with broken backup alarm.",
+      "target_id": "CORPUS-POS-17",
+      "target_rank": 1,
+      "target_similarity": 0.8455233573913574,
+      "recall_at_1": true,
+      "recall_at_3": true,
+      "recall_at_5": true,
+      "top_candidates": [
+        {
+          "rank": 1,
+          "corpus_id": "CORPUS-POS-17",
+          "similarity": 0.8455233573913574,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Material handler vehicle backed into designated walkway lacking visual segregati..."
+        },
+        {
+          "rank": 2,
+          "corpus_id": "CORPUS-POS-11",
+          "similarity": 0.8132420182228088,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Loose scaffold board dislodged causing worker foot to slip through staging openi..."
+        },
+        {
+          "rank": 3,
+          "corpus_id": "CORPUS-POS-02",
+          "similarity": 0.8127511143684387,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Damaged hoist wire cable with severed wire strands identified during twin crane ..."
+        },
+        {
+          "rank": 4,
+          "corpus_id": "CORPUS-NEG-11",
+          "similarity": 0.8127403259277344,
+          "type": "DISTRACTOR",
+          "text_snippet": "Forklift truck operated inside speed limit of 10 km/h with flashing strobe light..."
+        },
+        {
+          "rank": 5,
+          "corpus_id": "CORPUS-POS-03",
+          "similarity": 0.8124275803565979,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Ground collapse under hydraulic crane support pad causing vehicle tilt while lif..."
+        }
+      ]
+    },
+    {
+      "pair_id": "POS-18",
+      "domain": "Traffic Segregation",
+      "description": "Heavy vehicle blind spot maneuvering on site",
+      "query": "Heavy mud haulage dump truck operated in blind spot of blind rig access road corner.",
+      "target_id": "CORPUS-POS-18",
+      "target_rank": 3,
+      "target_similarity": 0.8234095573425293,
+      "recall_at_1": false,
+      "recall_at_3": true,
+      "recall_at_5": true,
+      "top_candidates": [
+        {
+          "rank": 1,
+          "corpus_id": "CORPUS-NEG-14",
+          "similarity": 0.8286596536636353,
+          "type": "DISTRACTOR",
+          "text_snippet": "Heavy vehicle traffic separated by concrete Jersey barriers from pedestrian foot..."
+        },
+        {
+          "rank": 2,
+          "corpus_id": "CORPUS-POS-17",
+          "similarity": 0.8242919445037842,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Material handler vehicle backed into designated walkway lacking visual segregati..."
+        },
+        {
+          "rank": 3,
+          "corpus_id": "CORPUS-POS-18",
+          "similarity": 0.8234095573425293,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Hauler truck negotiated narrow site curve without traffic spotter or convex mirr..."
+        },
+        {
+          "rank": 4,
+          "corpus_id": "CORPUS-POS-03",
+          "similarity": 0.8109272122383118,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Ground collapse under hydraulic crane support pad causing vehicle tilt while lif..."
+        },
+        {
+          "rank": 5,
+          "corpus_id": "CORPUS-NEG-11",
+          "similarity": 0.7974414229393005,
+          "type": "DISTRACTOR",
+          "text_snippet": "Forklift truck operated inside speed limit of 10 km/h with flashing strobe light..."
+        }
+      ]
+    },
+    {
+      "pair_id": "POS-19",
+      "domain": "Well Control / Process Safety",
+      "description": "Wellbore kick indication / mud pit gain",
+      "query": "Drilling crew noticed sudden mud pit volume increase indicating influx from high pressure formation.",
+      "target_id": "CORPUS-POS-19",
+      "target_rank": 1,
+      "target_similarity": 0.8617119789123535,
+      "recall_at_1": true,
+      "recall_at_3": true,
+      "recall_at_5": true,
+      "top_candidates": [
+        {
+          "rank": 1,
+          "corpus_id": "CORPUS-POS-19",
+          "similarity": 0.8617119789123535,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Active pit gain recorded on flow sensors signaling gas kick during drilling oper..."
+        },
+        {
+          "rank": 2,
+          "corpus_id": "CORPUS-POS-06",
+          "similarity": 0.8376159071922302,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Crew loosened pipe flange bolts on high-pressure line prior to verifying bleed-o..."
+        },
+        {
+          "rank": 3,
+          "corpus_id": "CORPUS-POS-13",
+          "similarity": 0.8208249807357788,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Sparks from grinding disc sparked flash fire at oily water separator pit...."
+        },
+        {
+          "rank": 4,
+          "corpus_id": "CORPUS-NEG-09",
+          "similarity": 0.8138306140899658,
+          "type": "DISTRACTOR",
+          "text_snippet": "Mud engineer checked bentonite fluid density and gel strength at shale shakers...."
+        },
+        {
+          "rank": 5,
+          "corpus_id": "CORPUS-POS-03",
+          "similarity": 0.7984611988067627,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Ground collapse under hydraulic crane support pad causing vehicle tilt while lif..."
+        }
+      ]
+    },
+    {
+      "pair_id": "POS-20",
+      "domain": "Well Control / Process Safety",
+      "description": "Blowout preventer barrier failure",
+      "query": "BOP annular preventer failed hydraulic closure test during pressure integrity check.",
+      "target_id": "CORPUS-POS-20",
+      "target_rank": 2,
+      "target_similarity": 0.8293570876121521,
+      "recall_at_1": false,
+      "recall_at_3": true,
+      "recall_at_5": true,
+      "top_candidates": [
+        {
+          "rank": 1,
+          "corpus_id": "CORPUS-POS-15",
+          "similarity": 0.8520327806472778,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Roustabout positioned in whip path of energized pressure testing line lacking wh..."
+        },
+        {
+          "rank": 2,
+          "corpus_id": "CORPUS-POS-20",
+          "similarity": 0.8293570876121521,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Blowout preventer upper packing element leaked during periodic accumulator actua..."
+        },
+        {
+          "rank": 3,
+          "corpus_id": "CORPUS-NEG-16",
+          "similarity": 0.8261054754257202,
+          "type": "DISTRACTOR",
+          "text_snippet": "BOP accumulator bottle pre-charge pressure and hydraulic fluid levels verified w..."
+        },
+        {
+          "rank": 4,
+          "corpus_id": "CORPUS-POS-03",
+          "similarity": 0.8227804899215698,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Ground collapse under hydraulic crane support pad causing vehicle tilt while lif..."
+        },
+        {
+          "rank": 5,
+          "corpus_id": "CORPUS-POS-06",
+          "similarity": 0.8171271681785583,
+          "type": "POSITIVE_TARGET",
+          "text_snippet": "Crew loosened pipe flange bolts on high-pressure line prior to verifying bleed-o..."
+        }
+      ]
+    }
+  ],
+  "negative_evaluations": [
+    {
+      "pair_id": "NEG-01",
+      "domain": "Lifting vs Static Storage",
+      "query": "Worker entered the crane exclusion boundary while the drill pipe was suspended.",
+      "distractor_passage": "Drill pipes were stored neatly on ground pipe racks with chocks secured and crane parked.",
+      "similarity": 0.8399503231048584,
+      "mismatch_reason": "Query is active suspended load breach; distractor is static ground storage.",
+      "candidate_generated": true,
+      "rejection_mechanism": "Structured compatibility in RecurrenceEngine rejects candidate downstream (different activity / polarity conflict / different barrier)"
+    },
+    {
+      "pair_id": "NEG-02",
+      "domain": "Lifting Compliance",
+      "query": "Rigger entered the lifting exclusion area beneath the suspended load.",
+      "distractor_passage": "Rigger remained outside the barricaded exclusion zone and monitored the tag lines safely.",
+      "similarity": 0.7919074892997742,
+      "mismatch_reason": "Opposite polarity: query is hazard breach, distractor is full safety compliance.",
+      "candidate_generated": true,
+      "rejection_mechanism": "Structured compatibility in RecurrenceEngine rejects candidate downstream (different activity / polarity conflict / different barrier)"
+    },
+    {
+      "pair_id": "NEG-03",
+      "domain": "Energy Isolation vs Electrical Maintenance",
+      "query": "Worker opened live 11kV electrical panel board without upstream breaker lockout.",
+      "distractor_passage": "Electrician verified zero voltage with calibrated multimeter and locked the de-energized breaker with personal padlock.",
+      "similarity": 0.847145676612854,
+      "mismatch_reason": "Query is live exposure without LOTO; distractor is compliant zero-energy verification.",
+      "candidate_generated": true,
+      "rejection_mechanism": "Structured compatibility in RecurrenceEngine rejects candidate downstream (different activity / polarity conflict / different barrier)"
+    },
+    {
+      "pair_id": "NEG-04",
+      "domain": "Energy Isolation vs Confined Space",
+      "query": "Technician began pump maintenance without applying lockout tagout or verifying zero energy.",
+      "distractor_passage": "Entry permit issued for vessel inspection following four-gas atmospheric test calibration.",
+      "similarity": 0.7772256135940552,
+      "mismatch_reason": "Different life-saving rule: mechanical/electrical isolation vs confined space atmospheric testing.",
+      "candidate_generated": true,
+      "rejection_mechanism": "Structured compatibility in RecurrenceEngine rejects candidate downstream (different activity / polarity conflict / different barrier)"
+    },
+    {
+      "pair_id": "NEG-05",
+      "domain": "Confined Space vs Work at Height",
+      "query": "Operator entered storage tank without atmospheric gas testing or continuous oxygen monitoring.",
+      "distractor_passage": "Rigger inspected self-retracting lifeline and full body harness before climbing derrick ladder.",
+      "similarity": 0.768917441368103,
+      "mismatch_reason": "Different physical hazards: toxic/asphyxiating atmosphere vs gravity fall protection.",
+      "candidate_generated": true,
+      "rejection_mechanism": "Structured compatibility in RecurrenceEngine rejects candidate downstream (different activity / polarity conflict / different barrier)"
+    },
+    {
+      "pair_id": "NEG-06",
+      "domain": "Confined Space Compliance",
+      "query": "Confined space standby person left the vessel manway unattended while workers remained inside.",
+      "distractor_passage": "Dedicated standby watcher remained stationed at vessel manhole maintaining radio communication with workers inside.",
+      "similarity": 0.8567014932632446,
+      "mismatch_reason": "Query describes attendant abandonment; distractor describes diligent compliance.",
+      "candidate_generated": true,
+      "rejection_mechanism": "Structured compatibility in RecurrenceEngine rejects candidate downstream (different activity / polarity conflict / different barrier)"
+    },
+    {
+      "pair_id": "NEG-07",
+      "domain": "Height vs Hot Work",
+      "query": "Derrickman moved across derrick mast platform at elevation without 100% tie-off hook connected.",
+      "distractor_passage": "Welder utilized spark-arresting habitat enclosure with pressurized air purge in hazardous zone 1.",
+      "similarity": 0.7741889357566833,
+      "mismatch_reason": "Different hazards: fall from elevated mast vs hot work ignition control.",
+      "candidate_generated": true,
+      "rejection_mechanism": "Structured compatibility in RecurrenceEngine rejects candidate downstream (different activity / polarity conflict / different barrier)"
+    },
+    {
+      "pair_id": "NEG-08",
+      "domain": "Height vs Housekeeping",
+      "query": "Dropped pipe tong tool plummeted from rig substructure to cellar area below.",
+      "distractor_passage": "Crew completed daily sweeping of workshop floor and arranged tools in designated storage lockers.",
+      "similarity": 0.754590630531311,
+      "mismatch_reason": "Dropped object high-energy hazard vs routine workshop cleaning.",
+      "candidate_generated": true,
+      "rejection_mechanism": "Structured compatibility in RecurrenceEngine rejects candidate downstream (different activity / polarity conflict / different barrier)"
+    },
+    {
+      "pair_id": "NEG-09",
+      "domain": "Hot Work vs Well Control",
+      "query": "Gas cutting torch ignited flammable vapors near open hydrocarbon drain sumps.",
+      "distractor_passage": "Mud engineer checked bentonite fluid density and gel strength at shale shakers.",
+      "similarity": 0.7404723167419434,
+      "mismatch_reason": "Hot work fire hazard vs routine mud property measurement.",
+      "candidate_generated": true,
+      "rejection_mechanism": "Structured compatibility in RecurrenceEngine rejects candidate downstream (different activity / polarity conflict / different barrier)"
+    },
+    {
+      "pair_id": "NEG-10",
+      "domain": "Hot Work Compliance",
+      "query": "Welding operations commenced without fire blanket barrier or designated fire watch sentry.",
+      "distractor_passage": "Hot work permit validated with continuous LEL monitoring at 0% and certified fire watch present.",
+      "similarity": 0.8366250991821289,
+      "mismatch_reason": "Query describes unauthorized unmonitored welding; distractor describes permitted safe hot work.",
+      "candidate_generated": true,
+      "rejection_mechanism": "Structured compatibility in RecurrenceEngine rejects candidate downstream (different activity / polarity conflict / different barrier)"
+    },
+    {
+      "pair_id": "NEG-11",
+      "domain": "Line of Fire vs Traffic",
+      "query": "Worker stood directly in recoil path of high pressure hydraulic testing hose.",
+      "distractor_passage": "Forklift truck operated inside speed limit of 10 km/h with flashing strobe light active.",
+      "similarity": 0.7641130685806274,
+      "mismatch_reason": "Pressure release line of fire vs vehicle speed compliance.",
+      "candidate_generated": true,
+      "rejection_mechanism": "Structured compatibility in RecurrenceEngine rejects candidate downstream (different activity / polarity conflict / different barrier)"
+    },
+    {
+      "pair_id": "NEG-12",
+      "domain": "Machinery vs Office",
+      "query": "Employee placed hand into moving belt drive mechanism of operating compressor.",
+      "distractor_passage": "Office administrative personnel adjusted computer monitor height and ergonomic chair lumbar support.",
+      "similarity": 0.7775501012802124,
+      "mismatch_reason": "Extreme mechanical amputation hazard vs low-risk office ergonomics.",
+      "candidate_generated": true,
+      "rejection_mechanism": "Structured compatibility in RecurrenceEngine rejects candidate downstream (different activity / polarity conflict / different barrier)"
+    },
+    {
+      "pair_id": "NEG-13",
+      "domain": "Traffic vs Isolation",
+      "query": "Forklift reversed into active pedestrian walkway with broken backup alarm.",
+      "distractor_passage": "Substation high-voltage circuit breaker racked out and grounded for planned transformer maintenance.",
+      "similarity": 0.7928506135940552,
+      "mismatch_reason": "Vehicle pedestrian segregation vs electrical grid maintenance.",
+      "candidate_generated": true,
+      "rejection_mechanism": "Structured compatibility in RecurrenceEngine rejects candidate downstream (different activity / polarity conflict / different barrier)"
+    },
+    {
+      "pair_id": "NEG-14",
+      "domain": "Traffic Compliance",
+      "query": "Heavy mud haulage dump truck operated in blind spot of blind rig access road corner.",
+      "distractor_passage": "Heavy vehicle traffic separated by concrete Jersey barriers from pedestrian footpaths with spotter directing trucks.",
+      "similarity": 0.8286596536636353,
+      "mismatch_reason": "Blind spot collision hazard vs physically segregated road with spotter.",
+      "candidate_generated": true,
+      "rejection_mechanism": "Structured compatibility in RecurrenceEngine rejects candidate downstream (different activity / polarity conflict / different barrier)"
+    },
+    {
+      "pair_id": "NEG-15",
+      "domain": "Well Control vs Confined Space",
+      "query": "Active pit gain recorded on flow sensors signaling gas kick during drilling operations.",
+      "distractor_passage": "Fresh air blower hose lowered into crude oil storage tank prior to sludge removal entry.",
+      "similarity": 0.7858643531799316,
+      "mismatch_reason": "Wellbore blowout precursor vs confined space tank ventilation.",
+      "candidate_generated": true,
+      "rejection_mechanism": "Structured compatibility in RecurrenceEngine rejects candidate downstream (different activity / polarity conflict / different barrier)"
+    },
+    {
+      "pair_id": "NEG-16",
+      "domain": "Well Control Compliance",
+      "query": "Blowout preventer upper packing element leaked during periodic accumulator actuation test.",
+      "distractor_passage": "BOP accumulator bottle pre-charge pressure and hydraulic fluid levels verified within specification on weekly log.",
+      "similarity": 0.8006300926208496,
+      "mismatch_reason": "Barrier failure / annular leak vs routine hydraulic log inspection.",
+      "candidate_generated": true,
+      "rejection_mechanism": "Structured compatibility in RecurrenceEngine rejects candidate downstream (different activity / polarity conflict / different barrier)"
+    },
+    {
+      "pair_id": "NEG-17",
+      "domain": "Lifting vs Chemical",
+      "query": "Crane wire rope showed snapped strands during tandem lifting operations.",
+      "distractor_passage": "Laboratory chemist wore neoprene gloves and splash goggles while decanting diluted acid sample.",
+      "similarity": 0.753036379814148,
+      "mismatch_reason": "Heavy mechanical lifting integrity vs personal PPE chemical decanting.",
+      "candidate_generated": true,
+      "rejection_mechanism": "Structured compatibility in RecurrenceEngine rejects candidate downstream (different activity / polarity conflict / different barrier)"
+    },
+    {
+      "pair_id": "NEG-18",
+      "domain": "Line of Fire vs Scaffolding Tag",
+      "query": "Mechanic reached between rotating mud pump flywheel and chassis guard.",
+      "distractor_passage": "Green scaffold inspection tag inspected and signed by certified scaffold supervisor at morning toolbox talk.",
+      "similarity": 0.7572750449180603,
+      "mismatch_reason": "Active mechanical nip hazard vs scaffolding tag signoff.",
+      "candidate_generated": true,
+      "rejection_mechanism": "Structured compatibility in RecurrenceEngine rejects candidate downstream (different activity / polarity conflict / different barrier)"
+    },
+    {
+      "pair_id": "NEG-19",
+      "domain": "Confined Space vs Mooring",
+      "query": "Operator entered storage tank without atmospheric gas testing or continuous oxygen monitoring.",
+      "distractor_passage": "Supply vessel deckhand inspected synthetic mooring hawser ropes for chafing against harbor bollards.",
+      "similarity": 0.7775040864944458,
+      "mismatch_reason": "Vessel toxic gas asphyxiation vs marine mooring rope inspection.",
+      "candidate_generated": true,
+      "rejection_mechanism": "Structured compatibility in RecurrenceEngine rejects candidate downstream (different activity / polarity conflict / different barrier)"
+    },
+    {
+      "pair_id": "NEG-20",
+      "domain": "Process Safety vs Routine Equipment",
+      "query": "Drilling crew noticed sudden mud pit volume increase indicating influx from high pressure formation.",
+      "distractor_passage": "Quarterly inspection tag attached to dry powder portable fire extinguisher in muster station.",
+      "similarity": 0.7792312502861023,
+      "mismatch_reason": "Catastrophic well blowout kick vs routine handheld fire extinguisher tagging.",
+      "candidate_generated": true,
+      "rejection_mechanism": "Structured compatibility in RecurrenceEngine rejects candidate downstream (different activity / polarity conflict / different barrier)"
+    }
+  ]
+}
