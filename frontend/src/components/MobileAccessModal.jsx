@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Smartphone, Wifi, Copy, Check, QrCode } from 'lucide-react';
 import { fetchQrCode } from '../services/api';
+import { UnifiedModal } from './common';
 
 export default function MobileAccessModal({ isOpen, onClose, lanIp }) {
   const [qrBase64, setQrBase64] = useState(null);
@@ -31,9 +32,12 @@ export default function MobileAccessModal({ isOpen, onClose, lanIp }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-      <div className="bg-white rounded-xl shadow-2xl border border-slate-200 max-w-md w-full overflow-hidden">
-        {/* Modal Header */}
+    <UnifiedModal
+      isOpen={isOpen}
+      onClose={onClose}
+      maxWidthClass="max-w-md"
+    >
+      {/* Modal Header */}
         <div className="bg-slate-900 text-white px-5 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-2.5">
             <Smartphone className="w-5 h-5 text-amber-400" />
@@ -109,7 +113,6 @@ export default function MobileAccessModal({ isOpen, onClose, lanIp }) {
             Done / Close
           </button>
         </div>
-      </div>
-    </div>
+    </UnifiedModal>
   );
 }

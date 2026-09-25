@@ -17,6 +17,7 @@ import {
   Activity as ActivityIcon
 } from 'lucide-react';
 import { respondToAlert, resolveAlert, addHSEObservation, markActionTaken, verifyAlert } from '../services/api';
+import { UnifiedModal } from './common';
 
 export default function AlertDetailModal({ alert, isOpen, onClose, currentAlerts = [] }) {
   const [remainingSec, setRemainingSec] = useState(0);
@@ -215,12 +216,12 @@ export default function AlertDetailModal({ alert, isOpen, onClose, currentAlerts
   const incidentIdDisplay = activeAlert.incident_id || activeAlert.id;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm overflow-y-auto">
-      <div 
-        className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-3xl w-full overflow-hidden transition-all my-8"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
+    <UnifiedModal
+      isOpen={isOpen}
+      onClose={onClose}
+      maxWidthClass="max-w-4xl"
+    >
+      {/* Header */}
         <div className="px-5 py-4 border-b border-slate-200 bg-slate-900 text-white flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center space-x-3">
             <span className="text-lg leading-none">{isZone ? '🔴' : '🟠'}</span>
@@ -1335,7 +1336,6 @@ export default function AlertDetailModal({ alert, isOpen, onClose, currentAlerts
           </div>
 
         </div>
-      </div>
-    </div>
+    </UnifiedModal>
   );
 }

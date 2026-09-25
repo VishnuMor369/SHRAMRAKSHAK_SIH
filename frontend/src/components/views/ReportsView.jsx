@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { fetchUnifiedEvents, submitHumanReport } from '../../services/api';
 import EvidenceDetailDrawer from '../EvidenceDetailDrawer';
+import { UnifiedModal } from '../common';
 
 export default function ReportsView() {
   const [events, setEvents] = useState([]);
@@ -455,10 +456,11 @@ export default function ReportsView() {
       )}
 
       {/* 4. MODAL: + NEW SAFETY REPORT (Real Pipeline Execution) */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-sm p-4 animate-fade-in">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
-            
+      <UnifiedModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        maxWidthClass="max-w-2xl"
+      >
             {/* Modal Header */}
             <div className="p-4 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
               <div className="flex items-center space-x-2.5">
@@ -615,9 +617,7 @@ export default function ReportsView() {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+      </UnifiedModal>
 
       {/* 5. Evidence Drill-Down Drawer */}
       <EvidenceDetailDrawer

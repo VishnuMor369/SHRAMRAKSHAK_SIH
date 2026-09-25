@@ -22,6 +22,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { submitHSEReview, getSingleReportPdfUrl } from '../services/api';
+import { UnifiedModal } from './common';
 
 export default function SafetyReportDetailModal({ report, isOpen, onClose, onReviewUpdated }) {
   if (!isOpen || !report) return null;
@@ -104,10 +105,12 @@ export default function SafetyReportDetailModal({ report, isOpen, onClose, onRev
   const currentReview = activeReport.hse_review;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in overflow-y-auto">
-      <div className="bg-white rounded-xl shadow-2xl border border-slate-200 max-w-4xl w-full my-6 flex flex-col overflow-hidden">
-        
-        {/* Header */}
+    <UnifiedModal
+      isOpen={isOpen}
+      onClose={onClose}
+      maxWidthClass="max-w-4xl"
+    >
+      {/* Header */}
         <div className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between border-b border-slate-800">
           <div className="flex items-center space-x-3">
             <div className="w-9 h-9 rounded-lg bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400">
@@ -651,7 +654,6 @@ export default function SafetyReportDetailModal({ report, isOpen, onClose, onRev
           </div>
 
         </div>
-      </div>
-    </div>
+    </UnifiedModal>
   );
 }

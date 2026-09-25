@@ -1,5 +1,6 @@
 import React from 'react';
 import { X, ShieldAlert, CheckCircle2, AlertOctagon, HelpCircle, FileText, Video, Eye, Scale, Clock } from 'lucide-react';
+import { UnifiedDrawer } from './common';
 
 export default function EvidenceDetailDrawer({ event, isOpen, onClose }) {
   if (!isOpen || !event) return null;
@@ -20,13 +21,13 @@ export default function EvidenceDetailDrawer({ event, isOpen, onClose }) {
     : 'bg-amber-100 text-amber-800 border-amber-300';
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-slate-950/50 backdrop-blur-sm animate-fade-in">
-      <div 
-        className="w-full max-w-xl bg-white h-full shadow-2xl flex flex-col border-l border-slate-200 overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Drawer Header */}
-        <div className="p-4 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+    <UnifiedDrawer
+      isOpen={isOpen}
+      onClose={onClose}
+      widthClass="w-full sm:w-[85vw] sm:max-w-lg lg:w-[45vw] lg:min-w-[460px] lg:max-w-[640px]"
+    >
+      {/* Drawer Header */}
+      <div className="p-4 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800 shrink-0">
           <div className="flex items-center space-x-2.5">
             <div className="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400">
               <Scale className="w-4 h-4" />
@@ -196,8 +197,7 @@ export default function EvidenceDetailDrawer({ event, isOpen, onClose }) {
             Close Drill-Down
           </button>
         </div>
-      </div>
-    </div>
+    </UnifiedDrawer>
   );
 }
 

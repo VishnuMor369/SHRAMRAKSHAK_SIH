@@ -30,6 +30,7 @@ import {
   verifyBarrierRestored, 
   closePassport 
 } from '../services/api';
+import { UnifiedModal } from './common';
 
 export default function SafetyPassportView({ status, onClose }) {
   const activePassport = status?.active_passport;
@@ -680,9 +681,14 @@ export default function SafetyPassportView({ status, onClose }) {
       </div>
 
       {/* CREATE HIGH-RISK TASK MODAL */}
-      {isCreateOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full overflow-hidden my-6">
+      <UnifiedModal
+        isOpen={isCreateOpen}
+        onClose={() => {
+          setIsCreateOpen(false);
+          setIsDesigningZone(false);
+        }}
+        maxWidthClass="max-w-lg"
+      >
             <div className="px-5 py-3.5 bg-slate-900 text-white flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <ShieldCheck className="w-4 h-4 text-amber-400" />
@@ -967,9 +973,7 @@ export default function SafetyPassportView({ status, onClose }) {
                 </div>
               </form>
             )}
-          </div>
-        </div>
-      )}
+      </UnifiedModal>
     </div>
   );
 }
