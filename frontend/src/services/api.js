@@ -593,3 +593,94 @@ export async function fetchCvDebug() {
   return res.json();
 }
 
+// ============================================================
+// ENTERPRISE SIH 2026: SAFETY MEMORY, VERIFICATION & CORROBORATION
+// ============================================================
+
+export async function verifyCctvCondition(alertId, simulateRebreach = false, supervisorId = 'SUP-01') {
+  const res = await fetch(`${API_BASE}/api/alert/cctv-verify`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      alert_id: alertId,
+      simulate_rebreach: simulateRebreach,
+      supervisor_id: supervisorId
+    })
+  });
+  if (!res.ok) throw new Error('Failed to run CCTV verification');
+  return res.json();
+}
+
+export async function fetchSafetyMemorySummary() {
+  const res = await fetch(`${API_BASE}/api/safety-memory/summary`);
+  if (!res.ok) throw new Error('Failed to fetch Safety Memory summary');
+  return res.json();
+}
+
+export async function fetchSafetyMemoryPatterns() {
+  const res = await fetch(`${API_BASE}/api/safety-memory/patterns`);
+  if (!res.ok) throw new Error('Failed to fetch Safety Memory recurring patterns');
+  return res.json();
+}
+
+export async function validateSafetyMemoryPattern(patternId, decision = 'CONFIRM', reviewer = 'HSE-Lead-01', notes = '') {
+  const res = await fetch(`${API_BASE}/api/safety-memory/validate-pattern`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      pattern_id: patternId,
+      decision,
+      reviewer,
+      notes
+    })
+  });
+  if (!res.ok) throw new Error('Failed to validate safety memory pattern');
+  return res.json();
+}
+
+export async function checkWorkPackage(packageData) {
+  const res = await fetch(`${API_BASE}/api/safety-memory/check-work-package`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(packageData)
+  });
+  if (!res.ok) throw new Error('Failed to check work package safety requirements');
+  return res.json();
+}
+
+export async function fetchCorroborationScenarios() {
+  const res = await fetch(`${API_BASE}/api/corroboration/scenarios`);
+  if (!res.ok) throw new Error('Failed to fetch corroboration scenarios');
+  return res.json();
+}
+
+export async function evaluateCorroboration(payload) {
+  const res = await fetch(`${API_BASE}/api/corroboration/evaluate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) throw new Error('Failed to evaluate corroboration');
+  return res.json();
+}
+
+export async function executeDemoPhase(phaseNum, payload = {}) {
+  const res = await fetch(`${API_BASE}/api/demo/phase/${phaseNum}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) throw new Error(`Failed to execute demo phase ${phaseNum}`);
+  return res.json();
+}
+
+export async function resetEnterpriseDemo() {
+  const res = await fetch(`${API_BASE}/api/demo/reset`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' }
+  });
+  if (!res.ok) throw new Error('Failed to reset enterprise demo');
+  return res.json();
+}
+
+

@@ -29,6 +29,9 @@ from detection import generate_mjpeg_stream, video_engine
 from nlp_engine import (
     nlp_analyzer, dataset_store, dataset_processor, ColumnMapper, DataQualityValidator
 )
+from safety_memory import safety_memory, SafetyEvent, HSEValidationStatus
+from nlp_engine.corroboration import corroboration_engine
+from nlp_engine.assertion_detector import AssertionDetector
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -474,6 +477,288 @@ def simulate_zone_breach():
     """Demo Mode fallback: simulates restricted zone breach / SIF precursor"""
     alert = state_manager.simulate_zone_entry()
     return {"message": "Simulated Restricted Zone breach triggered", "alert": alert}
+
+# ==========================================
+# CCTV OBJECTIVE VERIFICATION ("Completion is not proof")
+# ==========================================
+
+@app.post("/api/alert/cctv-verify")
+@app.post("/api/alerts/{alert_id}/cctv-verify")
+def cctv_verify_alert(alert_id: Optional[str] = None, req: Dict[str, Any] = {}):
+    """
+    Executes objective CCTV verification of site safety conditions (Section 3C & 8).
+    - If simulate_rebreach is True or person is inside zone: returns FAILED (RE-BREACH DETECTED) and reopens action!
+    - If zone is clear: returns VERIFIED (Observable condition restored) and resolves alert.
+    """
+    simulate_rebreach = bool(req.get("simulate_rebreach", False))
+    supervisor_id = req.get("supervisor_id", "SUP-01")
+    target_id = alert_id or req.get("alert_id")
+    result = state_manager.verify_cctv_condition(target_id, supervisor_id, simulate_rebreach)
+    return result
+
+# ==========================================
+# SAFETY MEMORY & RECURRENCE INTELLIGENCE (Sections 6, 7, 8)
+# ==========================================
+
+@app.get("/api/safety-memory/summary")
+def get_safety_memory_summary():
+    """Returns consolidated Safety Memory status, recurring patterns, candidate vs validated counts"""
+    return safety_memory.get_summary()
+
+@app.get("/api/safety-memory/events")
+def get_safety_memory_events():
+    """Returns all recorded safety events in Safety Memory"""
+    return {"events": [ev.dict() for ev in safety_memory.events.values()]}
+
+@app.get("/api/safety-memory/patterns")
+def get_safety_memory_patterns():
+    """Returns all Candidate and HSE Validated Recurring Safety-Control Patterns"""
+    return {"patterns": [p.dict() for p in safety_memory.patterns.values()]}
+
+@app.post("/api/safety-memory/patterns/{pattern_id}/validate")
+def validate_safety_pattern(pattern_id: str, req: Dict[str, Any] = {}):
+    """
+    HSE Governance Layer (Section 7):
+    HSE Confirms, Corrects, or Rejects a Candidate Recurring Pattern.
+    When confirmed, automatically derives future-work safety requirements.
+    """
+    decision = req.get("decision", "CONFIRM")
+    reviewer = req.get("reviewer", "Chief HSE Inspector")
+    notes = req.get("notes", "Pattern confirmed based on independent recurrence analysis.")
+    pat = safety_memory.validate_pattern(pattern_id, decision, reviewer, notes)
+    if not pat:
+        raise HTTPException(status_code=404, detail=f"Pattern '{pattern_id}' not found")
+    state_manager.notify_clients()
+    return {"message": f"Pattern {pattern_id} {decision}ed by HSE", "pattern": pat.dict()}
+
+@app.get("/api/safety-memory/future-requirements")
+def get_future_work_requirements():
+    """Returns all active Future-Work Safety Requirements derived from HSE Validated Patterns (Section 8)"""
+    return {"requirements": [r.dict() for r in safety_memory.future_requirements.values()]}
+
+@app.post("/api/safety-memory/check-work-package")
+def evaluate_work_package(package: Dict[str, Any]):
+    """
+    Evaluates future work package against HSE Validated Safety Patterns.
+    Flags 'REQUIRED_SAFETY_EVIDENCE_MISSING' if mandatory evidence is absent.
+    """
+    result = safety_memory.check_work_package(package)
+    return result.dict()
+
+@app.post("/api/safety-memory/record-event")
+def record_event_in_memory(req: Dict[str, Any]):
+    """Records an external or manual safety event into Safety Memory with duplicate check"""
+    text = req.get("text", "")
+    context = req.get("context", {})
+    ev = AssertionDetector.evaluate_safety_event(text, context)
+    res = safety_memory.record_safety_event(ev)
+    state_manager.notify_clients()
+    return res
+
+@app.post("/api/safety-memory/reset")
+def reset_safety_memory():
+    """Resets Safety Memory to default baseline (5 independent occurrences)"""
+    safety_memory.reset()
+    state_manager.notify_clients()
+    return {"message": "Safety Memory reset successfully", "summary": safety_memory.get_summary()}
+
+# ==========================================
+# CORROBORATION: HUMAN REPORT + CCTV EVIDENCE (Sections 3B & 12)
+# ==========================================
+
+@app.post("/api/corroboration/evaluate")
+def evaluate_corroboration(req: Dict[str, Any]):
+    """
+    Synthesizes Human Field Observation with CCTV Evidence.
+    Returns: CORROBORATED | CCTV_ONLY | HUMAN_REPORT_ONLY | EVIDENCE_CONFLICT
+    """
+    human_text = req.get("human_text")
+    cctv_alert_id = req.get("cctv_alert_id")
+    human_event = None
+    cctv_event = None
+
+    if human_text:
+        human_event = AssertionDetector.evaluate_safety_event(human_text, req.get("context", {}))
+
+    if cctv_alert_id:
+        with state_manager.lock:
+            alert = state_manager._active_alerts.get(cctv_alert_id)
+            if not alert:
+                for h in state_manager.history:
+                    if h.id == cctv_alert_id:
+                        alert = h
+                        break
+        if alert:
+            cctv_event = SafetyEvent(
+                event_id=f"EVT-{alert.id}",
+                source="CCTV",
+                location=alert.location,
+                activity=alert.activity or "Mechanical Lifting",
+                raw_narrative=alert.short_summary or alert.title or "CCTV observation"
+            )
+
+    result = corroboration_engine.corroborate_events(
+        human_event=human_event,
+        cctv_event=cctv_event,
+        human_report_text=human_text
+    )
+    return result
+
+@app.get("/api/corroboration/demo-scenarios")
+def get_corroboration_scenarios():
+    """Returns preset demonstration scenarios for Human Report + CCTV Evidence"""
+    scenario_a = corroboration_engine.corroborate_events(
+        human_event=SafetyEvent(
+            event_id="EVT-H-01",
+            source="HUMAN_REPORT",
+            location="Demo Lifting Area",
+            activity="Mechanical Lifting",
+            raw_narrative="Worker entered lifting exclusion zone."
+        ),
+        cctv_event=SafetyEvent(
+            event_id="EVT-C-01",
+            source="CCTV",
+            location="Demo Lifting Area",
+            activity="Mechanical Lifting",
+            raw_narrative="Person detected inside defined exclusion zone."
+        )
+    )
+    scenario_b = corroboration_engine.corroborate_events(
+        cctv_event=SafetyEvent(
+            event_id="EVT-C-02",
+            source="CCTV",
+            location="Lifting Zone 03",
+            activity="Mechanical Lifting",
+            raw_narrative="Person detected inside defined exclusion zone."
+        )
+    )
+    scenario_c = corroboration_engine.corroborate_events(
+        human_report_text="Contractor observed working under pipe rack without barricade in Pipe Yard Beta."
+    )
+    return {
+        "corroborated": scenario_a,
+        "cctv_only": scenario_b,
+        "human_only": scenario_c
+    }
+
+# ==========================================
+# 9-PHASE DEMO STORYBOARD CONTROLLER (Section 11)
+# ==========================================
+
+@app.post("/api/demo/phase/{phase_num}")
+def execute_demo_phase(phase_num: int, req: Dict[str, Any] = {}):
+    """
+    Executes a specific phase of the exact SIH demonstration story (Section 11):
+    Phase 1: Historical Intelligence (5 independent occurrences, recurring pattern)
+    Phase 2: HSE Validation (HSE confirms pattern -> Future Work Requirement)
+    Phase 3 & 4: Live CCTV Event -> Machine-Generated Safety Observation -> SIF Intelligence
+    Phase 5: SIF Analysis Display (High SIF Potential, Hazard, Exposure, Barrier, LSR)
+    Phase 6: Mobile Alert (Supervisor receives clean 2-3s alert)
+    Phase 7: Action (Acknowledge -> Action Completed)
+    Phase 8: CCTV Verification (Clear -> VERIFIED, or Re-breach -> REOPENED)
+    Phase 9: Safety Memory Updated (5 -> 6 independent occurrences)
+    """
+    if phase_num == 1:
+        # Phase 1: Historical Intelligence
+        # Return summary of 5 independent occurrences
+        safety_memory.reset()
+        pat = safety_memory.patterns.get("PAT-LIFT-01")
+        pat.validation_status = HSEValidationStatus.CANDIDATE
+        state_manager.notify_clients()
+        return {
+            "phase": 1,
+            "title": "Phase 1: Historical Safety Intelligence",
+            "message": "Loaded historical safety observations. Identified Candidate Recurring Safety-Control Pattern with 5 independent occurrences.",
+            "pattern": pat.dict() if pat else None
+        }
+
+    elif phase_num == 2:
+        # Phase 2: HSE Validation
+        pat = safety_memory.validate_pattern("PAT-LIFT-01", "CONFIRM", "Chief HSE Officer (OIL)", "Validated based on recurring personnel segregation failures.")
+        reqs = list(safety_memory.future_requirements.values())
+        matching_req = [r for r in reqs if r.derived_from_pattern_id == "PAT-LIFT-01"]
+        state_manager.notify_clients()
+        return {
+            "phase": 2,
+            "title": "Phase 2: HSE Validation & Future Learning",
+            "message": "✓ HSE VALIDATED SAFETY PATTERN. Derived mandatory future-work requirement.",
+            "pattern": pat.dict() if pat else None,
+            "future_requirement": matching_req[0].dict() if matching_req else None
+        }
+
+    elif phase_num in [3, 4]:
+        # Phase 3 & 4: Live CCTV Event & Machine-Generated Safety Observation
+        alert = state_manager.simulate_zone_entry()
+        state_manager.notify_clients()
+        return {
+            "phase": phase_num,
+            "title": "Phase 3 & 4: Live CCTV Detection -> Machine Safety Observation",
+            "message": "Person entered lifting exclusion zone. Generated machine observation and sent to SIF Intelligence.",
+            "alert": alert.dict() if alert else None,
+            "machine_observation": alert.machine_observation if alert else None
+        }
+
+    elif phase_num == 5:
+        # Phase 5: SIF Analysis
+        alert = state_manager.active_alert
+        if not alert:
+            alert = state_manager.simulate_zone_entry()
+        return {
+            "phase": 5,
+            "title": "Phase 5: SIF Intelligence Assessment",
+            "message": "SIF POTENTIAL — HIGH. Hazard: Suspended Load | Barrier: Exclusion Zone (Violated) | LSR: Line of Fire.",
+            "alert": alert.dict() if alert else None
+        }
+
+    elif phase_num == 6:
+        # Phase 6: Mobile Alert
+        alert = state_manager.active_alert
+        if not alert:
+            alert = state_manager.simulate_zone_entry()
+        return {
+            "phase": 6,
+            "title": "Phase 6: Mobile Supervisor Alert Triggered",
+            "message": "Operational mobile alert delivered to field supervisor for immediate response.",
+            "alert": alert.dict() if alert else None
+        }
+
+    elif phase_num == 7:
+        # Phase 7: Action Taken
+        alert = state_manager.active_alert
+        if not alert:
+            alert = state_manager.simulate_zone_entry()
+        state_manager.respond_to_alert("SUP-01", "Supervisor en route to secure exclusion zone", alert.id)
+        action_alert = state_manager.mark_action_taken(alert.id, "SUP-01", "Workers cleared from exclusion zone; physical perimeter restored.", "Clear zone")
+        state_manager.notify_clients()
+        return {
+            "phase": 7,
+            "title": "Phase 7: Action Taken",
+            "message": "Action marked taken by supervisor. Transitioned to AWAITING_VERIFICATION ('Completion is not proof').",
+            "alert": action_alert.dict() if action_alert else None
+        }
+
+    elif phase_num == 8:
+        # Phase 8: CCTV Verification
+        simulate_rebreach = bool(req.get("simulate_rebreach", False))
+        verif_res = state_manager.verify_cctv_condition(None, "SUP-01", simulate_rebreach)
+        state_manager.notify_clients()
+        return {
+            "phase": 8,
+            "title": "Phase 8: CCTV Verification",
+            "result": verif_res
+        }
+
+    elif phase_num == 9:
+        # Phase 9: Safety Memory Updated
+        pat = safety_memory.patterns.get("PAT-LIFT-01")
+        return {
+            "phase": 9,
+            "title": "Phase 9: Safety Memory Updated",
+            "message": f"NEW SAFETY EVIDENCE ADDED. Recurring pattern '{pat.title if pat else ''}' occurrences: {pat.independent_occurrences_count if pat else 6} independent occurrences.",
+            "pattern": pat.dict() if pat else None
+        }
+
+    raise HTTPException(status_code=400, detail=f"Invalid phase number {phase_num}")
 
 # ==========================================
 # AI + NLP SAFETY ANALYSIS ENDPOINTS (SIH PS 26165)

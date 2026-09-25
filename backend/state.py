@@ -1802,6 +1802,60 @@ class AlertStateManager:
                 fire_crop_base64=f_ev_b64
             )
 
+            # Record machine-generated safety observation in Safety Memory (Sections 3A & 16)
+            try:
+                from safety_memory import safety_memory, SafetyEvent, AssertionStatus
+                mach_obs = {
+                    "source": "CCTV",
+                    "camera_id": camera,
+                    "timestamp": now.strftime("%H:%M:%S"),
+                    "location": location,
+                    "observed_event": f"Person entered defined restricted zone ({location})",
+                    "activity": sif_rec["activity"],
+                    "observable_exposure": sif_rec["exposure"],
+                    "observable_barrier": sif_rec["critical_barrier"],
+                    "barrier_state": (sif_rec.get("barrier_condition") or "VIOLATED").upper(),
+                    "evidence_url": ev_url,
+                    "pipeline_stage": "OBSERVATION_SENT_TO_SIF_INTELLIGENCE"
+                }
+                new_alert.machine_observation = mach_obs
+                new_alert.evidence_source_type = "OBSERVED"
+                new_alert.corroboration_status = "CCTV_ONLY"
+                new_alert.lifecycle_state = "ACTION_REQUIRED"
+
+                se = SafetyEvent(
+                    event_id=new_alert.event_id or f"EVT-{now.strftime('%Y%m%d')}-{self._incident_counter:04d}",
+                    incident_id=inc_id,
+                    source="CCTV",
+                    evidence_source_type="OBSERVED",
+                    timestamp=now.isoformat(),
+                    camera_id=camera,
+                    location=location,
+                    activity=sif_rec["activity"],
+                    hazard=hazard or sif_rec.get("critical_barrier"),
+                    energy_source="Mechanical / Gravitational Potential Energy",
+                    exposure=sif_rec["exposure"],
+                    exposure_assertion=AssertionStatus.OBSERVED_FACT,
+                    critical_barrier=sif_rec["critical_barrier"],
+                    barrier_state=(sif_rec.get("barrier_condition") or "VIOLATED").upper(),
+                    potential_consequence=sif_rec["potential_consequence"],
+                    consequence_type="POTENTIAL",
+                    sif_potential="HIGH" if sif_rec.get("sif_level") in ["HIGH", "CRITICAL"] else "MEDIUM",
+                    life_saving_rule=sif_rec.get("life_saving_rule"),
+                    assertion_status=AssertionStatus.OBSERVED_FACT,
+                    temporal_status="DURING_EVENT",
+                    evidence_url=ev_url,
+                    raw_narrative=f"CCTV Safety Observation: {person_count} person(s) entered restricted zone ({location}) during {sif_rec['activity']}.",
+                    underlying_control_mechanism="Personnel Segregation / Exclusion-Zone Control"
+                )
+                rec_res = safety_memory.record_safety_event(se)
+                new_alert.recurrence_classification = rec_res["classification"]
+                if rec_res.get("pattern"):
+                    new_alert.recurring_pattern_title = rec_res["pattern"].title
+                    new_alert.independent_occurrences_count = rec_res["pattern"].independent_occurrences_count
+            except Exception as e:
+                print(f"[State] Safety Memory record notice: {e}")
+
             self._active_alerts[alert_id] = new_alert
             self._last_resolved_alert = None
             self.current_safety_state = "VIOLATION"
@@ -1839,6 +1893,7 @@ class AlertStateManager:
             target.action_status = "IN_PROGRESS"
             target.responded_at = now.isoformat()
             target.action_deadline = action_deadline.isoformat()
+            target.lifecycle_state = "ACTION_IN_PROGRESS"
             target.resolved_by = supervisor_id
             if notes:
                 target.notes = notes
@@ -1877,6 +1932,7 @@ class AlertStateManager:
             now = datetime.now()
             target.action_status = "COMPLETED"
             target.verification_status = "AWAITING_VERIFICATION"
+            target.lifecycle_state = "AWAITING_VERIFICATION"
             target.action_taken_at = now.isoformat()
             target.action_taken_by = supervisor_id
             target.action_taken_notes = notes or action_taken or "Corrective action executed on-site"
@@ -1923,6 +1979,7 @@ class AlertStateManager:
             if clean_decision == "VERIFIED":
                 target.action_status = "COMPLETED"
                 target.verification_status = "VERIFIED"
+                target.lifecycle_state = "VERIFIED"
                 target.verified_at = now.isoformat()
                 target.verified_by = supervisor_id
                 target.verification_notes = notes or f"Barrier restoration verified ({verification_method})"
@@ -1970,6 +2027,9 @@ class AlertStateManager:
             elif clean_decision == "FAILED":
                 target.verification_status = "FAILED"
                 target.action_status = "IN_PROGRESS"
+                target.status = "WAITING_FOR_RESPONSE"
+                target.stage = "RESPONSE"
+                target.lifecycle_state = "REOPENED"
                 target.verification_notes = notes or "Verification failed: Safety barrier or PPE remains compromised. Reopen required."
                 target.incident_timeline.append({
                     "timestamp": now.isoformat(),
@@ -1993,6 +2053,83 @@ class AlertStateManager:
 
         self.notify_clients()
         return target
+
+    def verify_cctv_condition(self, alert_id: Optional[str] = None, supervisor_id: str = "SUP-01", simulate_rebreach: bool = False) -> Dict[str, Any]:
+        """
+        Executes CCTV-based verification of observable site conditions ("Completion is not proof").
+        - If simulate_rebreach is True or zone_violation is currently active:
+          Returns VERIFICATION_FAILED — RE-BREACH DETECTED, and reopens the alert!
+        - If zone is clear and no violation:
+          Returns VERIFIED — OBSERVABLE CONDITION RESTORED, and resolves the alert.
+        """
+        with self.lock:
+            target = None
+            if alert_id:
+                target = self._active_alerts.get(alert_id)
+            else:
+                for a in self._active_alerts.values():
+                    if a.verification_status == "AWAITING_VERIFICATION" or a.action_status == "COMPLETED":
+                        target = a
+                        break
+
+            if not target:
+                for h in self.history:
+                    if h.id == alert_id:
+                        return {"status": "ALREADY_RESOLVED", "alert": h, "decision": "VERIFIED", "message": "Alert is already verified and resolved"}
+                return {"status": "NO_ALERT_FOUND", "message": "No alert awaiting verification", "decision": "NONE"}
+
+            is_breached = simulate_rebreach or (self.zone_violation and self.persons_in_zone > 0)
+            now = datetime.now()
+
+            if is_breached:
+                target.verification_status = "FAILED"
+                target.action_status = "IN_PROGRESS"
+                target.status = "WAITING_FOR_RESPONSE"
+                target.stage = "RESPONSE"
+                target.lifecycle_state = "REOPENED"
+                target.verification_notes = "VERIFICATION FAILED — RE-BREACH DETECTED. Personnel re-entered restricted zone. Corrective action reopened."
+                target.incident_timeline.append({
+                    "timestamp": now.isoformat(),
+                    "event_type": "VERIFICATION_FAILED_REBREACH",
+                    "title": "CCTV Verification Failed (Re-Breach Detected)",
+                    "actor": f"AI CCTV ({target.camera or 'C-01'})",
+                    "details": target.verification_notes
+                })
+                self.notify_clients()
+                return {
+                    "decision": "FAILED",
+                    "status": "VERIFICATION_FAILED_REBREACH",
+                    "message": "✕ VERIFICATION FAILED — RE-BREACH DETECTED. Action reopened.",
+                    "alert": target
+                }
+            else:
+                target.verification_status = "VERIFIED"
+                target.action_status = "COMPLETED"
+                target.status = "RESOLVED"
+                target.stage = "RESOLVED"
+                target.lifecycle_state = "VERIFIED"
+                target.resolved_at = now.isoformat()
+                target.verified_at = now.isoformat()
+                target.verified_by = f"AI CCTV ({target.camera or 'C-01'}) + {supervisor_id}"
+                target.verification_notes = "✓ CCTV VERIFIED: Camera confirmed restricted zone is clear of personnel. Observable condition restored."
+                target.incident_timeline.append({
+                    "timestamp": now.isoformat(),
+                    "event_type": "CCTV_VERIFIED_RESTORED",
+                    "title": "CCTV Verification Passed (Observable Condition Restored)",
+                    "actor": f"AI CCTV ({target.camera or 'C-01'})",
+                    "details": target.verification_notes
+                })
+                if target.id in self._active_alerts:
+                    del self._active_alerts[target.id]
+                self._last_resolved_alert = target
+                self.history.append(target)
+                self.notify_clients()
+                return {
+                    "decision": "VERIFIED",
+                    "status": "VERIFIED_OBSERVABLE_CONDITION_RESTORED",
+                    "message": "✓ VERIFIED — OBSERVABLE CONDITION RESTORED. Alert resolved.",
+                    "alert": target
+                }
 
     def resolve_alert(self, supervisor_id: str = "SUP-01", notes: Optional[str] = None, alert_id: Optional[str] = None) -> Optional[Alert]:
         """
@@ -2084,6 +2221,13 @@ class AlertStateManager:
             self.passports.clear()
             self.active_passport_id = None
             self._passport_counter = 0
+
+            # Reset Safety Memory (governance, patterns, events)
+            try:
+                from safety_memory import safety_memory
+                safety_memory.reset()
+            except Exception as e:
+                print(f"[State] Safety Memory reset notice: {e}")
 
             # CHANGE 15: Remove temporary Passport zones only!
             temp_ids = [zid for zid, z in self.zones.items() if z.zone_category == "PASSPORT_TEMPORARY"]

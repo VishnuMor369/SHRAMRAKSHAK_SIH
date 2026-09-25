@@ -3,22 +3,22 @@ import {
   Shield, 
   LayoutDashboard, 
   Video, 
-  MapPin, 
-  Bell, 
+  CheckCircle2, 
   X, 
   BrainCircuit,
-  FileText
+  Database,
+  SlidersHorizontal,
+  Bell
 } from 'lucide-react';
 
-export default function Sidebar({ isOpen, onClose, activeTab = 'Dashboard', onTabChange, activeAlertsCount = 0, hasActivePassport = false }) {
+export default function Sidebar({ isOpen, onClose, activeTab = 'OVERVIEW', onTabChange, activeAlertsCount = 0 }) {
   const navItems = [
-    { id: 'Dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'HSE Observation', label: 'HSE Observation', icon: FileText, badge: 'FIELD' },
-    { id: 'Safety Passport', label: 'Safety Passport', icon: Shield, badge: hasActivePassport ? 'ACTIVE' : null },
-    { id: 'AI Risk Intelligence', label: 'AI Risk Intelligence', icon: BrainCircuit, badge: 'NLP' },
-    { id: 'Live Monitoring', label: 'Live Monitoring', icon: Video, badge: 'C-01' },
-    { id: 'Alerts', label: 'Alerts', icon: Bell, badge: activeAlertsCount > 0 ? `${activeAlertsCount}` : null, badgeClass: activeAlertsCount > 0 ? 'bg-red-500/20 text-red-400 border-red-500/30' : null },
-    { id: 'Locations / Zones', label: 'Locations / Zones', icon: MapPin },
+    { id: 'OVERVIEW', label: '1. OVERVIEW', icon: LayoutDashboard },
+    { id: 'SAFETY INTELLIGENCE', label: '2. SAFETY INTELLIGENCE', icon: BrainCircuit, badge: 'NLP SIF' },
+    { id: 'SAFETY MEMORY', label: '3. SAFETY MEMORY', icon: Database, badge: 'RECURRENCE' },
+    { id: 'LIVE SAFETY', label: '4. LIVE SAFETY', icon: Video, badge: 'CCTV' },
+    { id: 'ACTIONS / VERIFICATION', label: '5. ACTIONS / VERIFICATION', icon: CheckCircle2, badge: activeAlertsCount > 0 ? `${activeAlertsCount}` : null, badgeClass: activeAlertsCount > 0 ? 'bg-red-500/20 text-red-400 border-red-500/30' : null },
+    { id: 'SETTINGS / DEMO', label: '6. SETTINGS / DEMO', icon: SlidersHorizontal, badge: 'DEMO 1-9' },
   ];
 
   return (

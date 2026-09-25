@@ -115,6 +115,37 @@ class Alert(BaseModel):
     verified_at: Optional[str] = None
     verified_by: Optional[str] = None
 
+    # Enterprise Safety State Machine Lifecycle (Section 15)
+    lifecycle_state: Literal[
+        "DETECTED",
+        "ANALYZING",
+        "SIF_ASSESSED",
+        "ACTION_REQUIRED",
+        "ACKNOWLEDGED",
+        "ACTION_IN_PROGRESS",
+        "ACTION_COMPLETED",
+        "AWAITING_VERIFICATION",
+        "VERIFIED",
+        "VERIFICATION_FAILED",
+        "REOPENED",
+        "RESOLVED"
+    ] = "ACTION_REQUIRED"
+
+    # Machine-Generated Safety Observation & Evidence Governance (Section 3 & 16)
+    evidence_source_type: Literal["OBSERVED", "INFERRED", "HSE_VALIDATED"] = "OBSERVED"
+    machine_observation: Optional[Dict[str, Any]] = None
+    corroboration_status: Optional[Literal[
+        "CORROBORATED",
+        "CCTV_ONLY",
+        "HUMAN_REPORT_ONLY",
+        "EVIDENCE_CONFLICT",
+        "REVIEW_REQUIRED"
+    ]] = None
+    recurrence_classification: Optional[Literal["DUPLICATE", "INDEPENDENT_RECURRENCE", "RELATED_BUT_DIFFERENT", "REVIEW_REQUIRED"]] = None
+    recurring_pattern_title: Optional[str] = None
+    independent_occurrences_count: Optional[int] = None
+    evidence_spans: List[Dict[str, Any]] = []
+
     # Visual evidence captured from actual detection frame
     evidence_url: Optional[str] = None
     evidence_image: Optional[str] = None

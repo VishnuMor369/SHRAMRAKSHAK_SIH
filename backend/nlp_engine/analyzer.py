@@ -138,11 +138,31 @@ class NLPSafetyAnalyzer:
         Analyzes raw report text (demonstrating how OIL's real UA/UC or Incident reports
         plug directly into the exact same NLP pipeline).
         """
+        from nlp_engine.assertion_detector import AssertionDetector
         context = context or {}
+        safety_event = AssertionDetector.evaluate_safety_event(text, context)
+
         extracted = self.precursor_extractor.extract(text, context)
         combined_context = {**context, **extracted}
         lsrs = self.lsr_classifier.classify(text, combined_context)
         sif_pot, score, lvl, reason, why = self.sif_classifier.classify(text, combined_context)
+
+        # Override SIF potential and reasoning if negation or hypothetical is detected
+        if safety_event.assertion_status == "NEGATED":
+            sif_pot = False
+            score = 15
+            lvl = "LOW"
+            reason = "Exposure explicitly NEGATED in report narrative. No person was present in the hazard area; does not constitute a positive SIF precursor."
+            why = ["Exposure assertion is NEGATED", "Active barriers/controls prevented entry", "Classified as non-exposure observation"]
+        elif safety_event.assertion_status == "HYPOTHETICAL":
+            sif_pot = False
+            score = 35
+            lvl = "LOW"
+            reason = "Hypothetical / conditional statement. Consequence described is what could happen if a barrier failed, not an observed barrier breach."
+            why = ["Hypothetical conditional clause", "No actual barrier failure observed on site", "Evaluated as preventive risk scenario"]
+        elif safety_event.assertion_status == "POST_EVENT":
+            reason = "Temporal / post-event action. Note: Barricade was installed following the observation, meaning barrier was absent during original event."
+            why.append("Post-event condition noted: barrier was installed after the incident")
 
         return {
             "description": text,
@@ -152,7 +172,12 @@ class NLPSafetyAnalyzer:
             "risk_score": score,
             "risk_level": lvl,
             "reason": reason,
-            "why_flagged": why
+            "why_flagged": why,
+            "safety_event": safety_event.dict(),
+            "assertion_status": safety_event.assertion_status.value,
+            "temporal_status": safety_event.temporal_status,
+            "consequence_type": safety_event.consequence_type,
+            "evidence_spans": [s.dict() for s in safety_event.evidence_spans]
         }
 
     def get_summary(self, alerts: List[Alert]) -> AnalysisSummary:
