@@ -1,7 +1,7 @@
 {
   "model_name": "intfloat/e5-small-v2",
   "dim": 384,
-  "next_id": 57,
+  "next_id": 58,
   "id_to_event": {
     "0": "EVT-TEST-E5",
     "1": "EVT-TEST-B",
@@ -59,7 +59,8 @@
     "53": "EVT-REC-B",
     "54": "EVT-E2E-035019",
     "55": "EVT-E2E-3900ce",
-    "56": "EVT-E2E-87648c"
+    "56": "EVT-E2E-87648c",
+    "57": "EVT-HUMAN-20260925-164809-1F5F"
   },
   "event_to_id": {
     "EVT-TEST-E5": 0,
@@ -118,6 +119,7 @@
     "EVT-REC-B": 53,
     "EVT-E2E-035019": 54,
     "EVT-E2E-3900ce": 55,
-    "EVT-E2E-87648c": 56
+    "EVT-E2E-87648c": 56,
+    "EVT-HUMAN-20260925-164809-1F5F": 57
   }
 }
