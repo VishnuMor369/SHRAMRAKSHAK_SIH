@@ -2135,7 +2135,10 @@ class AlertStateManager:
                     self.pattern_actions[pat_id]["verification_status"] = "FAILED"
                     self.pattern_actions[pat_id]["last_rebreach_at"] = now.isoformat()
                     try:
-                        from database import db
+                        try:
+                            from backend.database import db
+                        except ImportError:
+                            from database import db
                         db.save_verification(
                             verification_id=f"VERIF-{uuid.uuid4().hex[:8].upper()}",
                             event_id=self.pattern_actions[pat_id].get("action_id"),
@@ -2176,6 +2179,11 @@ class AlertStateManager:
                             narrative=f"CCTV automated verification detected personnel re-entry into {loc} following corrective action sign-off."
                         )
                         db.save_event(rebreach_ev)
+                        try:
+                            from backend.nlp_engine.semantic_memory import semantic_memory
+                            semantic_memory.add_event(rebreach_ev)
+                        except Exception:
+                            pass
                         db.add_pattern_member(pat_id, new_ev_id, "INDEPENDENT_RECURRENCE", 0.95, "CCTV Re-breach during verification window")
                         cur_pat = db.get_pattern(pat_id)
                         if cur_pat:
@@ -2200,7 +2208,10 @@ class AlertStateManager:
                     self.pattern_actions[pat_id]["verification_status"] = "VERIFIED"
                     self.pattern_actions[pat_id]["verified_at"] = now.isoformat()
                     try:
-                        from database import db
+                        try:
+                            from backend.database import db
+                        except ImportError:
+                            from database import db
                         db.save_verification(
                             verification_id=f"VERIF-{uuid.uuid4().hex[:8].upper()}",
                             event_id=self.pattern_actions[pat_id].get("action_id"),
@@ -2315,6 +2326,11 @@ class AlertStateManager:
                             narrative=f"CCTV automated verification detected personnel re-entry into {loc} following corrective action sign-off."
                         )
                         db.save_event(rebreach_ev)
+                        try:
+                            from backend.nlp_engine.semantic_memory import semantic_memory
+                            semantic_memory.add_event(rebreach_ev)
+                        except Exception:
+                            pass
                         db.add_pattern_member(pat_id, new_ev_id, "INDEPENDENT_RECURRENCE", 0.95, "CCTV Re-breach during verification window")
                         cur_pat = db.get_pattern(pat_id)
                         if cur_pat:

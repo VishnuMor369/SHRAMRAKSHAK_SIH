@@ -1157,8 +1157,19 @@ def evaluate_corroboration(req: Dict[str, Any]):
     Synthesizes Human Field Observation with CCTV Evidence.
     Returns: CORROBORATED | CCTV_ONLY | HUMAN_REPORT_ONLY | EVIDENCE_CONFLICT
     """
-    human_text = req.get("human_text")
+    scenario_key = req.get("scenario_key")
+    if scenario_key:
+        scenarios = get_corroboration_scenarios()
+        if scenario_key in ["lifting_exclusion_corroborated", "corroborated"]:
+            return scenarios["corroborated"]
+        elif scenario_key in ["cctv_only_breach", "cctv_only"]:
+            return scenarios["cctv_only"]
+        elif scenario_key in ["human_only_unverified", "human_only"]:
+            return scenarios["human_only"]
+
+    human_text = req.get("human_text") or req.get("human_report")
     cctv_alert_id = req.get("cctv_alert_id")
+    cctv_obs = req.get("cctv_observation")
     human_event = None
     cctv_event = None
 
@@ -1181,6 +1192,14 @@ def evaluate_corroboration(req: Dict[str, Any]):
                 activity=alert.activity or "Mechanical Lifting",
                 raw_narrative=alert.short_summary or alert.title or "CCTV observation"
             )
+    elif cctv_obs:
+        cctv_event = SafetyEvent(
+            event_id="EVT-CCTV-OBS",
+            source="CCTV",
+            location=req.get("location", "Lifting Zone 03"),
+            activity=req.get("activity", "Mechanical Lifting"),
+            raw_narrative=str(cctv_obs)
+        )
 
     result = corroboration_engine.corroborate_events(
         human_event=human_event,
@@ -1189,6 +1208,7 @@ def evaluate_corroboration(req: Dict[str, Any]):
     )
     return result
 
+@app.get("/api/corroboration/scenarios")
 @app.get("/api/corroboration/demo-scenarios")
 def get_corroboration_scenarios():
     """Returns preset demonstration scenarios for Human Report + CCTV Evidence"""
@@ -1221,6 +1241,11 @@ def get_corroboration_scenarios():
         human_report_text="Contractor observed working under pipe rack without barricade in Pipe Yard Beta."
     )
     return {
+        "scenarios": [
+            {"key": "lifting_exclusion_corroborated", "title": "Corroborated: Human Report + CCTV Observation", "data": scenario_a},
+            {"key": "cctv_only_breach", "title": "CCTV Machine Observation Only", "data": scenario_b},
+            {"key": "human_only_unverified", "title": "Human Report Only (Pending Vision)", "data": scenario_c}
+        ],
         "corroborated": scenario_a,
         "cctv_only": scenario_b,
         "human_only": scenario_c
@@ -1573,6 +1598,7 @@ def export_single_report_pdf(report_id: str):
         headers={"Content-Disposition": f"attachment; filename={report_id}_Dossier.pdf"}
     )
 
+@app.post("/api/analyze-raw")
 @app.post("/api/reports/analyze-text")
 def analyze_raw_text(req: dict):
     """

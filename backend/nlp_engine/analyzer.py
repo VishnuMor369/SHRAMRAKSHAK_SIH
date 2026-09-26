@@ -147,22 +147,28 @@ class NLPSafetyAnalyzer:
         lsrs = self.lsr_classifier.classify(text, combined_context)
         sif_pot, score, lvl, reason, why = self.sif_classifier.classify(text, combined_context)
 
+        ass_val = safety_event.assertion.value if hasattr(safety_event.assertion, "value") else str(safety_event.assertion)
+        temp_val = safety_event.temporal_status.value if hasattr(safety_event.temporal_status, "value") else str(safety_event.temporal_status)
+
         # Override SIF potential and reasoning if negation or hypothetical is detected
-        if safety_event.assertion_status == "NEGATED":
+        if ass_val == "NEGATED":
             sif_pot = False
             score = 15
             lvl = "LOW"
             reason = "Exposure explicitly NEGATED in report narrative. No person was present in the hazard area; does not constitute a positive SIF precursor."
             why = ["Exposure assertion is NEGATED", "Active barriers/controls prevented entry", "Classified as non-exposure observation"]
-        elif safety_event.assertion_status == "HYPOTHETICAL":
+        elif ass_val == "HYPOTHETICAL":
             sif_pot = False
             score = 35
             lvl = "LOW"
             reason = "Hypothetical / conditional statement. Consequence described is what could happen if a barrier failed, not an observed barrier breach."
             why = ["Hypothetical conditional clause", "No actual barrier failure observed on site", "Evaluated as preventive risk scenario"]
-        elif safety_event.assertion_status == "POST_EVENT":
+        elif ass_val == "POST_EVENT" or temp_val == "POST_EVENT":
             reason = "Temporal / post-event action. Note: Barricade was installed following the observation, meaning barrier was absent during original event."
             why.append("Post-event condition noted: barrier was installed after the incident")
+
+        spans_serialized = [s.to_dict() if hasattr(s, "to_dict") else s for s in getattr(safety_event, "evidence", [])]
+        ev_dict = safety_event.to_dict() if hasattr(safety_event, "to_dict") else {}
 
         return {
             "description": text,
@@ -173,11 +179,11 @@ class NLPSafetyAnalyzer:
             "risk_level": lvl,
             "reason": reason,
             "why_flagged": why,
-            "safety_event": safety_event.dict(),
-            "assertion_status": safety_event.assertion_status.value,
-            "temporal_status": safety_event.temporal_status,
-            "consequence_type": safety_event.consequence_type,
-            "evidence_spans": [s.dict() for s in safety_event.evidence_spans]
+            "safety_event": ev_dict,
+            "assertion_status": ass_val,
+            "temporal_status": temp_val,
+            "consequence_type": getattr(safety_event, "consequence", "UNSPECIFIED"),
+            "evidence_spans": spans_serialized
         }
 
     def get_summary(self, alerts: List[Alert]) -> AnalysisSummary:

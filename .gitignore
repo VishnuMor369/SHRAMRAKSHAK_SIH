@@ -29,6 +29,7 @@ ENV/
 *.swp
 *~
 backend/data_backup_phase2/
+scratch/
 
 # Environment & local config
 .env

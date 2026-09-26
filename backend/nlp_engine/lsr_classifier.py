@@ -122,11 +122,25 @@ class LSRClassifier:
 
         return matches
 
-    def classify(self, event: SafetyEvent) -> SafetyEvent:
-        """Convenience method that assigns classified rules to event.lsr and returns the event."""
-        matches = self.classify_event(event)
-        event.lsr = [m["lsr"] for m in matches]
-        return event
+    def classify(self, event_or_text: Any, context: Optional[Dict[str, Any]] = None) -> Any:
+        """
+        Polymorphic classification:
+        1. If passed (event: SafetyEvent): updates event.lsr and returns event.
+        2. If passed (text: str, context: dict): classifies text and returns List[str] of matching rule names.
+        """
+        if isinstance(event_or_text, str):
+            try:
+                from backend.nlp_engine.assertion_detector import assertion_detector
+            except ImportError:
+                from nlp_engine.assertion_detector import assertion_detector
+            ev = assertion_detector.analyze(event_or_text, context or {})
+            matches = self.classify_event(ev)
+            return [m["rule_name"] for m in matches] or ["General Safety"]
+        else:
+            event = event_or_text
+            matches = self.classify_event(event)
+            event.lsr = [m["lsr"] for m in matches]
+            return event
 
 
 lsr_classifier = LSRClassifier()

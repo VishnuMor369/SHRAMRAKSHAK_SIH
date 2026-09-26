@@ -16,7 +16,7 @@ from datetime import datetime
 try:
     from backend.models_canonical import (
         SafetyEvent, EvidenceSpan, AssertionStatus, TemporalStatus,
-        BarrierState, SIFStatus, ReviewStatus
+        BarrierState, SIFStatus, ReviewStatus, ExposureStatus
     )
     from backend.nlp_engine.preprocessor import preprocessor, ClauseSegment
     from backend.nlp_engine.ontology import ontology
@@ -24,14 +24,14 @@ except ImportError:
     try:
         from models_canonical import (
             SafetyEvent, EvidenceSpan, AssertionStatus, TemporalStatus,
-            BarrierState, SIFStatus, ReviewStatus
+            BarrierState, SIFStatus, ReviewStatus, ExposureStatus
         )
         from nlp_engine.preprocessor import preprocessor, ClauseSegment
         from nlp_engine.ontology import ontology
     except ImportError:
         from ..models_canonical import (
             SafetyEvent, EvidenceSpan, AssertionStatus, TemporalStatus,
-            BarrierState, SIFStatus, ReviewStatus
+            BarrierState, SIFStatus, ReviewStatus, ExposureStatus
         )
         from .preprocessor import preprocessor, ClauseSegment
         from .ontology import ontology
@@ -156,11 +156,13 @@ class AssertionDetector:
                 narrative=raw_text
             )
 
-        # 5. Check for Explicit Exposure Negation (Test 3: "No worker entered the exclusion zone")
-        neg_exposure_match = re.search(r'\b(no\s+(worker|personnel|contractor|person|employee|one)\s+(entered|was\s+inside|crossed))\b', raw_text, re.IGNORECASE)
+        # 5. Check for Explicit Exposure Negation (Test 3 & Mandatory Rule 6 Negated Case)
+        neg_exposure_match = re.search(r'\b(no\s+(worker|personnel|contractor|person|employee|one|human)\s+(entered|was\s+inside|crossed|was\s+in(\s+the\s+area)?)|did\s+not\s+enter\s+(the\s+area|the\s+zone)|remained\s+outside(\s+the)?\s+(area|zone))\b', raw_text, re.IGNORECASE)
         if neg_exposure_match:
             span_neg = self._create_evidence_span(raw_text, "assertion", "NEGATED", neg_exposure_match.group(0))
-            barrier_span = self._create_evidence_span(raw_text, "barrier", "EXCLUSION_ZONE", "exclusion zone")
+            barrier_name = "EXCLUSION_ZONE" if "zone" in raw_text.lower() or "barrier" in raw_text.lower() else "GENERAL_CONTROL"
+            barrier_span = self._create_evidence_span(raw_text, "barrier", barrier_name, "exclusion zone" if "exclusion zone" in raw_text.lower() else ("barrier" if "barrier" in raw_text.lower() else barrier_name))
+            barrier_state_val = ["FAILED"] if ("failed" in raw_text.lower() or "broke" in raw_text.lower()) else ["EFFECTIVE_VERIFIED"]
             evidence_list = [s for s in [span_neg, barrier_span] if s]
 
             return SafetyEvent(
@@ -169,20 +171,107 @@ class AssertionDetector:
                 source=source,
                 site=site,
                 location=location,
-                activity="Mechanical Lifting",
-                energy="Gravitational Energy",
+                activity="Mechanical Lifting" if "lift" in raw_text.lower() or "load" in raw_text.lower() else "General Operations",
+                energy="Gravitational / Suspended Load" if "load" in raw_text.lower() or "lift" in raw_text.lower() else "Kinetic Energy",
                 exposure="NO_HUMAN_EXPOSURE",
-                barrier=["EXCLUSION_ZONE"],
-                barrier_state=["EFFECTIVE_VERIFIED"],
-                consequence="None (Exposure negated)",
+                exposure_status=ExposureStatus.NEGATED,
+                barrier=[barrier_name],
+                barrier_state=barrier_state_val,
+                consequence="None (Human exposure explicitly negated)",
                 assertion=AssertionStatus.NEGATED,
                 temporal_status=TemporalStatus.DURING_EVENT,
                 sif_status=SIFStatus.NO_SIF_POTENTIAL_IDENTIFIED,
-                sif_reasons=["Human exposure was explicitly negated: no worker entered hazardous area"],
-                lsr=["SAFE_MECHANICAL_LIFTING"],
+                sif_reasons=["Human exposure was explicitly negated: no worker/person entered hazardous area (NO_HUMAN_EXPOSURE)"],
+                lsr=["SAFE_MECHANICAL_LIFTING"] if "lift" in raw_text.lower() else [],
                 evidence=evidence_list,
                 uncertainty=[],
                 confidence=0.98,
+                review_status=ReviewStatus.CANDIDATE,
+                narrative=raw_text
+            )
+
+        # 5B. Check for Unknown Personnel Location / Exposure (Rule 6 Mandatory Cases)
+        unknown_exposure_match = re.search(
+            r'\b(personnel\s+location\s+(is|was)?\s*(unknown|unrecorded|not\s+recorded)|'
+            r'no\s+information\s+on\s+personnel(\s+location|\s+presence)?|'
+            r'location\s+of\s+personnel\s+(is|was)?\s*(unknown|not\s+recorded)|'
+            r'unknown\s+whether\s+(any\s+)?(worker|personnel|person)\s+entered|'
+            r'unclear\s+if\s+(any\s+)?(worker|personnel|person)\s+was\s+inside|'
+            r'personnel\s+location\s+was\s+not\s+recorded|'
+            r'not\s+recorded\s+whether\s+anyone\s+was\s+inside)\b',
+            raw_text, re.IGNORECASE
+        )
+        if unknown_exposure_match:
+            span_unk = self._create_evidence_span(raw_text, "exposure", "UNKNOWN", unknown_exposure_match.group(0))
+            barrier_failed = "failed" in raw_text.lower() or "broken" in raw_text.lower() or "bypassed" in raw_text.lower()
+            b_state = ["FAILED"] if barrier_failed else ["UNKNOWN"]
+            b_name = "EXCLUSION_ZONE" if "zone" in raw_text.lower() or "barrier" in raw_text.lower() else "GENERAL_CONTROL"
+            b_span = self._create_evidence_span(raw_text, "barrier", b_name, "barrier" if "barrier" in raw_text.lower() else b_name)
+            evidence_list = [s for s in [span_unk, b_span] if s]
+
+            return SafetyEvent(
+                event_id=event_id,
+                report_id=report_id,
+                source=source,
+                site=site,
+                location=location,
+                activity="Mechanical Lifting" if "lift" in raw_text.lower() or "load" in raw_text.lower() else "Operational Activity",
+                energy="Gravitational / Suspended Load" if "lift" in raw_text.lower() or "load" in raw_text.lower() else "Residual Energy",
+                exposure="PERSONNEL_LOCATION_UNKNOWN",
+                exposure_status=ExposureStatus.UNKNOWN,
+                barrier=[b_name],
+                barrier_state=b_state,
+                consequence="Potential blunt trauma / unverified exposure",
+                assertion=AssertionStatus.AFFIRMED,
+                temporal_status=TemporalStatus.DURING_EVENT,
+                sif_status=SIFStatus.REVIEW_REQUIRED,
+                sif_reasons=[
+                    "Personnel location was not recorded; physical human exposure is UNKNOWN",
+                    "Barrier compromise or high energy present, but physical exposure cannot be confirmed without HSE review"
+                ],
+                lsr=["SAFE_MECHANICAL_LIFTING"] if "lift" in raw_text.lower() else [],
+                evidence=evidence_list,
+                uncertainty=["PERSONNEL_LOCATION_UNKNOWN", "Human exposure cannot be affirmed without field investigation"],
+                confidence=0.65,
+                review_status=ReviewStatus.CANDIDATE,
+                narrative=raw_text
+            )
+
+        # 5C. Check for Possible / Suspected Human Exposure (Rule 6 Possible Case)
+        possible_exposure_match = re.search(
+            r'\b(may\s+have\s+(entered|been\s+inside|crossed)|'
+            r'might\s+have\s+(entered|been\s+inside|crossed)|'
+            r'possible\s+(entry|personnel|worker)|'
+            r'suspected\s+(entry|personnel))\b',
+            raw_text, re.IGNORECASE
+        )
+        if possible_exposure_match:
+            span_pos = self._create_evidence_span(raw_text, "exposure", "POSSIBLE", possible_exposure_match.group(0))
+            b_name = "EXCLUSION_ZONE" if "zone" in raw_text.lower() or "barrier" in raw_text.lower() else "GENERAL_CONTROL"
+            b_span = self._create_evidence_span(raw_text, "barrier", b_name, "zone" if "zone" in raw_text.lower() else b_name)
+            evidence_list = [s for s in [span_pos, b_span] if s]
+
+            return SafetyEvent(
+                event_id=event_id,
+                report_id=report_id,
+                source=source,
+                site=site,
+                location=location,
+                activity="Mechanical Lifting" if "lift" in raw_text.lower() or "crane" in raw_text.lower() else "Operational Activity",
+                energy="Gravitational / Suspended Load" if "lift" in raw_text.lower() or "pipe" in raw_text.lower() or "load" in raw_text.lower() else "Residual Energy",
+                exposure="POSSIBLE_HUMAN_EXPOSURE",
+                exposure_status=ExposureStatus.POSSIBLE,
+                barrier=[b_name],
+                barrier_state=["PRESENT_UNVERIFIED"],
+                consequence="Potential struck-by impact",
+                assertion=AssertionStatus.AFFIRMED,
+                temporal_status=TemporalStatus.DURING_EVENT,
+                sif_status=SIFStatus.REVIEW_REQUIRED,
+                sif_reasons=["Human exposure is POSSIBLE / unverified; requires HSE specialist evaluation"],
+                lsr=["SAFE_MECHANICAL_LIFTING"] if "lift" in raw_text.lower() else [],
+                evidence=evidence_list,
+                uncertainty=["UNCONFIRMED_HUMAN_EXPOSURE"],
+                confidence=0.70,
                 review_status=ReviewStatus.CANDIDATE,
                 narrative=raw_text
             )
@@ -205,6 +294,7 @@ class AssertionDetector:
                 activity="Mechanical Lifting",
                 energy="Gravitational / Suspended Load",
                 exposure="Worker remained outside zone (Safe boundary respected)",
+                exposure_status=ExposureStatus.NEGATED,
                 barrier=["EXCLUSION_ZONE"],
                 barrier_state=["EFFECTIVE_VERIFIED"],
                 consequence="No contact / safe operation",
@@ -316,6 +406,7 @@ class AssertionDetector:
                 activity="Mechanical Lifting",
                 energy="Gravitational / Kinetic Energy (Suspended Load)",
                 exposure="Person inside lifting exclusion zone",
+                exposure_status=ExposureStatus.CONFIRMED,
                 barrier=["EXCLUSION_ZONE"],
                 barrier_state=["BYPASSED"],
                 consequence="Crush trauma / blunt force impact",
@@ -402,25 +493,61 @@ class AssertionDetector:
         else:
             barrier_states_found.append("PRESENT_UNVERIFIED")
 
-        # Determine SIF potential
+        # Check human exposure in generic text (Rule 6)
+        has_affirmed_human = (
+            any(w in text_lower for w in ["worker", "personnel", "employee", "contractor", "operator", "rigger", "roustabout", "technician", "mechanic", "man", "crew", "person"]) and
+            any(a in text_lower for a in ["entered", "inside", "struck", "caught", "trapped", "contact", "fell", "injured", "hit", "exposed", "near", "underneath", "beneath", "crossed"])
+        )
+        has_unknown_human = any(w in text_lower for w in [
+            "personnel location", "location unknown", "not recorded", "no information on personnel",
+            "unclear if anyone", "unknown whether anyone", "unrecorded"
+        ])
+        has_negated_human = any(w in text_lower for w in [
+            "no worker", "no person", "remained outside", "stayed clear", "no human", "did not enter", "no one entered", "no personnel"
+        ])
+        has_possible_human = any(w in text_lower for w in [
+            "may have", "might have", "possible entry", "suspected", "possibly"
+        ])
+
+        if has_negated_human:
+            gen_exp_status = ExposureStatus.NEGATED
+            gen_exp_str = "NO_HUMAN_EXPOSURE"
+        elif has_unknown_human:
+            gen_exp_status = ExposureStatus.UNKNOWN
+            gen_exp_str = "PERSONNEL_LOCATION_UNKNOWN"
+        elif has_possible_human:
+            gen_exp_status = ExposureStatus.POSSIBLE
+            gen_exp_str = "POSSIBLE_HUMAN_EXPOSURE"
+        elif has_affirmed_human:
+            gen_exp_status = ExposureStatus.CONFIRMED
+            gen_exp_str = "Person inside hazardous perimeter"
+        else:
+            gen_exp_status = ExposureStatus.UNKNOWN
+            gen_exp_str = "Field operational interaction (Exposure unverified)"
+
+        # Determine SIF potential with Rule 6 & 7 gating
         is_compromised = any(st in ["FAILED", "BYPASSED", "REMOVED", "DEGRADED"] for st in barrier_states_found)
         is_high_energy = energy_id in ["GRAVITATIONAL_KINETIC", "HIGH_PRESSURE_STORED", "HIGH_PRESSURE_HYDROCARBON", "ATMOSPHERIC_TOXIC", "ELECTRICAL_ENERGY", "GRAVITATIONAL_HEIGHT"]
 
-        if is_high_energy and is_compromised:
+        if gen_exp_status == ExposureStatus.NEGATED:
+            sif_status = SIFStatus.NO_SIF_POTENTIAL_IDENTIFIED
+            sif_reasons = ["Personnel remained outside hazard boundary; human exposure explicitly negated (NO_HUMAN_EXPOSURE)"]
+        elif is_high_energy and is_compromised and gen_exp_status == ExposureStatus.CONFIRMED:
             sif_status = SIFStatus.SIF_POTENTIAL
             sif_reasons = [
                 f"High-energy hazard present: {energy_name}",
+                "Human exposure affirmed in hazard zone",
                 f"Barrier compromised: {', '.join(barrier_states_found)}"
             ]
-        elif is_high_energy:
+        elif is_high_energy and (gen_exp_status in [ExposureStatus.UNKNOWN, ExposureStatus.POSSIBLE] or is_compromised):
             sif_status = SIFStatus.REVIEW_REQUIRED
             sif_reasons = [
                 f"High-energy hazard present: {energy_name}",
-                "Barrier integrity requires HSE human verification"
+                "Physical human exposure or barrier integrity requires HSE human verification"
             ]
         else:
             sif_status = SIFStatus.NO_SIF_POTENTIAL_IDENTIFIED
-            sif_reasons = ["No credible high-energy hazard or catastrophic barrier compromise identified"]
+            sif_reasons = ["No credible human exposure to high-energy hazard or catastrophic barrier compromise identified"]
 
         # LSR mapping
         lsr_list = []
@@ -441,7 +568,8 @@ class AssertionDetector:
             location=location,
             activity=activity_name,
             energy=energy_name,
-            exposure="Field operational interaction",
+            exposure=gen_exp_str,
+            exposure_status=gen_exp_status,
             barrier=barriers_found,
             barrier_state=barrier_states_found,
             consequence="Potential industrial trauma",

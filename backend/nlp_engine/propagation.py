@@ -56,6 +56,13 @@ class CorrectionPropagationEngine:
         self.lsr_engine = lsr_classifier
         self.semantic_memory = semantic_memory
 
+    def _get_db(self):
+        try:
+            from backend.database import db as active_db
+            return active_db
+        except Exception:
+            return self.db
+
     def apply_human_correction(
         self,
         event_id: str,
@@ -73,7 +80,8 @@ class CorrectionPropagationEngine:
         6. Persist state to SQLite & FAISS
         7. Log auditable review record
         """
-        event = self.db.get_event(event_id)
+        active_db = self._get_db()
+        event = active_db.get_event(event_id)
         if not event:
             raise ValueError(f"Event {event_id} not found in persistent database.")
 
@@ -118,7 +126,7 @@ class CorrectionPropagationEngine:
         pattern_updates = []
         old_pattern_id = prev_values.get("pattern_id")
         if old_pattern_id:
-            pattern = self.db.get_pattern(old_pattern_id)
+            pattern = active_db.get_pattern(old_pattern_id)
             if pattern:
                 # If barrier was corrected to EFFECTIVE_VERIFIED or no SIF potential,
                 # this event is no longer an active failure member of the pattern!
@@ -128,12 +136,17 @@ class CorrectionPropagationEngine:
                 if was_compromised and not now_compromised:
                     pattern.occurrence_count = max(0, pattern.occurrence_count - 1)
                     pattern.updated_at = datetime.now().isoformat()
-                    self.db.save_pattern(pattern)
+                    if pattern.occurrence_count == 0:
+                        pattern.operational_status = "RETIRED"
+                        pattern.validation_status = ReviewStatus.REJECTED
+                        active_db.deactivate_preconditions_for_pattern(pattern.pattern_id)
+                        pattern_updates.append(f"Pattern {pattern.pattern_id} has 0 occurrences; deactivated associated preconditions.")
+                    active_db.save_pattern(pattern)
                     event.pattern_id = None
                     pattern_updates.append(f"Decremented occurrence count on {pattern.pattern_id} (event is no longer a failure occurrence)")
 
         # 6. Persist updated SafetyEvent to SQLite
-        self.db.save_event(event)
+        active_db.save_event(event)
 
         # 7. Log Auditable Review Record to SQLite
         review_id = f"REV-{uuid.uuid4().hex[:8]}"
@@ -147,7 +160,7 @@ class CorrectionPropagationEngine:
             "lsr": event.lsr,
             "pattern_id": event.pattern_id
         }
-        self.db.log_review(
+        active_db.log_review(
             review_id=review_id,
             target_type="EVENT",
             target_id=event.event_id,
@@ -181,7 +194,8 @@ class CorrectionPropagationEngine:
         Transitions a CANDIDATE control pattern to HSE_VALIDATED, REJECTED, or REOPENED.
         Strict governance: AI only creates CANDIDATE; only human action validates.
         """
-        pattern = self.db.get_pattern(pattern_id)
+        active_db = self._get_db()
+        pattern = active_db.get_pattern(pattern_id)
         if not pattern:
             raise ValueError(f"Pattern {pattern_id} not found in database.")
 
@@ -200,11 +214,11 @@ class CorrectionPropagationEngine:
         pattern.updated_at = datetime.now().isoformat()
 
         # Save to SQLite
-        self.db.save_pattern(pattern)
+        active_db.save_pattern(pattern)
 
         # Log to reviews table
         review_id = f"REV-{uuid.uuid4().hex[:8]}"
-        self.db.log_review(
+        active_db.log_review(
             review_id=review_id,
             target_type="PATTERN",
             target_id=pattern.pattern_id,

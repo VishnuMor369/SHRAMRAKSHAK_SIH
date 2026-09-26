@@ -42,11 +42,12 @@ MAP_PATH = os.path.join(INDEX_DIR, "e5_faiss_mapping.json")
 
 
 class SemanticMemory:
-    def __init__(self, model_name: str = MODEL_NAME, index_path: str = INDEX_PATH, map_path: str = MAP_PATH):
+    def __init__(self, model_name: str = MODEL_NAME, index_path: str = INDEX_PATH, map_path: str = MAP_PATH, db: Optional[Any] = None):
         self.model_name = model_name
         self.index_path = index_path
         self.map_path = map_path
         self.dim = EMBEDDING_DIM
+        self.custom_db = db
         self.tokenizer = None
         self.model = None
         self.index = None
@@ -57,6 +58,10 @@ class SemanticMemory:
         os.makedirs(os.path.dirname(self.index_path), exist_ok=True)
         self._init_model()
         self._init_index()
+
+    def _get_db(self):
+        """Returns injected database manager or module-level default."""
+        return self.custom_db if self.custom_db is not None else db
 
     def _init_model(self):
         """Loads the official intfloat/e5-small-v2 transformer model."""
@@ -162,14 +167,15 @@ class SemanticMemory:
         self.save_index()
 
         # Ensure event is persisted in events table first to satisfy foreign key
+        active_db = self._get_db()
         try:
-            if not db.get_event(event.event_id):
-                db.save_event(event)
+            if not active_db.get_event(event.event_id):
+                active_db.save_event(event)
         except Exception:
             pass
 
         # Log into SQLite embeddings table
-        with db.get_connection() as conn:
+        with active_db.get_connection() as conn:
             conn.execute("""
             INSERT OR REPLACE INTO embeddings (embedding_id, event_id, model_name, dim, passage_text, created_at)
             VALUES (?, ?, ?, ?, ?, datetime('now'))
@@ -178,12 +184,13 @@ class SemanticMemory:
         return event.event_id
 
     def add_events_batch(self, events: List[SafetyEvent], batch_size: int = 32) -> int:
-        """Batch embedding and FAISS indexing for fast, efficient dataset ingestion."""
+        """Batch embedding and FAISS indexing for fast, efficient dataset ingestion with SQLite synchronization (Rule 13)."""
         new_events = [e for e in events if e.event_id not in self.event_to_id]
         if not new_events:
             return 0
 
         total_added = 0
+        embeddings_to_insert = []
         for i in range(0, len(new_events), batch_size):
             batch = new_events[i:i + batch_size]
             passages = [self.build_event_passage(e) for e in batch]
@@ -197,8 +204,24 @@ class SemanticMemory:
                 self.next_id += 1
                 e.embedding_id = f"emb-{e.event_id}"
                 total_added += 1
+                embeddings_to_insert.append((
+                    e.embedding_id, e.event_id, self.model_name, self.dim, passages[j]
+                ))
 
         self.save_index()
+
+        # Synchronize batch embeddings into SQLite
+        active_db = self._get_db()
+        if embeddings_to_insert:
+            try:
+                with active_db.get_connection() as conn:
+                    conn.executemany("""
+                    INSERT OR REPLACE INTO embeddings (embedding_id, event_id, model_name, dim, passage_text, created_at)
+                    VALUES (?, ?, ?, ?, ?, datetime('now'))
+                    """, embeddings_to_insert)
+            except Exception as ex:
+                logger.warning(f"Error persisting batch embeddings to SQLite: {ex}")
+
         return total_added
 
     def search_candidates(self, query_text: str, top_k: int = 10, min_similarity: float = 0.50) -> List[Tuple[str, float]]:
@@ -215,17 +238,53 @@ class SemanticMemory:
 
         candidates = []
         for dist, idx in zip(distances[0], indices[0]):
-            if idx in self.id_to_event and dist >= min_similarity:
+            if idx >= 0 and idx in self.id_to_event and dist >= min_similarity:
                 candidates.append((self.id_to_event[idx], float(dist)))
 
         return candidates
 
     def search_similar_events(self, target_event: SafetyEvent, top_k: int = 10, min_similarity: float = 0.50) -> List[Tuple[str, float]]:
-        """Searches candidates using structured event attributes."""
-        query_text = f"{target_event.activity} {target_event.energy} {target_event.exposure} {' '.join(target_event.barrier)} {target_event.consequence}"
+        """Searches candidates using structured event attributes and narrative context."""
+        query_parts = [
+            target_event.activity or "",
+            target_event.energy or "",
+            target_event.exposure or "",
+            " ".join(target_event.barrier or []),
+            target_event.consequence or ""
+        ]
+        if target_event.narrative:
+            query_parts.append(" ".join(target_event.narrative.split())[:200])
+        query_text = " ".join([p for p in query_parts if p.strip()])
+
         candidates = self.search_candidates(query_text, top_k=top_k + 1, min_similarity=min_similarity)
         # Exclude self
         return [(eid, sim) for eid, sim in candidates if eid != target_event.event_id][:top_k]
+
+    def check_index_integrity(self) -> Dict[str, Any]:
+        """
+        Verifies FAISS index vs SQLite database integrity (Rule 13).
+        Identifies orphan mappings, unindexed events, and missing SQLite embeddings.
+        """
+        active_db = self._get_db()
+        with active_db.get_connection() as conn:
+            sqlite_events = set(r[0] for r in conn.execute("SELECT event_id FROM events").fetchall())
+            sqlite_embeddings = set(r[0] for r in conn.execute("SELECT event_id FROM embeddings").fetchall())
+        
+        faiss_events = set(self.id_to_event.values())
+        orphan_faiss_events = [eid for eid in faiss_events if eid not in sqlite_events]
+        unindexed_events = [eid for eid in sqlite_events if eid not in faiss_events]
+        missing_sqlite_embeddings = [eid for eid in faiss_events if eid not in sqlite_embeddings and eid in sqlite_events]
+
+        return {
+            "faiss_total_vectors": self.index.ntotal if self.index else 0,
+            "faiss_mapped_events": len(self.id_to_event),
+            "sqlite_total_events": len(sqlite_events),
+            "sqlite_embeddings_count": len(sqlite_embeddings),
+            "orphan_faiss_mappings_count": len(orphan_faiss_events),
+            "unindexed_sqlite_events_count": len(unindexed_events),
+            "missing_sqlite_embeddings_count": len(missing_sqlite_embeddings),
+            "is_synchronized": (len(orphan_faiss_events) == 0 and len(unindexed_events) == 0 and len(missing_sqlite_embeddings) == 0)
+        }
 
     def save_index(self):
         """Persists FAISS index binary and ID mapping to disk."""

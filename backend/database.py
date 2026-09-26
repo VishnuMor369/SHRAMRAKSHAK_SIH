@@ -19,13 +19,15 @@ try:
     from .models_canonical import (
         SafetyEvent, EvidenceSpan, SafetyPattern, RecurrenceResult,
         WorkPrecondition, WorkCheckResult, RunManifest,
-        AssertionStatus, TemporalStatus, BarrierState, SIFStatus, ReviewStatus, RecurrenceRelationship
+        AssertionStatus, TemporalStatus, BarrierState, SIFStatus, ReviewStatus, RecurrenceRelationship,
+        ExposureStatus
     )
 except ImportError:
     from models_canonical import (
         SafetyEvent, EvidenceSpan, SafetyPattern, RecurrenceResult,
         WorkPrecondition, WorkCheckResult, RunManifest,
-        AssertionStatus, TemporalStatus, BarrierState, SIFStatus, ReviewStatus, RecurrenceRelationship
+        AssertionStatus, TemporalStatus, BarrierState, SIFStatus, ReviewStatus, RecurrenceRelationship,
+        ExposureStatus
     )
 
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "shramrakshak.db")
@@ -394,6 +396,18 @@ class DatabaseManager:
             ReviewStatus[rev_val] if rev_val in ReviewStatus.__members__ else ReviewStatus.CANDIDATE
         )
 
+        exp_val = (d["exposure"] or "").upper()
+        if "NO_HUMAN_EXPOSURE" in exp_val or "OUTSIDE" in exp_val or "SAFE BOUNDARY" in exp_val:
+            exp_status = ExposureStatus.NEGATED
+        elif "UNKNOWN" in exp_val or "NOT RECORDED" in exp_val:
+            exp_status = ExposureStatus.UNKNOWN
+        elif "POSSIBLE" in exp_val or "SUSPECTED" in exp_val:
+            exp_status = ExposureStatus.POSSIBLE
+        elif "INSIDE" in exp_val or "ENTERED" in exp_val or "CROSSED" in exp_val:
+            exp_status = ExposureStatus.CONFIRMED
+        else:
+            exp_status = ExposureStatus.UNKNOWN
+
         return SafetyEvent(
             event_id=d["event_id"],
             report_id=d["report_id"],
@@ -404,6 +418,7 @@ class DatabaseManager:
             activity=d["activity"],
             energy=d["energy"],
             exposure=d["exposure"],
+            exposure_status=exp_status,
             barrier=json.loads(d["barrier"] or "[]"),
             barrier_state=json.loads(d["barrier_state"] or "[]"),
             consequence=d["consequence"],
@@ -567,6 +582,22 @@ class DatabaseManager:
             ))
         return prec
 
+    def get_precondition(self, precondition_id: str) -> Optional[WorkPrecondition]:
+        with self.get_connection() as conn:
+            cur = conn.execute("SELECT * FROM preconditions WHERE precondition_id = ?", (precondition_id,))
+            r = cur.fetchone()
+            if not r:
+                return None
+            return WorkPrecondition(
+                precondition_id=r["precondition_id"],
+                pattern_id=r["pattern_id"],
+                title=r["title"],
+                required_barrier=r["required_barrier"],
+                required_evidence_types=json.loads(r["required_evidence_types"] or "[]"),
+                status=r["status"],
+                created_at=r["created_at"]
+            )
+
     def list_preconditions(self, active_only: bool = True) -> List[WorkPrecondition]:
         with self.get_connection() as conn:
             if active_only:
@@ -640,7 +671,7 @@ class DatabaseManager:
                 if not exists:
                     actual_event_id = None
 
-            details_json = json.dumps(details) if isinstance(details, (dict, list)) else json.dumps({"note": str(details)})
+            details_json = json.dumps(details, default=str) if isinstance(details, (dict, list)) else json.dumps({"note": str(details)})
             conn.execute("""
             INSERT OR REPLACE INTO verification_records (verification_id, event_id, source, status, details, timestamp)
             VALUES (?, ?, ?, ?, ?, ?)

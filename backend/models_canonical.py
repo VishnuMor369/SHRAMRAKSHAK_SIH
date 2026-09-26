@@ -13,12 +13,21 @@ from dataclasses import dataclass, field, asdict
 from datetime import datetime
 
 
+class ExposureStatus(str, Enum):
+    CONFIRMED = "CONFIRMED"
+    NEGATED = "NEGATED"
+    POSSIBLE = "POSSIBLE"
+    UNKNOWN = "UNKNOWN"
+
+
 class AssertionStatus(str, Enum):
     AFFIRMED = "AFFIRMED"
     NEGATED = "NEGATED"
     HYPOTHETICAL = "HYPOTHETICAL"
+    CONDITIONAL = "CONDITIONAL"
     POST_EVENT = "POST_EVENT"
     UNCERTAIN = "UNCERTAIN"
+    UNKNOWN = "UNKNOWN"
 
 
 class TemporalStatus(str, Enum):
@@ -27,6 +36,11 @@ class TemporalStatus(str, Enum):
     PRE_EVENT = "PRE_EVENT"
     HISTORICAL = "HISTORICAL"
     HYPOTHETICAL = "HYPOTHETICAL"
+    BEFORE_EVENT = "BEFORE_EVENT"
+    AFTER_EVENT = "AFTER_EVENT"
+    CURRENT_STATE = "CURRENT_STATE"
+    HYPOTHETICAL_FUTURE = "HYPOTHETICAL_FUTURE"
+    UNKNOWN = "UNKNOWN"
 
 
 class BarrierState(str, Enum):
@@ -64,6 +78,14 @@ class RecurrenceRelationship(str, Enum):
     INDEPENDENT_RECURRENCE = "INDEPENDENT_RECURRENCE"
     RELATED_BUT_DIFFERENT = "RELATED_BUT_DIFFERENT"
     REVIEW_REQUIRED = "REVIEW_REQUIRED"
+    UNRELATED = "UNRELATED"
+
+
+class EvidenceQuality(str, Enum):
+    DECLARED = "DECLARED"        # Verbal/written assertion without attached verification or measurement ("Done", "Completed")
+    DOCUMENTED = "DOCUMENTED"    # Reference to a permit, procedure, tag number, or certificate
+    EVIDENCED = "EVIDENCED"      # Calibrated reading, physical test log, or verifiable physical state
+    VERIFIED = "VERIFIED"        # Independently confirmed by inspector or visual machine/CCTV observation
 
 
 @dataclass
@@ -114,6 +136,7 @@ class SafetyEvent:
     activity: str = "Mechanical Lifting"
     energy: str = "Gravitational / Kinetic Energy"
     exposure: str = "Person inside hazardous perimeter"
+    exposure_status: ExposureStatus = ExposureStatus.UNKNOWN
 
     barrier: List[str] = field(default_factory=list)
     barrier_state: List[str] = field(default_factory=list)
@@ -140,9 +163,9 @@ class SafetyEvent:
     provenance: Dict[str, Any] = field(default_factory=lambda: {
         "source_name": "Field Safety Reporting",
         "source_type": "OBSERVATION",
-        "is_oil_data": True,
-        "has_sif_ground_truth": True,
-        "label_status": "MANUAL_FIELD_ENTRY"
+        "is_oil_data": False,
+        "has_sif_ground_truth": False,
+        "label_status": "UNLABELED_FOR_SIF"
     })
 
     lifecycle_state: str = "REPORTED"  # REPORTED | ACTION_REQUIRED | ACTION_IN_PROGRESS | AWAITING_VERIFICATION | RESOLVED | REOPENED
@@ -159,6 +182,7 @@ class SafetyEvent:
         assertion_val = self.assertion.value if isinstance(self.assertion, AssertionStatus) else str(self.assertion)
         temporal_val = self.temporal_status.value if isinstance(self.temporal_status, TemporalStatus) else str(self.temporal_status)
         review_val = self.review_status.value if isinstance(self.review_status, ReviewStatus) else str(self.review_status)
+        exposure_status_val = self.exposure_status.value if isinstance(self.exposure_status, ExposureStatus) else str(self.exposure_status)
         spans_serialized = [e.to_dict() if hasattr(e, "to_dict") else e for e in self.evidence]
         barrier_str = ", ".join(self.barrier) if self.barrier else "Safety Barrier"
         barrier_cond_str = ", ".join(self.barrier_state) if self.barrier_state else "UNKNOWN"
@@ -174,6 +198,7 @@ class SafetyEvent:
             "energy": self.energy,
             "hazard": self.energy,  # Canonical alias
             "exposure": self.exposure,
+            "exposure_status": exposure_status_val,
             "barrier": self.barrier,
             "barrier_state": self.barrier_state,
             "critical_barrier": barrier_str,  # Frontend alias
@@ -216,9 +241,10 @@ class RecurrenceResult:
     structured_conflicts: List[str]
     final_relationship: RecurrenceRelationship
     reason: str
+    reasoning_details: Optional[Dict[str, Any]] = None
 
     def to_dict(self) -> Dict[str, Any]:
-        return {
+        d = {
             "candidate_id": self.candidate_id,
             "target_event_id": self.target_event_id,
             "retrieval_similarity": self.retrieval_similarity,
@@ -227,6 +253,9 @@ class RecurrenceResult:
             "final_relationship": self.final_relationship.value if isinstance(self.final_relationship, RecurrenceRelationship) else str(self.final_relationship),
             "reason": self.reason
         }
+        if self.reasoning_details is not None:
+            d["reasoning_details"] = self.reasoning_details
+        return d
 
 
 @dataclass
@@ -308,6 +337,9 @@ class WorkPrecondition:
     required_barrier: str
     required_evidence_types: List[str] = field(default_factory=list)
     status: str = "ACTIVE"
+    created_by: Optional[str] = None
+    reviewed_by: Optional[str] = None
+    review_notes: Optional[str] = None
     created_at: str = field(default_factory=lambda: datetime.now().isoformat())
 
     def to_dict(self) -> Dict[str, Any]:
