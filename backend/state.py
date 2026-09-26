@@ -1963,6 +1963,7 @@ class AlertStateManager:
             target.action_status = "COMPLETED"
             target.verification_status = "AWAITING_VERIFICATION"
             target.lifecycle_state = "AWAITING_VERIFICATION"
+            target.status = "AWAITING_VERIFICATION"
             target.action_taken_at = now.isoformat()
             target.action_taken_by = supervisor_id
             target.action_taken_notes = notes or action_taken or "Corrective action executed on-site"
@@ -1991,6 +1992,12 @@ class AlertStateManager:
             target = None
             if alert_id:
                 target = self._active_alerts.get(alert_id)
+                if not target:
+                    # Check history if already resolved
+                    for h in self.history:
+                        if h.id == alert_id:
+                            target = h
+                            break
             else:
                 sorted_alerts = sort_alerts_by_priority(list(self._active_alerts.values()))
                 for a in sorted_alerts:
@@ -2068,6 +2075,9 @@ class AlertStateManager:
                     "actor": supervisor_id,
                     "details": target.verification_notes
                 })
+                # Reinsert into active alerts
+                self._active_alerts[target.id] = target
+                self.history = [h for h in self.history if h.id != target.id]
 
             elif clean_decision == "HSE_REVIEW_REQUIRED":
                 target.verification_status = "HSE_REVIEW_REQUIRED"
@@ -2105,8 +2115,20 @@ class AlertStateManager:
             if not target:
                 for h in self.history:
                     if h.id == alert_id:
-                        return {"status": "ALREADY_RESOLVED", "alert": h, "decision": "VERIFIED", "message": "Alert is already verified and resolved"}
-                return {"status": "NO_ALERT_FOUND", "message": "No alert awaiting verification", "decision": "NONE"}
+                        return {
+                            "verified": True,
+                            "decision": "VERIFIED",
+                            "status": "VERIFIED",
+                            "alert": h,
+                            "verification_notes": h.verification_notes or "Already verified",
+                            "message": "Alert is already verified and resolved"
+                        }
+                return {
+                    "verified": False,
+                    "decision": "NONE",
+                    "status": "NO_ALERT_FOUND",
+                    "message": "No alert awaiting verification"
+                }
 
             is_breached = simulate_rebreach or (self.zone_violation and self.persons_in_zone > 0)
             now = datetime.now()
@@ -2125,10 +2147,15 @@ class AlertStateManager:
                     "actor": f"AI CCTV ({target.camera or 'C-01'})",
                     "details": target.verification_notes
                 })
+                # Reinsert into active alerts
+                self._active_alerts[target.id] = target
+                self.history = [h for h in self.history if h.id != target.id]
                 self.notify_clients()
                 return {
+                    "verified": False,
                     "decision": "FAILED",
                     "status": "VERIFICATION_FAILED_REBREACH",
+                    "verification_notes": target.verification_notes,
                     "message": "✕ VERIFICATION FAILED — RE-BREACH DETECTED. Action reopened.",
                     "alert": target
                 }
@@ -2155,8 +2182,10 @@ class AlertStateManager:
                 self.history.append(target)
                 self.notify_clients()
                 return {
+                    "verified": True,
                     "decision": "VERIFIED",
-                    "status": "VERIFIED_OBSERVABLE_CONDITION_RESTORED",
+                    "status": "VERIFIED",
+                    "verification_notes": target.verification_notes,
                     "message": "✓ VERIFIED — OBSERVABLE CONDITION RESTORED. Alert resolved.",
                     "alert": target
                 }
@@ -2191,6 +2220,14 @@ class AlertStateManager:
                 target.resolved_by = supervisor_id
             if notes:
                 target.notes = notes
+
+            target.incident_timeline.append({
+                "timestamp": now.isoformat(),
+                "event_type": "DIRECT_HUMAN_RESOLUTION",
+                "title": f"Direct Human Resolution by {supervisor_id}",
+                "actor": supervisor_id,
+                "details": notes or "Direct Human Resolution authorized by Supervisor on site"
+            })
 
             # Remove only this specific alert from active alerts
             if target.id in self._active_alerts:

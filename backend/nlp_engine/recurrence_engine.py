@@ -210,7 +210,10 @@ class RecurrenceEngine:
             existing_patterns = db.list_patterns()
             matched_pattern = None
             for p in existing_patterns:
-                if p.barrier == barrier_name and (p.activity == target_event.activity or "lift" in target_event.activity.lower()):
+                if p.barrier == barrier_name and (
+                    p.activity.strip().lower() == target_event.activity.strip().lower() or
+                    ("lift" in target_event.activity.lower() and "lift" in p.activity.lower())
+                ):
                     matched_pattern = p
                     break
 

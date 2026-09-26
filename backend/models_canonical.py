@@ -147,6 +147,17 @@ class SafetyEvent:
     updated_at: str = field(default_factory=lambda: datetime.now().isoformat())
 
     def to_dict(self) -> Dict[str, Any]:
+        sif_status_val = self.sif_status.value if isinstance(self.sif_status, SIFStatus) else str(self.sif_status)
+        sif_potential_val = "HIGH" if (self.sif_status == SIFStatus.SIF_POTENTIAL or sif_status_val == "SIF-POTENTIAL") else (
+            "MEDIUM" if (self.sif_status == SIFStatus.REVIEW_REQUIRED or sif_status_val == "REVIEW_REQUIRED") else "NOT_SIF"
+        )
+        assertion_val = self.assertion.value if isinstance(self.assertion, AssertionStatus) else str(self.assertion)
+        temporal_val = self.temporal_status.value if isinstance(self.temporal_status, TemporalStatus) else str(self.temporal_status)
+        review_val = self.review_status.value if isinstance(self.review_status, ReviewStatus) else str(self.review_status)
+        spans_serialized = [e.to_dict() if hasattr(e, "to_dict") else e for e in self.evidence]
+        barrier_str = ", ".join(self.barrier) if self.barrier else "Safety Barrier"
+        barrier_cond_str = ", ".join(self.barrier_state) if self.barrier_state else "UNKNOWN"
+
         return {
             "event_id": self.event_id,
             "report_id": self.report_id,
@@ -156,19 +167,26 @@ class SafetyEvent:
             "location": self.location,
             "activity": self.activity,
             "energy": self.energy,
+            "hazard": self.energy,  # Canonical alias
             "exposure": self.exposure,
             "barrier": self.barrier,
             "barrier_state": self.barrier_state,
+            "critical_barrier": barrier_str,  # Frontend alias
+            "barrier_condition": barrier_cond_str,  # Frontend alias
             "consequence": self.consequence,
-            "assertion": self.assertion.value if isinstance(self.assertion, AssertionStatus) else str(self.assertion),
-            "temporal_status": self.temporal_status.value if isinstance(self.temporal_status, TemporalStatus) else str(self.temporal_status),
-            "sif_status": self.sif_status.value if isinstance(self.sif_status, SIFStatus) else str(self.sif_status),
+            "assertion": assertion_val,
+            "assertion_status": assertion_val,  # Frontend alias
+            "temporal_status": temporal_val,
+            "sif_status": sif_status_val,
+            "sif_potential": sif_potential_val,  # Canonical unified alias
             "sif_reasons": self.sif_reasons,
             "lsr": self.lsr,
-            "evidence": [e.to_dict() if hasattr(e, "to_dict") else e for e in self.evidence],
+            "lsr_display": ", ".join(self.lsr) if self.lsr else "General Safety",
+            "evidence": spans_serialized,
+            "evidence_spans": spans_serialized,  # Frontend alias
             "uncertainty": self.uncertainty,
             "confidence": self.confidence,
-            "review_status": self.review_status.value if isinstance(self.review_status, ReviewStatus) else str(self.review_status),
+            "review_status": review_val,
             "embedding_id": self.embedding_id,
             "pattern_id": self.pattern_id,
             "provenance": self.provenance,
@@ -220,16 +238,39 @@ class SafetyPattern:
     updated_at: str = field(default_factory=lambda: datetime.now().isoformat())
 
     def to_dict(self) -> Dict[str, Any]:
+        b_upper = (self.barrier or "").upper()
+        if "EXCLUSION" in b_upper or "LIFT" in b_upper:
+            cond = "Exclusion Zone Breached / Compromised"
+        elif "GAS" in b_upper or "ATMOSPHER" in b_upper:
+            cond = "Atmospheric Testing Inadequate / Failed"
+        elif "ISOLAT" in b_upper or "LOTO" in b_upper:
+            cond = "Energy Isolation / Lockout Tagout Ineffective"
+        elif "HEIGHT" in b_upper or "FALL" in b_upper:
+            cond = "Fall Protection / Guarding Compromised"
+        elif "VEHICLE" in b_upper or "LOGISTIC" in b_upper:
+            cond = "Traffic Segregation / Pedestrian Perimeter Breached"
+        elif "ADMIN" in b_upper or "PROCEDUR" in b_upper:
+            cond = f"Administrative Control Ineffective during {self.activity}"
+        else:
+            cond = "Critical Barrier Breached / Compromised"
+
+        status_val = self.validation_status.value if isinstance(self.validation_status, ReviewStatus) else str(self.validation_status)
         return {
             "pattern_id": self.pattern_id,
             "title": self.title,
+            "pattern_title": self.title,  # Frontend alias
             "activity": self.activity,
             "energy": self.energy,
+            "hazard": self.energy,  # Frontend alias
             "exposure": self.exposure,
             "barrier": self.barrier,
+            "critical_barrier": self.barrier,  # Frontend alias
+            "barrier_condition": cond,  # Dynamic truthful condition
             "occurrence_count": self.occurrence_count,
+            "independent_occurrences": self.occurrence_count,  # Frontend alias
             "duplicate_count": self.duplicate_count,
-            "validation_status": self.validation_status.value if isinstance(self.validation_status, ReviewStatus) else str(self.validation_status),
+            "validation_status": status_val,
+            "is_validated": status_val == "HSE_VALIDATED",
             "reviewer_role": self.reviewer_role,
             "reviewed_at": self.reviewed_at,
             "review_notes": self.review_notes,

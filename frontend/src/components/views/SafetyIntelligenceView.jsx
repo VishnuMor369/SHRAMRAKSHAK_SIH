@@ -22,6 +22,7 @@ export default function SafetyIntelligenceView({ onNavigate }) {
   const [summary, setSummary] = useState(null);
   const [recentEvents, setRecentEvents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState('');
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
@@ -33,9 +34,9 @@ export default function SafetyIntelligenceView({ onNavigate }) {
         fetchUnifiedEvents({ limit: 10 })
       ]);
       setSummary(sumData);
-      if (Array.isArray(eventsData)) {
-        setRecentEvents(eventsData);
-      }
+      const list = Array.isArray(eventsData) ? eventsData : (eventsData?.events || []);
+      setRecentEvents(list);
+      setLastUpdated(new Date().toLocaleTimeString());
     } catch (err) {
       console.error('Failed to load safety intelligence data:', err);
     } finally {
@@ -102,10 +103,11 @@ export default function SafetyIntelligenceView({ onNavigate }) {
 
         <button
           onClick={loadData}
-          className="self-start sm:self-auto p-2 rounded-lg bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors shadow-sm flex items-center gap-2 text-xs font-bold"
+          disabled={loading}
+          className="self-start sm:self-auto px-3 py-2 rounded-lg bg-white border border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-50 transition-colors shadow-sm flex items-center gap-2 text-xs font-bold disabled:opacity-60"
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-          <span>Refresh Intelligence</span>
+          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-amber-500' : 'text-slate-500'}`} />
+          <span>{loading ? 'Refreshing...' : lastUpdated ? `Updated ${lastUpdated}` : 'Refresh Intelligence'}</span>
         </button>
       </div>
 

@@ -34,7 +34,7 @@ export default function OverviewView({ status, onNavigate, onSelectAlert }) {
       .catch(err => console.error('Failed to load event summary in overview:', err));
   }, [status]);
 
-  const topPattern = memorySummary?.recurring_patterns?.[0] || {
+  const topPattern = memorySummary?.patterns?.[0] || memorySummary?.recurring_patterns?.[0] || {
     pattern_title: 'Exclusion-Zone Segregation Failure in Mechanical Lifting',
     independent_occurrences: 5,
     duplicate_count: 2,
@@ -78,6 +78,87 @@ export default function OverviewView({ status, onNavigate, onSelectAlert }) {
         </div>
       </div>
 
+      {/* Closed-Loop Safety Learning Architecture Banner (Section 0 & 50) */}
+      <div className="bg-slate-900 text-white rounded-2xl p-5 border border-slate-800 shadow-md space-y-3">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+          <div>
+            <div className="flex items-center space-x-2">
+              <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                CLOSED-LOOP SAFETY INTELLIGENCE
+              </span>
+              <span className="text-[11px] text-slate-400">
+                “From Safety Reports to Verified Safety Learning”
+              </span>
+            </div>
+            <p className="text-xs text-slate-300 mt-1 italic">
+              “SHRAMRAKSHAK does not just detect the event. It remembers the failed control, learns from validated recurrence, carries that learning into future work, and verifies whether the correction actually worked.”
+            </p>
+          </div>
+          <span className="text-[10px] font-mono text-slate-400 bg-slate-800 px-2 py-1 rounded shrink-0 self-start md:self-auto">
+            7 CONNECTED STAGES
+          </span>
+        </div>
+
+        {/* Horizontal Closed-Loop Flow */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 pt-1 text-[11px]">
+          <div 
+            onClick={() => onNavigate('REPORTS')}
+            className="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 hover:border-amber-500/50 cursor-pointer transition-all space-y-1 group"
+          >
+            <span className="text-[9px] font-mono font-bold text-slate-400 block uppercase">1. Report</span>
+            <span className="font-bold text-slate-200 group-hover:text-amber-400 block leading-tight">Human Observation</span>
+          </div>
+
+          <div 
+            onClick={() => onNavigate('SAFETY INTELLIGENCE')}
+            className="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 hover:border-amber-500/50 cursor-pointer transition-all space-y-1 group"
+          >
+            <span className="text-[9px] font-mono font-bold text-slate-400 block uppercase">2. NLP & SIF</span>
+            <span className="font-bold text-slate-200 group-hover:text-amber-400 block leading-tight">Contextual Barrier Analysis</span>
+          </div>
+
+          <div 
+            onClick={() => onNavigate('SAFETY MEMORY')}
+            className="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 hover:border-amber-500/50 cursor-pointer transition-all space-y-1 group"
+          >
+            <span className="text-[9px] font-mono font-bold text-slate-400 block uppercase">3. Memory</span>
+            <span className="font-bold text-slate-200 group-hover:text-amber-400 block leading-tight">Candidate Recurrence</span>
+          </div>
+
+          <div 
+            onClick={() => onNavigate('SAFETY MEMORY')}
+            className="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 hover:border-amber-500/50 cursor-pointer transition-all space-y-1 group"
+          >
+            <span className="text-[9px] font-mono font-bold text-slate-400 block uppercase">4. HSE Validation</span>
+            <span className="font-bold text-emerald-400 block leading-tight">Validated Learning</span>
+          </div>
+
+          <div 
+            onClick={() => onNavigate('SAFETY MEMORY')}
+            className="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 hover:border-amber-500/50 cursor-pointer transition-all space-y-1 group"
+          >
+            <span className="text-[9px] font-mono font-bold text-slate-400 block uppercase">5. Future Work</span>
+            <span className="font-bold text-slate-200 group-hover:text-amber-400 block leading-tight">Precondition Check</span>
+          </div>
+
+          <div 
+            onClick={() => onNavigate('ACTIONS')}
+            className="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 hover:border-amber-500/50 cursor-pointer transition-all space-y-1 group"
+          >
+            <span className="text-[9px] font-mono font-bold text-slate-400 block uppercase">6. Verification</span>
+            <span className="font-bold text-purple-400 block leading-tight">CCTV & On-Site</span>
+          </div>
+
+          <div 
+            onClick={() => onNavigate('SAFETY MEMORY')}
+            className="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 hover:border-amber-500/50 cursor-pointer transition-all space-y-1 group"
+          >
+            <span className="text-[9px] font-mono font-bold text-slate-400 block uppercase">7. Feedback</span>
+            <span className="font-bold text-amber-400 block leading-tight">Re-breach Learning</span>
+          </div>
+        </div>
+      </div>
+
       {/* 2. Top Summary KPI Cards (Clean, Restrained) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         
@@ -113,7 +194,7 @@ export default function OverviewView({ status, onNavigate, onSelectAlert }) {
             </span>
           </div>
           <div className="text-2xl font-black text-slate-900">
-            {eventSummary?.sif_potential_count ?? (memorySummary?.total_events || 6)}
+            {eventSummary?.sif_potential_count ?? (memorySummary?.sif_potential_count ?? 0)}
           </div>
           <div className="mt-2 text-[11px] text-slate-500 flex items-center justify-between">
             <span className="text-amber-700 font-semibold">Exclusion zone & LOTO precursors</span>
@@ -133,10 +214,10 @@ export default function OverviewView({ status, onNavigate, onSelectAlert }) {
             </span>
           </div>
           <div className="text-2xl font-black text-slate-900">
-            {eventSummary?.recurring_patterns_count ?? (memorySummary?.pattern_count || 2)}
+            {eventSummary?.recurring_patterns_count ?? (memorySummary?.pattern_count ?? (memorySummary?.patterns?.length || 0))}
           </div>
           <div className="mt-2 text-[11px] text-slate-500 flex items-center justify-between">
-            <span>{topPattern.independent_occurrences} independent occurrences</span>
+            <span>{topPattern.independent_occurrences || topPattern.occurrence_count || 1} independent occurrences</span>
             <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-purple-600 transition-colors" />
           </div>
         </div>

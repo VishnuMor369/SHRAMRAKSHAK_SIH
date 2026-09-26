@@ -42,6 +42,11 @@ class AssertionDetector:
         self.preprocessor = preprocessor
         self.ontology = ontology
 
+    @classmethod
+    def evaluate_safety_event(cls, raw_text: str, context: Optional[Dict[str, Any]] = None) -> SafetyEvent:
+        """Compatibility classmethod delegating to global assertion_detector instance."""
+        return assertion_detector.analyze(raw_text, context)
+
     def analyze(self, raw_text: str, context: Optional[Dict[str, Any]] = None) -> SafetyEvent:
         """
         Transforms raw report text into a Canonical SafetyEvent with verified evidence spans,

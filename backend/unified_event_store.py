@@ -304,9 +304,10 @@ class UnifiedEventStore:
             for dbe in db_events:
                 if dbe.event_id not in self.events:
                     sif_p = "NOT_SIF"
-                    if dbe.sif_status == SIFStatus.SIF_POTENTIAL:
+                    sif_status_str = dbe.sif_status.value if hasattr(dbe.sif_status, "value") else str(dbe.sif_status)
+                    if dbe.sif_status == SIFStatus.SIF_POTENTIAL or sif_status_str == "SIF-POTENTIAL":
                         sif_p = "HIGH"
-                    elif dbe.sif_status == SIFStatus.REVIEW_REQUIRED:
+                    elif dbe.sif_status == SIFStatus.REVIEW_REQUIRED or sif_status_str == "REVIEW_REQUIRED":
                         sif_p = "MEDIUM"
 
                     ev = SafetyEvent(
@@ -433,36 +434,41 @@ class UnifiedEventStore:
             for e in all_events:
                 hz = e.hazard or "Unspecified"
                 hazard_counts[hz] = hazard_counts.get(hz, 0) + 1
-            top_hazards = [{"hazard": k, "count": v} for k, v in sorted(hazard_counts.items(), key=lambda x: x[1], reverse=True)[:5]]
+            top_hazards = [{"hazard": k, "name": k, "count": v} for k, v in sorted(hazard_counts.items(), key=lambda x: x[1], reverse=True)[:5]]
 
             # Top Life-Saving Rules
             lsr_counts: Dict[str, int] = {}
             for e in all_events:
                 rule = e.lsr or "General Safety"
                 lsr_counts[rule] = lsr_counts.get(rule, 0) + 1
-            top_lsrs = [{"rule": k, "count": v} for k, v in sorted(lsr_counts.items(), key=lambda x: x[1], reverse=True)[:5]]
+            top_lsrs = [{"rule": k, "name": k, "count": v} for k, v in sorted(lsr_counts.items(), key=lambda x: x[1], reverse=True)[:5]]
 
             # Top Activities
             activity_counts: Dict[str, int] = {}
             for e in all_events:
                 act = e.activity or "Operations"
                 activity_counts[act] = activity_counts.get(act, 0) + 1
-            top_activities = [{"activity": k, "count": v} for k, v in sorted(activity_counts.items(), key=lambda x: x[1], reverse=True)[:5]]
+            top_activities = [{"activity": k, "name": k, "count": v} for k, v in sorted(activity_counts.items(), key=lambda x: x[1], reverse=True)[:5]]
 
             # Top Failed Critical Barriers
             barrier_counts: Dict[str, int] = {}
             for e in all_events:
-                if e.barrier_condition in ["VIOLATED", "INEFFECTIVE", "ABSENT"]:
+                if e.barrier_condition in ["VIOLATED", "INEFFECTIVE", "ABSENT", "COMPROMISED / BREACHED", "BYPASSED", "FAILED"]:
                     bar = e.critical_barrier or "Barrier"
                     barrier_counts[bar] = barrier_counts.get(bar, 0) + 1
-            top_failed_barriers = [{"barrier": k, "count": v} for k, v in sorted(barrier_counts.items(), key=lambda x: x[1], reverse=True)[:5]]
+            top_failed_barriers = [{"barrier": k, "name": k, "count": v} for k, v in sorted(barrier_counts.items(), key=lambda x: x[1], reverse=True)[:5]]
+
+            patterns_in_db = db.list_patterns()
+            patterns_count = len(patterns_in_db)
 
             return {
                 "total_events": total,
+                "sif_potential_count": sif_high,  # Standardized key for UI
                 "sif_high_count": sif_high,
                 "sif_medium_count": sif_medium,
                 "sif_low_count": sif_low,
                 "not_sif_count": not_sif,
+                "non_sif_count": not_sif + sif_low,
                 "sif_rate": round((sif_high / total * 100), 1) if total > 0 else 0.0,
                 "human_count": human_count,
                 "imported_count": imported_count,
@@ -470,9 +476,12 @@ class UnifiedEventStore:
                 "open_actions_count": action_required + action_in_progress,
                 "awaiting_verification_count": awaiting_verification,
                 "verified_count": verified_count,
+                "recurring_patterns_count": patterns_count,
+                "pattern_count": patterns_count,
                 "top_hazards": top_hazards,
                 "top_lsrs": top_lsrs,
                 "top_activities": top_activities,
+                "top_barriers": top_failed_barriers,
                 "top_failed_barriers": top_failed_barriers
             }
 

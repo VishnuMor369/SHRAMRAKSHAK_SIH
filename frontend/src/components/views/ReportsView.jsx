@@ -101,9 +101,8 @@ export default function ReportsView() {
     setLoading(true);
     try {
       const data = await fetchUnifiedEvents();
-      if (Array.isArray(data)) {
-        setEvents(data);
-      }
+      const list = Array.isArray(data) ? data : (data?.events || []);
+      setEvents(list);
     } catch (err) {
       console.error('Failed to load unified safety events:', err);
     } finally {
@@ -214,7 +213,7 @@ export default function ReportsView() {
 
   const getSifBadge = (sif, assertion) => {
     const s = (sif || '').toUpperCase();
-    if (assertion === 'NEGATED' || s.includes('NOT') || s === 'NO') {
+    if (assertion === 'NEGATED' || s.includes('NOT') || s.includes('NO_SIF') || s === 'NO') {
       return (
         <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-slate-100 text-slate-600 border border-slate-300">
           NOT SIF
@@ -228,14 +227,14 @@ export default function ReportsView() {
         </span>
       );
     }
-    if (s.includes('HIGH') || s.includes('CRITICAL')) {
+    if (s.includes('HIGH') || s.includes('CRITICAL') || s.includes('SIF-POTENTIAL') || s.includes('SIF_POTENTIAL')) {
       return (
         <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-red-600 text-white shadow-sm">
           SIF HIGH
         </span>
       );
     }
-    if (s.includes('MEDIUM')) {
+    if (s.includes('MEDIUM') || s.includes('REVIEW')) {
       return (
         <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-amber-500 text-slate-950 font-bold">
           SIF MEDIUM

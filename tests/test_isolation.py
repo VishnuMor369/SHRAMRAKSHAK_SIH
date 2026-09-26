@@ -107,6 +107,14 @@ def isolated_test_environment(prefix: str = "shramrakshak_test_"):
         global_semantic_memory.event_to_id = {}
         global_semantic_memory.next_id = 0
 
+        # Isolate unified_event_store file
+        try:
+            from backend.unified_event_store import unified_event_store
+            orig_ues_file = unified_event_store.events_file
+            unified_event_store.events_file = os.path.join(temp_dir, "test_safety_events.json")
+        except Exception:
+            orig_ues_file = None
+
         # Hard isolation assertions: verify active paths point to temp directory
         abs_temp = os.path.abspath(temp_dir)
         assert os.path.abspath(global_semantic_memory.index_path).startswith(abs_temp), \
@@ -170,6 +178,13 @@ def isolated_test_environment(prefix: str = "shramrakshak_test_"):
         backend.dataset_pipeline.manifest.db = orig_man_db
         backend.dataset_pipeline.manifest.manifest_manager.db = orig_man_mgr_db
         backend.dataset_pipeline.manifest.manifest_manager.manifest_dir = orig_man_dir
+
+        if orig_ues_file is not None:
+            try:
+                from backend.unified_event_store import unified_event_store
+                unified_event_store.events_file = orig_ues_file
+            except Exception:
+                pass
 
         # Ensure production singleton is strictly pointing back to production paths
         assert global_semantic_memory.index_path == orig_sm_index_path

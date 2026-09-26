@@ -5,8 +5,13 @@ import { UnifiedDrawer } from './common';
 export default function EvidenceDetailDrawer({ event, isOpen, onClose }) {
   if (!isOpen || !event) return null;
 
-  const sifPotential = event.sif_potential || 'HIGH';
-  const isHighSif = sifPotential === 'HIGH' || sifPotential === 'CRITICAL / HIGH';
+  const sifStatusStr = (event.sif_status || '').toUpperCase();
+  const rawPotential = (event.sif_potential || '').toUpperCase();
+  const sifPotential = rawPotential || (
+    (sifStatusStr.includes('SIF-POTENTIAL') || sifStatusStr.includes('SIF_POTENTIAL')) ? 'HIGH' :
+    sifStatusStr.includes('REVIEW') ? 'MEDIUM' : 'NOT_SIF'
+  );
+  const isHighSif = sifPotential.includes('HIGH') || sifPotential.includes('CRITICAL');
   const assertion = event.assertion_status || 'ASSERTED';
   const isNegated = assertion === 'NEGATED';
   const isHypothetical = assertion === 'HYPOTHETICAL';

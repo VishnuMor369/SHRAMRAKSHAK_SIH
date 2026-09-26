@@ -1,7 +1,7 @@
 {
   "model_name": "intfloat/e5-small-v2",
   "dim": 384,
-  "next_id": 94,
+  "next_id": 95,
   "id_to_event": {
     "0": "EVT-TEST-E5",
     "1": "EVT-TEST-B",
@@ -96,7 +96,8 @@
     "90": "EVT-HUMAN-20260925-201137-45B8",
     "91": "EVT-HUMAN-20260925-201137-05F8",
     "92": "EVT-E2E-84f731",
-    "93": "EVT-E2E-6b586f"
+    "93": "EVT-E2E-6b586f",
+    "94": "EVT-HUMAN-20260925-233457-2B09"
   },
   "event_to_id": {
     "EVT-TEST-E5": 0,
@@ -192,6 +193,7 @@
     "EVT-HUMAN-20260925-201137-45B8": 90,
     "EVT-HUMAN-20260925-201137-05F8": 91,
     "EVT-E2E-84f731": 92,
-    "EVT-E2E-6b586f": 93
+    "EVT-E2E-6b586f": 93,
+    "EVT-HUMAN-20260925-233457-2B09": 94
   }
 }

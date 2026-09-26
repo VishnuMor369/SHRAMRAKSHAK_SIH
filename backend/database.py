@@ -373,6 +373,27 @@ class DatabaseManager:
             ) for s in spans_rows
         ]
 
+        # Safely resolve Enums by either value or name
+        as_val = d["assertion"]
+        assertion_enum = AssertionStatus(as_val) if as_val in [a.value for a in AssertionStatus] else (
+            AssertionStatus[as_val] if as_val in AssertionStatus.__members__ else AssertionStatus.AFFIRMED
+        )
+
+        ts_val = d["temporal_status"]
+        temporal_enum = TemporalStatus(ts_val) if ts_val in [t.value for t in TemporalStatus] else (
+            TemporalStatus[ts_val] if ts_val in TemporalStatus.__members__ else TemporalStatus.DURING_EVENT
+        )
+
+        sif_val = d["sif_status"]
+        sif_enum = SIFStatus(sif_val) if sif_val in [s.value for s in SIFStatus] else (
+            SIFStatus[sif_val] if sif_val in SIFStatus.__members__ else SIFStatus.SIF_POTENTIAL
+        )
+
+        rev_val = d["review_status"]
+        review_enum = ReviewStatus(rev_val) if rev_val in [r.value for r in ReviewStatus] else (
+            ReviewStatus[rev_val] if rev_val in ReviewStatus.__members__ else ReviewStatus.CANDIDATE
+        )
+
         return SafetyEvent(
             event_id=d["event_id"],
             report_id=d["report_id"],
@@ -386,15 +407,15 @@ class DatabaseManager:
             barrier=json.loads(d["barrier"] or "[]"),
             barrier_state=json.loads(d["barrier_state"] or "[]"),
             consequence=d["consequence"],
-            assertion=AssertionStatus(d["assertion"]) if d["assertion"] in AssertionStatus.__members__ else AssertionStatus.AFFIRMED,
-            temporal_status=TemporalStatus(d["temporal_status"]) if d["temporal_status"] in TemporalStatus.__members__ else TemporalStatus.DURING_EVENT,
-            sif_status=SIFStatus(d["sif_status"]) if d["sif_status"] in SIFStatus.__members__ else SIFStatus.SIF_POTENTIAL,
+            assertion=assertion_enum,
+            temporal_status=temporal_enum,
+            sif_status=sif_enum,
             sif_reasons=json.loads(d["sif_reasons"] or "[]"),
             lsr=json.loads(d["lsr"] or "[]"),
             evidence=spans,
             uncertainty=json.loads(d["uncertainty"] or "[]"),
             confidence=d["confidence"],
-            review_status=ReviewStatus(d["review_status"]) if d["review_status"] in ReviewStatus.__members__ else ReviewStatus.CANDIDATE,
+            review_status=review_enum,
             embedding_id=d["embedding_id"],
             pattern_id=d["pattern_id"],
             provenance=json.loads(d["provenance"] or "{}"),
@@ -564,6 +585,10 @@ class DatabaseManager:
                     created_at=r["created_at"]
                 ) for r in rows
             ]
+
+    def deactivate_preconditions_for_pattern(self, pattern_id: str) -> None:
+        with self.get_connection() as conn:
+            conn.execute("UPDATE preconditions SET status = 'INACTIVE' WHERE pattern_id = ?", (pattern_id,))
 
     def save_work_check(self, check: WorkCheckResult) -> WorkCheckResult:
         with self.get_connection() as conn:

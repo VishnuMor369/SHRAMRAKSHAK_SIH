@@ -28,6 +28,7 @@ ENV/
 *.tmp
 *.swp
 *~
+backend/data_backup_phase2/
 
 # Environment & local config
 .env

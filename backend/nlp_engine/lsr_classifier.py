@@ -122,5 +122,11 @@ class LSRClassifier:
 
         return matches
 
+    def classify(self, event: SafetyEvent) -> SafetyEvent:
+        """Convenience method that assigns classified rules to event.lsr and returns the event."""
+        matches = self.classify_event(event)
+        event.lsr = [m["lsr"] for m in matches]
+        return event
+
 
 lsr_classifier = LSRClassifier()

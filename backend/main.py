@@ -217,16 +217,31 @@ def respond_alert(req: AlertActionRequest = AlertActionRequest()):
     return {"message": "Supervisor responding", "alert": alert}
 
 @app.post("/api/alert/resolve")
-def resolve_alert(req: AlertActionRequest = AlertActionRequest()):
-    """Supervisor clicks 'FIXED / RESOLVED' (Stage 2 -> RESOLVED)"""
+@app.post("/api/alerts/{alert_id}/resolve")
+def resolve_alert(alert_id: Optional[str] = None, req: AlertActionRequest = AlertActionRequest()):
+    """Supervisor clicks 'DIRECT RESOLVE' (Stage 2 -> RESOLVED by Human Authority)"""
+    target_id = alert_id or req.alert_id
     alert = state_manager.resolve_alert(
         supervisor_id=req.supervisor_id or "SUP-01",
         notes=req.notes,
-        alert_id=req.alert_id
+        alert_id=target_id
     )
     if not alert:
         raise HTTPException(status_code=400, detail="No active alert to resolve")
-    return {"message": "Alert resolved successfully", "alert": alert}
+
+    # Persist verification record as DIRECT_HUMAN_RESOLUTION
+    try:
+        db.save_verification_record(
+            verification_id=f"VERIF-HUMAN-{uuid.uuid4().hex[:8].upper()}",
+            event_id=target_id or "ALERT-EVENT",
+            source="DIRECT_HUMAN_RESOLUTION",
+            status="VERIFIED",
+            details=req.notes or "Direct Human Resolution authorized by Supervisor"
+        )
+    except Exception as e:
+        logger.error(f"Error persisting human resolution record: {e}")
+
+    return {"message": "Direct human resolution recorded successfully", "alert": alert, "verified": True}
 
 @app.post("/api/alert/action")
 @app.post("/api/alerts/{alert_id}/action")
@@ -270,7 +285,11 @@ def verify_alert_action(alert_id: Optional[str] = None, req: AlertVerificationRe
     except Exception as e:
         logger.error(f"Error persisting verification record: {e}")
         
-    return {"message": f"Verification decision '{req.decision}' recorded", "alert": alert}
+    return {
+        "message": f"Verification decision '{req.decision}' recorded",
+        "alert": alert,
+        "verified": (req.decision.upper() == "VERIFIED")
+    }
 
 def process_and_store_hse_observation(alert_id_param: Optional[str], req: HSEObservationRequest) -> Alert:
     now_iso = datetime.now().isoformat()
@@ -540,7 +559,8 @@ def cctv_verify_alert(alert_id: Optional[str] = None, req: Dict[str, Any] = {}):
 
     # 1. Log verification record in SQLite
     verif_id = f"VERIF-CCTV-{uuid.uuid4().hex[:8]}"
-    is_success = bool(result.get("verified")) or result.get("status") == "VERIFIED"
+    is_success = bool(result.get("verified")) or result.get("decision") == "VERIFIED" or result.get("status") == "VERIFIED"
+    result["verified"] = is_success
     status_str = "VERIFIED" if is_success else "VERIFICATION_FAILED"
     
     db.save_verification(
@@ -591,18 +611,23 @@ def get_safety_memory_summary():
     """Returns consolidated Safety Memory status, recurring patterns, candidate vs validated counts from SQLite"""
     counts = db.count_events()
     patterns = db.list_patterns()
-    cand_count = sum(1 for p in patterns if p.validation_status == CanonicalReviewStatus.CANDIDATE)
-    val_count = sum(1 for p in patterns if p.validation_status == CanonicalReviewStatus.HSE_VALIDATED)
+    cand_count = sum(1 for p in patterns if p.validation_status == CanonicalReviewStatus.CANDIDATE or str(p.validation_status) == "CANDIDATE")
+    val_count = sum(1 for p in patterns if p.validation_status == CanonicalReviewStatus.HSE_VALIDATED or str(p.validation_status) == "HSE_VALIDATED")
     preconditions = db.list_preconditions(active_only=True)
+    serialized_patterns = [p.to_dict() for p in patterns]
     return {
         "total_events": counts["total"],
         "sif_events_count": counts["sif_potential"],
+        "sif_potential_count": counts["sif_potential"],
+        "pattern_count": len(patterns),
+        "recurring_patterns_count": len(patterns),
         "review_required_count": counts["review_required"],
         "safe_controls_count": counts["no_sif_potential"],
         "candidate_patterns_count": cand_count,
         "validated_patterns_count": val_count,
         "active_preconditions_count": len(preconditions),
-        "patterns": [p.to_dict() for p in patterns]
+        "patterns": serialized_patterns,
+        "recurring_patterns": serialized_patterns
     }
 
 @app.get("/api/safety-memory/events")
@@ -612,9 +637,25 @@ def get_safety_memory_events():
 
 @app.get("/api/safety-memory/patterns")
 def get_safety_memory_patterns():
-    """Returns all Candidate and HSE Validated Recurring Safety-Control Patterns from SQLite"""
+    """Returns all Candidate and HSE Validated Recurring Safety-Control Patterns from SQLite with linked preconditions"""
     patterns = db.list_patterns()
-    return {"patterns": [p.to_dict() for p in patterns]}
+    precs = db.list_preconditions(active_only=True)
+    prec_by_pat = {}
+    for pr in precs:
+        if pr.pattern_id not in prec_by_pat:
+            prec_by_pat[pr.pattern_id] = []
+        prec_by_pat[pr.pattern_id].append({
+            "id": pr.precondition_id,
+            "title": pr.title,
+            "description": f"Mandatory evidence: {', '.join(pr.required_evidence_types)}",
+            "evidence_type": ', '.join(pr.required_evidence_types)
+        })
+    res = []
+    for p in patterns:
+        p_dict = p.to_dict()
+        p_dict["future_work_requirements"] = prec_by_pat.get(p.pattern_id, [])
+        res.append(p_dict)
+    return {"patterns": res}
 
 @app.post("/api/safety-memory/patterns/{pattern_id}/validate")
 @app.post("/api/safety-memory/validate-pattern")
@@ -637,10 +678,12 @@ def validate_safety_pattern_route(pattern_id: Optional[str] = None, req: Dict[st
             action="VALIDATE" if decision.upper() in ["CONFIRM", "VALIDATE"] else "REJECT",
             review_notes=notes
         )
-        # If validated, auto-propose active precondition
+        # If validated, auto-propose active precondition. If rejected, deactivate prior preconditions.
         prec = None
         if pat.validation_status == CanonicalReviewStatus.HSE_VALIDATED:
             prec = real_precondition_engine.create_precondition_from_pattern(pat.pattern_id)
+        elif pat.validation_status == CanonicalReviewStatus.REJECTED:
+            db.deactivate_preconditions_for_pattern(pat.pattern_id)
 
         state_manager.notify_clients()
         return {
@@ -686,11 +729,23 @@ def evaluate_work_package(package: Dict[str, Any]):
     Flags MISSING_EVIDENCE or PASS. Never auto-approves permits.
     """
     pkg_id = package.get("package_id") or package.get("id") or f"PKG-{uuid.uuid4().hex[:6]}"
-    activity = package.get("activity", "Mechanical Lifting")
+    activity = package.get("activity") or package.get("task_type") or "Mechanical Lifting"
     location = package.get("location", "Rig 04")
-    evidence = package.get("submitted_evidence") or package.get("evidence") or {}
+    evidence = package.get("submitted_evidence") or package.get("evidence") or package.get("evidence_provided") or {}
+    if isinstance(evidence, list):
+        evidence = {k: True for k in evidence}
     res = real_precondition_engine.evaluate_work_package(pkg_id, activity, location, evidence)
-    return res.to_dict()
+    d = res.to_dict()
+    d["authorized"] = (res.status == "PASS")
+    d["missing_requirements"] = [
+        {
+            "requirement_title": m.replace('_', ' ').title(),
+            "evidence_type": m,
+            "reason": "Mandatory critical barrier verification required prior to permit issuance"
+        }
+        for m in res.missing_evidence
+    ]
+    return d
 
 # ==========================================
 # UNIFIED SAFETY EVENT PIPELINE & HUMAN REPORTS (Phases 1, 2, 3, 4, 5, 6)

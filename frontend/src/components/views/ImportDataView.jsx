@@ -35,10 +35,10 @@ export default function ImportDataView({ onNavigate }) {
     try {
       const data = await fetchDatasetImportStatus();
       setStatusData(data);
-      if (data?.state === 'PARSING' || data?.state === 'NORMALIZING') {
-        setIsProcessing(true);
-      } else {
-        setIsProcessing(false);
+      const isRunning = data?.state === 'PROCESSING' || data?.status === 'PROCESSING' || data?.state === 'PARSING' || data?.state === 'NORMALIZING';
+      setIsProcessing(isRunning);
+      if (data?.error) {
+        setErrorMsg(data.error);
       }
     } catch (err) {
       console.error('Failed to fetch dataset import status:', err);
@@ -47,11 +47,11 @@ export default function ImportDataView({ onNavigate }) {
 
   useEffect(() => {
     loadStatus();
-    pollingRef.current = setInterval(loadStatus, 2500);
+    pollingRef.current = setInterval(loadStatus, isProcessing ? 1000 : 2500);
     return () => {
       if (pollingRef.current) clearInterval(pollingRef.current);
     };
-  }, []);
+  }, [isProcessing]);
 
   const handleFileChange = async (e) => {
     const file = e.target.files?.[0];
@@ -77,16 +77,19 @@ export default function ImportDataView({ onNavigate }) {
     setIsProcessing(true);
     try {
       const res = await executeDatasetImport(batchLimit);
-      setStatusData(res.status);
+      if (res?.status) {
+        setStatusData(prev => ({ ...prev, ...res }));
+      }
+      loadStatus();
     } catch (err) {
       setErrorMsg(err.message || 'Failed to execute import batch');
       setIsProcessing(false);
     }
   };
 
-  const progressPct = statusData?.total_records > 0 
-    ? Math.round((statusData.processed_count / statusData.total_records) * 100) 
-    : 0;
+  const progressPct = statusData?.progress != null
+    ? Math.round(statusData.progress * 100)
+    : (statusData?.total_records > 0 ? Math.round((statusData.processed_count / statusData.total_records) * 100) : 0);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
@@ -251,6 +254,19 @@ export default function ImportDataView({ onNavigate }) {
                   {statusData?.failed_count || 0}
                 </span>
               </div>
+              {statusData?.stage && (
+                <div className="flex items-center justify-between pt-1 border-t border-slate-200/60">
+                  <span className="text-slate-500 text-[11px]">Current Stage:</span>
+                  <span className="font-mono font-bold text-amber-600 text-[11px] truncate max-w-[200px]" title={statusData.stage}>
+                    {statusData.stage}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Industrial Dataset Transparency Banner (Section 35) */}
+            <div className="p-2.5 rounded-lg bg-blue-50/70 border border-blue-200 text-blue-800 text-[10px] leading-tight">
+              <strong>Data Transparency Notice:</strong> External industrial dataset used for prototype stress testing. OIL proprietary records were not available for development validation.
             </div>
 
             {/* Progress Bar */}

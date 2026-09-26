@@ -1234,7 +1234,7 @@ export default function AlertDetailModal({ alert, isOpen, onClose, currentAlerts
                 {activeAlert.incident_timeline.map((item, idx) => (
                   <div key={idx} className="flex items-start space-x-3 text-xs">
                     <span className="px-2 py-0.5 rounded bg-slate-200 font-mono font-bold text-[10px] text-slate-800 shrink-0">
-                      {item.time || 'N/A'}
+                      {item.timestamp ? new Date(item.timestamp).toLocaleTimeString() : (item.time || new Date().toLocaleTimeString())}
                     </span>
                     <div>
                       <span className="font-bold text-slate-900 block">{item.title || item.event}</span>
