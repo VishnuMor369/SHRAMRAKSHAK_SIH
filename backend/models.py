@@ -44,6 +44,11 @@ class VehicleFinding(BaseModel):
 class Alert(BaseModel):
     id: str
     incident_id: Optional[str] = None # Unique Incident ID e.g. "SR-2026-0042"
+    alert_class: Literal["EMERGENCY", "PATTERN_ACTION"] = "EMERGENCY"
+    pattern_id: Optional[str] = None
+    pattern_title: Optional[str] = None
+    assigned_by: Optional[str] = None
+    pattern_occurrence_count: Optional[int] = None
     type: str = "Helmet/PPE Violation"
     title: Optional[str] = None
     short_summary: Optional[str] = None

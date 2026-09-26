@@ -623,6 +623,32 @@ export async function fetchSafetyMemoryPatterns() {
   return res.json();
 }
 
+export async function fetchPatternDetails(patternId) {
+  const res = await fetch(`${API_BASE}/api/safety-memory/patterns/${patternId}`);
+  if (!res.ok) throw new Error(`Failed to fetch details for pattern ${patternId}`);
+  return res.json();
+}
+
+export async function assignPatternAction(patternId, actionData) {
+  const res = await fetch(`${API_BASE}/api/safety-memory/patterns/${patternId}/assign-action`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(actionData)
+  });
+  if (!res.ok) throw new Error(`Failed to assign corrective action for pattern ${patternId}`);
+  return res.json();
+}
+
+export async function closeSafetyPattern(patternId, closureData = {}) {
+  const res = await fetch(`${API_BASE}/api/safety-memory/patterns/${patternId}/close`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(closureData)
+  });
+  if (!res.ok) throw new Error(`Failed to close safety pattern ${patternId}`);
+  return res.json();
+}
+
 export async function validateSafetyMemoryPattern(patternId, decision = 'CONFIRM', reviewer = 'HSE-Lead-01', notes = '') {
   const res = await fetch(`${API_BASE}/api/safety-memory/validate-pattern`, {
     method: 'POST',

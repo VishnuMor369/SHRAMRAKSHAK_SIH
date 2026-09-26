@@ -2,6 +2,7 @@ import asyncio
 import threading
 import time
 import base64
+import uuid
 import cv2
 import numpy as np
 from datetime import datetime, timedelta
@@ -463,6 +464,7 @@ class AlertStateManager:
         self.lock = threading.RLock()
         self._active_alerts: Dict[str, Alert] = {}
         self.history: List[Alert] = []
+        self.pattern_actions: Dict[str, Dict[str, Any]] = {}
         self.active_websockets: Set[WebSocket] = set()
         
         # Visual evidence store (evidence_id -> jpeg bytes)
@@ -1977,6 +1979,12 @@ class AlertStateManager:
                 "details": target.action_taken_notes
             })
 
+            if getattr(target, "pattern_id", None) and target.pattern_id in self.pattern_actions:
+                self.pattern_actions[target.pattern_id]["operational_status"] = "AWAITING_VERIFICATION"
+                self.pattern_actions[target.pattern_id]["action_completed_at"] = now.isoformat()
+                self.pattern_actions[target.pattern_id]["action_taken_by"] = supervisor_id
+                self.pattern_actions[target.pattern_id]["action_notes"] = target.action_taken_notes
+
         self.notify_clients()
         return target
 
@@ -2106,15 +2114,120 @@ class AlertStateManager:
             target = None
             if alert_id:
                 target = self._active_alerts.get(alert_id)
+                if not target:
+                    for a in self._active_alerts.values():
+                        if getattr(a, "pattern_id", None) == alert_id:
+                            target = a
+                            break
             else:
                 for a in self._active_alerts.values():
                     if a.verification_status == "AWAITING_VERIFICATION" or a.action_status == "COMPLETED":
                         target = a
                         break
 
+            if not target and alert_id in self.pattern_actions:
+                # Direct pattern verification without active alert object
+                pat_id = alert_id
+                is_breached = simulate_rebreach or (self.zone_violation and self.persons_in_zone > 0)
+                now = datetime.now()
+                if is_breached:
+                    self.pattern_actions[pat_id]["operational_status"] = "REOPENED"
+                    self.pattern_actions[pat_id]["verification_status"] = "FAILED"
+                    self.pattern_actions[pat_id]["last_rebreach_at"] = now.isoformat()
+                    try:
+                        from database import db
+                        db.save_verification(
+                            verification_id=f"VERIF-{uuid.uuid4().hex[:8].upper()}",
+                            event_id=self.pattern_actions[pat_id].get("action_id"),
+                            source="CCTV",
+                            status="FAILED",
+                            details={
+                                "type": "RE-BREACH DETECTED",
+                                "message": "Personnel observed inside restricted zone during verification window",
+                                "pattern_id": pat_id,
+                                "supervisor": supervisor_id
+                            }
+                        )
+                    except Exception:
+                        pass
+                    try:
+                        from models_canonical import SafetyEvent, SIFStatus
+                        try:
+                            from backend.database import db
+                        except ImportError:
+                            from database import db
+                        new_ev_id = f"EVT-CCTV-REBREACH-{uuid.uuid4().hex[:6].upper()}"
+                        loc = self.pattern_actions[pat_id].get("location") or "Lifting Zone 03"
+                        rebreach_ev = SafetyEvent(
+                            event_id=new_ev_id,
+                            source="CCTV",
+                            timestamp=now.isoformat(),
+                            location=loc,
+                            activity="Mechanical Lifting",
+                            energy="Suspended Load",
+                            exposure="Person inside restricted perimeter during active operations",
+                            barrier=["EXCLUSION_ZONE"],
+                            barrier_state=["BYPASSED"],
+                            consequence="Struck-by / line-of-fire from suspended/moving load",
+                            sif_status=SIFStatus.SIF_POTENTIAL,
+                            lsr=["Line of Fire"],
+                            pattern_id=pat_id,
+                            machine_observation=True,
+                            narrative=f"CCTV automated verification detected personnel re-entry into {loc} following corrective action sign-off."
+                        )
+                        db.save_event(rebreach_ev)
+                        db.add_pattern_member(pat_id, new_ev_id, "INDEPENDENT_RECURRENCE", 0.95, "CCTV Re-breach during verification window")
+                        cur_pat = db.get_pattern(pat_id)
+                        if cur_pat:
+                            new_cnt = (cur_pat.occurrence_count or 1) + 1
+                            with db.get_connection() as conn:
+                                conn.execute("UPDATE patterns SET occurrence_count = ?, updated_at = ? WHERE pattern_id = ?",
+                                             (new_cnt, now.isoformat(), pat_id))
+                    except Exception:
+                        pass
+
+                    self.notify_clients()
+                    return {
+                        "verified": False,
+                        "decision": "FAILED",
+                        "status": "VERIFICATION_FAILED_REBREACH",
+                        "verification_notes": "VERIFICATION FAILED — RE-BREACH DETECTED. Personnel re-entered restricted zone.",
+                        "message": "✕ VERIFICATION FAILED — RE-BREACH DETECTED. Action reopened.",
+                        "pattern_id": pat_id
+                    }
+                else:
+                    self.pattern_actions[pat_id]["operational_status"] = "VERIFIED"
+                    self.pattern_actions[pat_id]["verification_status"] = "VERIFIED"
+                    self.pattern_actions[pat_id]["verified_at"] = now.isoformat()
+                    try:
+                        from database import db
+                        db.save_verification(
+                            verification_id=f"VERIF-{uuid.uuid4().hex[:8].upper()}",
+                            event_id=self.pattern_actions[pat_id].get("action_id"),
+                            source="CCTV",
+                            status="VERIFIED",
+                            details={
+                                "type": "OBSERVABLE CONDITION RESTORED",
+                                "message": "Restricted zone verified clear by AI vision stream",
+                                "pattern_id": pat_id,
+                                "supervisor": supervisor_id
+                            }
+                        )
+                    except Exception:
+                        pass
+                    self.notify_clients()
+                    return {
+                        "verified": True,
+                        "decision": "VERIFIED",
+                        "status": "VERIFIED",
+                        "verification_notes": "VERIFIED — OBSERVABLE CONDITION RESTORED. Area clear.",
+                        "message": "✓ VERIFIED — OBSERVABLE CONDITION RESTORED.",
+                        "pattern_id": pat_id
+                    }
+
             if not target:
                 for h in self.history:
-                    if h.id == alert_id:
+                    if h.id == alert_id or getattr(h, "pattern_id", None) == alert_id:
                         return {
                             "verified": True,
                             "decision": "VERIFIED",
@@ -2150,6 +2263,68 @@ class AlertStateManager:
                 # Reinsert into active alerts
                 self._active_alerts[target.id] = target
                 self.history = [h for h in self.history if h.id != target.id]
+
+                if getattr(target, "pattern_id", None):
+                    pat_id = target.pattern_id
+                    if pat_id in self.pattern_actions:
+                        self.pattern_actions[pat_id]["operational_status"] = "REOPENED"
+                        self.pattern_actions[pat_id]["verification_status"] = "FAILED"
+                        self.pattern_actions[pat_id]["last_rebreach_at"] = now.isoformat()
+                    try:
+                        try:
+                            from backend.database import db
+                        except ImportError:
+                            from database import db
+                        db.save_verification(
+                            verification_id=f"VERIF-{uuid.uuid4().hex[:8].upper()}",
+                            event_id=target.event_id,
+                            source="CCTV",
+                            status="FAILED",
+                            details={
+                                "type": "RE-BREACH DETECTED",
+                                "message": "Personnel observed inside restricted zone during verification window",
+                                "pattern_id": pat_id,
+                                "supervisor": supervisor_id
+                            }
+                        )
+                    except Exception:
+                        pass
+                    try:
+                        from models_canonical import SafetyEvent, SIFStatus
+                        try:
+                            from backend.database import db
+                        except ImportError:
+                            from database import db
+                        new_ev_id = f"EVT-CCTV-REBREACH-{uuid.uuid4().hex[:6].upper()}"
+                        loc = target.location or "Lifting Zone 03"
+                        rebreach_ev = SafetyEvent(
+                            event_id=new_ev_id,
+                            source="CCTV",
+                            timestamp=now.isoformat(),
+                            location=loc,
+                            activity=target.activity or "Mechanical Lifting",
+                            energy=target.hazard or "Suspended Load",
+                            exposure="Person inside restricted perimeter during active operations",
+                            barrier=["EXCLUSION_ZONE"],
+                            barrier_state=["BYPASSED"],
+                            consequence="Struck-by / line-of-fire from suspended/moving load",
+                            sif_status=SIFStatus.SIF_POTENTIAL,
+                            lsr=[target.life_saving_rule or "Line of Fire"],
+                            pattern_id=pat_id,
+                            machine_observation=True,
+                            narrative=f"CCTV automated verification detected personnel re-entry into {loc} following corrective action sign-off."
+                        )
+                        db.save_event(rebreach_ev)
+                        db.add_pattern_member(pat_id, new_ev_id, "INDEPENDENT_RECURRENCE", 0.95, "CCTV Re-breach during verification window")
+                        cur_pat = db.get_pattern(pat_id)
+                        if cur_pat:
+                            new_cnt = (cur_pat.occurrence_count or 1) + 1
+                            with db.get_connection() as conn:
+                                conn.execute("UPDATE patterns SET occurrence_count = ?, updated_at = ? WHERE pattern_id = ?",
+                                             (new_cnt, now.isoformat(), pat_id))
+                    except Exception as e:
+                        print("EXCEPTION IN REBREACH:", e)
+
                 self.notify_clients()
                 return {
                     "verified": False,
@@ -2180,6 +2355,34 @@ class AlertStateManager:
                     del self._active_alerts[target.id]
                 self._last_resolved_alert = target
                 self.history.append(target)
+
+                if getattr(target, "pattern_id", None):
+                    pat_id = target.pattern_id
+                    if pat_id in self.pattern_actions:
+                        self.pattern_actions[pat_id]["operational_status"] = "VERIFIED"
+                        self.pattern_actions[pat_id]["verification_status"] = "VERIFIED"
+                        self.pattern_actions[pat_id]["verified_at"] = now.isoformat()
+                        self.pattern_actions[pat_id]["verified_by"] = supervisor_id
+                    try:
+                        try:
+                            from backend.database import db
+                        except ImportError:
+                            from database import db
+                        db.save_verification(
+                            verification_id=f"VERIF-{uuid.uuid4().hex[:8].upper()}",
+                            event_id=target.event_id,
+                            source="CCTV",
+                            status="VERIFIED",
+                            details={
+                                "type": "OBSERVABLE CONDITION RESTORED",
+                                "message": "Camera confirmed restricted zone is clear of personnel.",
+                                "pattern_id": pat_id,
+                                "supervisor": supervisor_id
+                            }
+                        )
+                    except Exception:
+                        pass
+
                 self.notify_clients()
                 return {
                     "verified": True,
@@ -2189,6 +2392,162 @@ class AlertStateManager:
                     "message": "✓ VERIFIED — OBSERVABLE CONDITION RESTORED. Alert resolved.",
                     "alert": target
                 }
+
+    def assign_pattern_action(
+        self,
+        pattern_id: str,
+        supervisor_id: str = "SUP-01",
+        supervisor_name: str = "Rajesh Kumar (Field Lead)",
+        required_action: str = "Clear unauthorized personnel and secure the restricted zone.",
+        location: str = "Lifting Zone 03",
+        priority: str = "HIGH",
+        verification_method: str = "CCTV_VERIFIABLE",
+        notes: str = ""
+    ) -> Dict[str, Any]:
+        """
+        HSE assigns corrective action for a recurring pattern (Class 2: PATTERN_ACTION).
+        Generates distinct PATTERN_ACTION alert for supervisor notification.
+        """
+        with self.lock:
+            now = datetime.now()
+            try:
+                from backend.database import db
+            except ImportError:
+                from database import db
+            pat = db.get_pattern(pattern_id)
+            pat_title = pat.title if pat else f"Recurring Pattern {pattern_id}"
+            pat_occ = pat.occurrence_count if pat else 1
+            pat_act = pat.activity if pat else "General Site Operations"
+            pat_bar = pat.barrier if pat else "Critical Safety Barrier"
+            pat_energy = pat.energy if pat else "Gravitational / Kinetic Energy"
+
+            alert_id = f"ACT-PAT-{uuid.uuid4().hex[:6].upper()}"
+            action_alert = Alert(
+                id=alert_id,
+                alert_class="PATTERN_ACTION",
+                pattern_id=pattern_id,
+                pattern_title=pat_title,
+                pattern_occurrence_count=pat_occ,
+                assigned_by="HSE Control Desk",
+                type="PATTERN CORRECTIVE ACTION",
+                title=f"PATTERN ACTION: {pat_title}",
+                short_summary=f"Recurring control breach at {location} ({pat_occ} independent occurrences). Action: {required_action}",
+                location=location,
+                camera=self.active_camera_id or "C-01",
+                camera_id=self.active_camera_id or "C-01",
+                source="HSE Safety Memory Governance",
+                severity=priority if priority in ["CRITICAL", "HIGH", "MEDIUM", "LOW"] else "HIGH",
+                priority_label=priority if priority in ["CRITICAL", "HIGH", "MEDIUM", "LOW"] else "HIGH",
+                priority_score=95,
+                status="WAITING_FOR_RESPONSE",
+                stage="ACTION",
+                assigned_to=f"{supervisor_id} ({supervisor_name})",
+                created_at=now.isoformat(),
+                response_deadline=(now + timedelta(seconds=RESPONSE_SLA_SECONDS)).isoformat(),
+                action_deadline=(now + timedelta(seconds=ACTION_SLA_SECONDS)).isoformat(),
+                activity=pat_act,
+                hazard=pat_energy,
+                sif_potential="SIF Potential",
+                sif_level=priority if priority in ["CRITICAL", "HIGH", "MEDIUM", "LOW"] else "HIGH",
+                sif_reason=f"Recurring control breach of {pat_bar} requires field supervisor intervention.",
+                critical_barrier=pat_bar,
+                barrier_condition="Compromised",
+                immediate_action=required_action,
+                action_status="ASSIGNED",
+                verification_type=verification_method if verification_method in ["CCTV_VERIFIABLE", "FIELD_HSE_VERIFICATION"] else "CCTV_VERIFIABLE",
+                lifecycle_state="ACTION_REQUIRED",
+                recurring_pattern_title=pat_title,
+                independent_occurrences_count=pat_occ,
+                notes=notes or f"Assigned by HSE to {supervisor_name}"
+            )
+
+            self._active_alerts[alert_id] = action_alert
+
+            record = {
+                "pattern_id": pattern_id,
+                "alert_id": alert_id,
+                "operational_status": "ACTION_REQUIRED",
+                "supervisor_id": supervisor_id,
+                "supervisor_name": supervisor_name,
+                "required_action": required_action,
+                "location": location,
+                "priority": priority,
+                "verification_method": verification_method,
+                "assigned_at": now.isoformat(),
+                "action_completed_at": None,
+                "action_taken_by": None,
+                "action_notes": None,
+                "verification_status": "PENDING",
+                "verification_notes": None,
+                "verified_at": None,
+                "closed_at": None,
+                "closed_by": None,
+                "closure_notes": None
+            }
+            self.pattern_actions[pattern_id] = record
+
+            return {
+                "success": True,
+                "alert_id": alert_id,
+                "pattern_action": record,
+                "alert": action_alert.model_dump() if hasattr(action_alert, "model_dump") else action_alert.dict()
+            }
+
+    def get_pattern_action(self, pattern_id: str) -> Optional[Dict[str, Any]]:
+        with self.lock:
+            return self.pattern_actions.get(pattern_id)
+
+    def get_pattern_operational_status(self, pattern_id: str, validation_status: str = "CANDIDATE") -> str:
+        with self.lock:
+            act = self.pattern_actions.get(pattern_id)
+            if act:
+                return act.get("operational_status", "ACTIVE")
+            if str(validation_status) == "HSE_VALIDATED":
+                return "ACTION_REQUIRED"
+            return "ACTIVE"
+
+    def close_pattern_action(self, pattern_id: str, closed_by: str = "Chief HSE Officer (OIL)", notes: str = "", closure_notes: Optional[str] = None) -> Dict[str, Any]:
+        """
+        HSE closes verified pattern and moves it to CLOSED / HISTORY.
+        Pattern remains accessible in historical records.
+        """
+        with self.lock:
+            now = datetime.now().isoformat()
+            actual_notes = closure_notes if closure_notes is not None else notes
+            if pattern_id not in self.pattern_actions:
+                self.pattern_actions[pattern_id] = {
+                    "pattern_id": pattern_id,
+                    "operational_status": "CLOSED_HISTORY",
+                    "verification_status": "VERIFIED"
+                }
+
+            act = self.pattern_actions[pattern_id]
+            act["operational_status"] = "CLOSED_HISTORY"
+            act["closed_at"] = now
+            act["closed_by"] = closed_by
+            act["closure_notes"] = actual_notes or "Pattern verified and formally closed by HSE authority."
+            act["success"] = True
+
+            try:
+                try:
+                    from backend.database import db
+                except ImportError:
+                    from database import db
+                db.log_review(
+                    review_id=f"REV-CLOSE-{uuid.uuid4().hex[:8].upper()}",
+                    target_type="PATTERN",
+                    target_id=pattern_id,
+                    reviewer_role=closed_by,
+                    action="CLOSE_PATTERN",
+                    previous_value={"operational_status": "VERIFIED"},
+                    new_value={"operational_status": "CLOSED_HISTORY"},
+                    reason=act["closure_notes"]
+                )
+            except Exception:
+                pass
+
+            self.notify_clients()
+            return act
 
     def resolve_alert(self, supervisor_id: str = "SUP-01", notes: Optional[str] = None, alert_id: Optional[str] = None) -> Optional[Alert]:
         """

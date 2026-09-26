@@ -637,7 +637,7 @@ def get_safety_memory_events():
 
 @app.get("/api/safety-memory/patterns")
 def get_safety_memory_patterns():
-    """Returns all Candidate and HSE Validated Recurring Safety-Control Patterns from SQLite with linked preconditions"""
+    """Returns all Candidate and HSE Validated Recurring Safety-Control Patterns from SQLite with linked preconditions & operational state"""
     patterns = db.list_patterns()
     precs = db.list_preconditions(active_only=True)
     prec_by_pat = {}
@@ -654,8 +654,163 @@ def get_safety_memory_patterns():
     for p in patterns:
         p_dict = p.to_dict()
         p_dict["future_work_requirements"] = prec_by_pat.get(p.pattern_id, [])
+        op_status = state_manager.get_pattern_operational_status(p.pattern_id, p.validation_status)
+        p_dict["operational_status"] = op_status
+        p_dict["assigned_action"] = state_manager.get_pattern_action(p.pattern_id)
+        
+        # Calculate real source breakdown
+        mems = db.get_pattern_members(p.pattern_id)
+        human_cnt = 0
+        cctv_cnt = 0
+        imported_cnt = 0
+        if mems:
+            evt_ids = [m["event_id"] for m in mems]
+            with db.get_connection() as conn:
+                q = f"SELECT source, count(*) FROM events WHERE event_id IN ({','.join(['?']*len(evt_ids))}) GROUP BY source"
+                rows = conn.execute(q, evt_ids).fetchall()
+                for r in rows:
+                    s_name = str(r[0]).upper()
+                    cnt = r[1]
+                    if "HUMAN" in s_name:
+                        human_cnt += cnt
+                    elif "CCTV" in s_name or "VISION" in s_name:
+                        cctv_cnt += cnt
+                    else:
+                        imported_cnt += cnt
+        else:
+            human_cnt = p.occurrence_count
+        p_dict["source_breakdown"] = {"HUMAN": human_cnt, "CCTV": cctv_cnt, "IMPORTED": imported_cnt}
+        p_dict["sif_potential"] = "HIGH"
+        p_dict["primary_lsr"] = "Safe Mechanical Lifting" if "lift" in str(p.activity).lower() else ("Line of Fire" if "zone" in str(p.barrier).lower() else "Bypassing Safety Controls")
         res.append(p_dict)
     return {"patterns": res}
+
+@app.get("/api/safety-memory/patterns/{pattern_id}")
+def get_pattern_details_route(pattern_id: str):
+    """Returns evidence-grounded explanation and history for a recurring pattern"""
+    pat = db.get_pattern(pattern_id)
+    if not pat:
+        raise HTTPException(status_code=404, detail=f"Pattern '{pattern_id}' not found")
+
+    p_dict = pat.to_dict()
+    p_dict["operational_status"] = state_manager.get_pattern_operational_status(pat.pattern_id, pat.validation_status)
+    p_dict["assigned_action"] = state_manager.get_pattern_action(pat.pattern_id)
+
+    # Fetch real member events with evidence spans
+    mems = db.get_pattern_members(pattern_id)
+    supporting_events = []
+    evidence_snippets = []
+    human_cnt = 0
+    cctv_cnt = 0
+    imported_cnt = 0
+    locations = set()
+
+    if mems:
+        for m in mems:
+            ev = db.get_event(m["event_id"])
+            if ev:
+                ev_dict = ev.to_dict()
+                supporting_events.append(ev_dict)
+                if ev.location:
+                    locations.add(ev.location)
+                s_name = str(ev.source).upper()
+                if "HUMAN" in s_name:
+                    human_cnt += 1
+                elif "CCTV" in s_name or "VISION" in s_name:
+                    cctv_cnt += 1
+                else:
+                    imported_cnt += 1
+                if ev.evidence:
+                    for sp in ev.evidence:
+                        txt = getattr(sp, "text", None) or (sp.get("text") if isinstance(sp, dict) else str(sp))
+                        if txt and txt not in evidence_snippets:
+                            evidence_snippets.append(txt)
+    else:
+        human_cnt = pat.occurrence_count
+
+    p_dict["supporting_events"] = supporting_events
+    p_dict["evidence_snippets"] = evidence_snippets[:8]
+    p_dict["source_breakdown"] = {"HUMAN": human_cnt, "CCTV": cctv_cnt, "IMPORTED": imported_cnt}
+    p_dict["location"] = list(locations)[0] if locations else "Lifting Zone 03"
+    p_dict["sif_potential"] = "HIGH"
+    p_dict["primary_lsr"] = "Safe Mechanical Lifting" if "lift" in str(pat.activity).lower() else ("Line of Fire" if "zone" in str(pat.barrier).lower() else "Bypassing Safety Controls")
+
+    # Linked preconditions
+    precs = db.list_preconditions(active_only=True)
+    p_dict["future_work_requirements"] = [
+        {
+            "id": pr.precondition_id,
+            "title": pr.title,
+            "description": f"Mandatory evidence: {', '.join(pr.required_evidence_types)}",
+            "evidence_type": ', '.join(pr.required_evidence_types)
+        }
+        for pr in precs if pr.pattern_id == pattern_id
+    ]
+
+    # Review and verification audit logs
+    reviews = [r for r in db.list_reviews(limit=50) if r.get("target_id") == pattern_id]
+    p_dict["reviews_history"] = reviews
+
+    verifs = db.list_verifications(limit=50)
+    p_dict["verification_history"] = [
+        v for v in verifs if (isinstance(v.get("details"), dict) and v["details"].get("pattern_id") == pattern_id)
+        or (v.get("event_id") in [e["event_id"] for e in supporting_events])
+    ]
+
+    return p_dict
+
+@app.post("/api/safety-memory/patterns/{pattern_id}/assign-action")
+def assign_pattern_action_route(pattern_id: str, req: Dict[str, Any]):
+    """HSE assigns corrective action for a recurring pattern (Class 2: PATTERN_ACTION)"""
+    pat = db.get_pattern(pattern_id)
+    if not pat:
+        raise HTTPException(status_code=404, detail=f"Pattern '{pattern_id}' not found")
+
+    supervisor_id = req.get("supervisor_id", "SUP-01")
+    supervisor_name = req.get("supervisor_name", "Rajesh Kumar (Field Lead)")
+    required_action = req.get("required_action") or "Clear unauthorized personnel and secure the restricted zone."
+    location = req.get("location") or "Lifting Zone 03"
+    priority = req.get("priority", "HIGH")
+    verification_method = req.get("verification_method", "CCTV_VERIFIABLE")
+    notes = req.get("notes", "")
+
+    res = state_manager.assign_pattern_action(
+        pattern_id=pattern_id,
+        supervisor_id=supervisor_id,
+        supervisor_name=supervisor_name,
+        required_action=required_action,
+        location=location,
+        priority=priority,
+        verification_method=verification_method,
+        notes=notes
+    )
+    return {
+        "success": True,
+        "message": f"Corrective action assigned to {supervisor_name} for pattern {pattern_id}",
+        "pattern_action": res["pattern_action"],
+        "alert": res["alert"]
+    }
+
+@app.post("/api/safety-memory/patterns/{pattern_id}/close")
+def close_pattern_route(pattern_id: str, req: Dict[str, Any] = {}):
+    """HSE closes verified pattern and archives it to CLOSED / HISTORY"""
+    pat = db.get_pattern(pattern_id)
+    if not pat:
+        raise HTTPException(status_code=404, detail=f"Pattern '{pattern_id}' not found")
+
+    closed_by = req.get("closed_by", "Chief HSE Officer (OIL)")
+    notes = req.get("closure_notes") or req.get("notes") or "Verified observable condition restored. Recurring pattern closed and moved to historical records."
+
+    res = state_manager.close_pattern_action(
+        pattern_id=pattern_id,
+        closed_by=closed_by,
+        notes=notes
+    )
+    return {
+        "success": True,
+        "message": f"Pattern {pattern_id} formally closed and archived to history.",
+        "pattern_action": res
+    }
 
 @app.post("/api/safety-memory/patterns/{pattern_id}/validate")
 @app.post("/api/safety-memory/validate-pattern")

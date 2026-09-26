@@ -54,6 +54,11 @@ class ReviewStatus(str, Enum):
     REOPENED = "REOPENED"
 
 
+# Backward-compatible canonical aliases
+CanonicalReviewStatus = ReviewStatus
+CanonicalSIFStatus = SIFStatus
+
+
 class RecurrenceRelationship(str, Enum):
     DUPLICATE = "DUPLICATE"
     INDEPENDENT_RECURRENCE = "INDEPENDENT_RECURRENCE"
@@ -198,6 +203,10 @@ class SafetyEvent:
         }
 
 
+# Canonical alias
+CanonicalSafetyEvent = SafetyEvent
+
+
 @dataclass
 class RecurrenceResult:
     candidate_id: str
@@ -234,6 +243,12 @@ class SafetyPattern:
     reviewer_role: Optional[str] = None
     reviewed_at: Optional[str] = None
     review_notes: Optional[str] = None
+    operational_status: str = "ACTIVE"
+    assigned_action: Optional[Dict[str, Any]] = None
+    assigned_supervisor: Optional[str] = None
+    closed_at: Optional[str] = None
+    closed_by: Optional[str] = None
+    closure_notes: Optional[str] = None
     created_at: str = field(default_factory=lambda: datetime.now().isoformat())
     updated_at: str = field(default_factory=lambda: datetime.now().isoformat())
 
@@ -271,6 +286,12 @@ class SafetyPattern:
             "duplicate_count": self.duplicate_count,
             "validation_status": status_val,
             "is_validated": status_val == "HSE_VALIDATED",
+            "operational_status": getattr(self, "operational_status", "ACTIVE"),
+            "assigned_action": getattr(self, "assigned_action", None),
+            "assigned_supervisor": getattr(self, "assigned_supervisor", None),
+            "closed_at": getattr(self, "closed_at", None),
+            "closed_by": getattr(self, "closed_by", None),
+            "closure_notes": getattr(self, "closure_notes", None),
             "reviewer_role": self.reviewer_role,
             "reviewed_at": self.reviewed_at,
             "review_notes": self.review_notes,

@@ -89,6 +89,9 @@ def isolated_test_environment(prefix: str = "shramrakshak_test_"):
         # Patch DatabaseManager singleton and all references
         backend.database.db.db_path = test_db_path
         backend.database.db = test_db
+        if "database" in sys.modules:
+            sys.modules["database"].db.db_path = test_db_path
+            sys.modules["database"].db = test_db
         backend.nlp_engine.semantic_memory.db = test_db
         backend.nlp_engine.recurrence_engine.db = test_db
         backend.nlp_engine.precondition_engine.db = test_db
@@ -167,6 +170,9 @@ def isolated_test_environment(prefix: str = "shramrakshak_test_"):
         orig_db_inst.db_path = orig_db_path
         backend.database.db = orig_db_inst
         backend.database.db.db_path = orig_db_path
+        if "database" in sys.modules:
+            sys.modules["database"].db = orig_db_inst
+            sys.modules["database"].db.db_path = orig_db_path
 
         # Restore other engine references
         backend.nlp_engine.semantic_memory.db = orig_sm_db
