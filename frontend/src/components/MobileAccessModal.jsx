@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Smartphone, Wifi, Copy, Check, QrCode } from 'lucide-react';
 import { fetchQrCode } from '../services/api';
-import { UnifiedModal } from './common';
 
 export default function MobileAccessModal({ isOpen, onClose, lanIp }) {
   const [qrBase64, setQrBase64] = useState(null);
@@ -10,6 +10,18 @@ export default function MobileAccessModal({ isOpen, onClose, lanIp }) {
   const supervisorUrl = lanIp 
     ? `http://${lanIp}:5173/supervisor` 
     : `${window.location.origin}/supervisor`;
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const prevBodyOverflow = document.body.style.overflow;
+    const prevHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prevBodyOverflow;
+      document.documentElement.style.overflow = prevHtmlOverflow;
+    };
+  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen) {
@@ -31,21 +43,24 @@ export default function MobileAccessModal({ isOpen, onClose, lanIp }) {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  return (
-    <UnifiedModal
-      isOpen={isOpen}
-      onClose={onClose}
-      maxWidthClass="max-w-md"
+  const modalContent = (
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-md overflow-hidden animate-in fade-in duration-150" 
+      onClick={onClose}
     >
-      {/* Modal Header */}
-        <div className="bg-slate-900 text-white px-5 py-4 flex items-center justify-between">
+      <div 
+        className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full overflow-hidden animate-in zoom-in-95 duration-150 my-auto" 
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Modal Header */}
+        <div className="shrink-0 bg-slate-900 text-white px-5 py-4 flex items-center justify-between border-b border-slate-800">
           <div className="flex items-center space-x-2.5">
             <Smartphone className="w-5 h-5 text-amber-400" />
-            <h3 className="font-black text-sm tracking-wide">CONNECT MOBILE SUPERVISOR</h3>
+            <h3 className="font-black text-sm tracking-wide uppercase">CONNECT MOBILE SUPERVISOR</h3>
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-white transition-colors"
+            className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
           >
             <X className="w-5 h-5" />
           </button>
@@ -113,6 +128,9 @@ export default function MobileAccessModal({ isOpen, onClose, lanIp }) {
             Done / Close
           </button>
         </div>
-    </UnifiedModal>
+      </div>
+    </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent;
 }

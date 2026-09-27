@@ -270,9 +270,9 @@ export default function AISafetyAnalysisView({ status, onClose }) {
             <button
               onClick={handleDownloadPdf}
               disabled={exportingPdf}
-              className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-xs transition-colors disabled:opacity-50"
+              className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 active:scale-[0.98] text-slate-700 text-xs font-semibold shadow-xs transition-all disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
             >
-              <Download className={`w-3.5 h-3.5 ${exportingPdf ? 'animate-bounce text-blue-600' : ''}`} />
+              <Download className={`w-3.5 h-3.5 ${exportingPdf ? 'animate-spin text-blue-600' : ''}`} />
               <span>{exportingPdf ? 'Generating PDF...' : 'Export HSE PDF'}</span>
             </button>
           )}
@@ -757,9 +757,9 @@ export default function AISafetyAnalysisView({ status, onClose }) {
                   <button
                     onClick={handleDownloadPdf}
                     disabled={exportingPdf}
-                    className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors disabled:opacity-50"
+                    className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white text-xs font-bold transition-all disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                   >
-                    <Download className={`w-3.5 h-3.5 ${exportingPdf ? 'animate-bounce' : ''}`} />
+                    <Download className={`w-3.5 h-3.5 ${exportingPdf ? 'animate-spin' : ''}`} />
                     <span>{exportingPdf ? 'Generating PDF...' : 'Download Dossier PDF'}</span>
                   </button>
 

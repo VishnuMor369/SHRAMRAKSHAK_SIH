@@ -84,12 +84,169 @@ export default function CCTVPanel({
   const [debugStats, setDebugStats] = useState(null);
   const [showDebugPanel, setShowDebugPanel] = useState(false);
 
+  // Detection Smoothing & Debounce Ref (Hysteresis engine to eliminate rapid on/off flicker)
+  const detectionSmootherRef = useRef({
+    lastValidPersons: [],
+    lastPersonDetectedTime: 0,
+    consecutiveEmptyFrames: 0,
+    consecutiveDetectedFrames: 0,
+    personStatusHistory: {}, // trackId -> { helmetHistory: [], vestHistory: [], glovesHistory: [], stableHelmet, stableVest, stableGloves, lastBox }
+  });
+
+  // Hysteresis & Temporal Smoothing: Requires N consecutive consistent frames or minimum hold time
+  const smoothDetections = useCallback((rawResult) => {
+    if (!rawResult) return null;
+    const smoother = detectionSmootherRef.current;
+    const now = Date.now();
+    const rawPersons = Array.isArray(rawResult.persons) ? rawResult.persons : [];
+
+    let smoothedPersons = [];
+    if (rawPersons.length > 0) {
+      smoother.consecutiveDetectedFrames += 1;
+      smoother.consecutiveEmptyFrames = 0;
+      smoother.lastPersonDetectedTime = now;
+
+      smoothedPersons = rawPersons.map((rawP) => {
+        const trackId = rawP.id !== undefined ? String(rawP.id) : (rawP.label || '1');
+        if (!smoother.personStatusHistory[trackId]) {
+          smoother.personStatusHistory[trackId] = {
+            helmetHistory: [],
+            vestHistory: [],
+            glovesHistory: [],
+            stableHelmet: rawP.helmet_status || 'UNKNOWN',
+            stableVest: rawP.vest_status || 'UNKNOWN',
+            stableGloves: rawP.gloves_status || 'UNKNOWN',
+            lastBox: rawP.box,
+          };
+        }
+        const pHist = smoother.personStatusHistory[trackId];
+
+        // 1. Hysteresis on Helmet Status (require 3 consecutive matching frames before flipping status)
+        pHist.helmetHistory.push(rawP.helmet_status);
+        if (pHist.helmetHistory.length > 6) pHist.helmetHistory.shift();
+        const recentHelmet = pHist.helmetHistory.slice(-3);
+        if (recentHelmet.length >= 3 && recentHelmet.every(s => s === recentHelmet[0]) && recentHelmet[0] !== 'UNKNOWN') {
+          pHist.stableHelmet = recentHelmet[0];
+        } else if (pHist.stableHelmet === 'UNKNOWN' && rawP.helmet_status !== 'UNKNOWN') {
+          pHist.stableHelmet = rawP.helmet_status;
+        }
+
+        // 2. Hysteresis on Vest Status (require 3 consecutive matching frames before flipping status)
+        pHist.vestHistory.push(rawP.vest_status);
+        if (pHist.vestHistory.length > 6) pHist.vestHistory.shift();
+        const recentVest = pHist.vestHistory.slice(-3);
+        if (recentVest.length >= 3 && recentVest.every(s => s === recentVest[0]) && recentVest[0] !== 'UNKNOWN') {
+          pHist.stableVest = recentVest[0];
+        } else if (pHist.stableVest === 'UNKNOWN' && rawP.vest_status !== 'UNKNOWN') {
+          pHist.stableVest = rawP.vest_status;
+        }
+
+        // 3. Hysteresis on Gloves Status (require 3 consecutive matching frames before flipping status)
+        pHist.glovesHistory.push(rawP.gloves_status);
+        if (pHist.glovesHistory.length > 6) pHist.glovesHistory.shift();
+        const recentGloves = pHist.glovesHistory.slice(-3);
+        if (recentGloves.length >= 3 && recentGloves.every(s => s === recentGloves[0]) && recentGloves[0] !== 'UNKNOWN') {
+          pHist.stableGloves = recentGloves[0];
+        } else if (pHist.stableGloves === 'UNKNOWN' && rawP.gloves_status !== 'UNKNOWN') {
+          pHist.stableGloves = rawP.gloves_status;
+        }
+
+        // 4. Moving Average on Bounding Box (eliminates jitter on borders)
+        let smoothedBox = rawP.box;
+        if (pHist.lastBox && Array.isArray(pHist.lastBox) && pHist.lastBox.length === 4 && Array.isArray(rawP.box) && rawP.box.length === 4) {
+          smoothedBox = [
+            Math.round(0.70 * rawP.box[0] + 0.30 * pHist.lastBox[0]),
+            Math.round(0.70 * rawP.box[1] + 0.30 * pHist.lastBox[1]),
+            Math.round(0.70 * rawP.box[2] + 0.30 * pHist.lastBox[2]),
+            Math.round(0.70 * rawP.box[3] + 0.30 * pHist.lastBox[3]),
+          ];
+        }
+        pHist.lastBox = smoothedBox;
+
+        // 5. Derive smoothed violations and overall status
+        const violations = [];
+        if (pHist.stableHelmet === 'VIOLATION' || pHist.stableHelmet === 'NOT DETECTED') {
+          violations.push('NO HELMET');
+        }
+        if (pHist.stableVest === 'VIOLATION' || pHist.stableVest === 'NO_VEST') {
+          violations.push('NO SAFETY VEST');
+        }
+        if (pHist.stableGloves === 'VIOLATION' || pHist.stableGloves === 'NO_GLOVES') {
+          violations.push('NO GLOVES');
+        }
+        if (rawP.in_zone) {
+          violations.push('RESTRICTED ZONE');
+        }
+
+        let smoothedOverall = 'UNKNOWN';
+        if (violations.length > 0) {
+          smoothedOverall = 'VIOLATION';
+        } else if (pHist.stableHelmet === 'OK' && (pHist.stableVest === 'OK' || pHist.stableVest === 'UNKNOWN')) {
+          smoothedOverall = 'OK';
+        }
+
+        return {
+          ...rawP,
+          box: smoothedBox,
+          helmet_status: pHist.stableHelmet,
+          vest_status: pHist.stableVest,
+          gloves_status: pHist.stableGloves,
+          overall_ppe_status: smoothedOverall,
+          violations: violations,
+        };
+      });
+
+      smoother.lastValidPersons = smoothedPersons;
+    } else {
+      // 0 raw persons detected in this frame
+      smoother.consecutiveEmptyFrames += 1;
+      smoother.consecutiveDetectedFrames = 0;
+
+      const elapsedSinceSeen = now - smoother.lastPersonDetectedTime;
+      // 500ms minimum hold time AND at least 5 consecutive empty frames before removing displayed person
+      if (elapsedSinceSeen < 600 && smoother.consecutiveEmptyFrames <= 5 && smoother.lastValidPersons.length > 0) {
+        smoothedPersons = smoother.lastValidPersons;
+      } else {
+        smoothedPersons = [];
+        smoother.lastValidPersons = [];
+        smoother.personStatusHistory = {};
+      }
+    }
+
+    const smoothedPersonCount = smoothedPersons.length;
+    const smoothedUnhelmeted = smoothedPersons.filter(p => p.helmet_status === 'VIOLATION' || p.helmet_status === 'NOT DETECTED').length;
+    const smoothedUnvested = smoothedPersons.filter(p => p.vest_status === 'VIOLATION' || p.vest_status === 'NO_VEST').length;
+    const smoothedUngloved = smoothedPersons.filter(p => p.gloves_status === 'VIOLATION' || p.gloves_status === 'NO_GLOVES').length;
+    const smoothedHelmetDetected = smoothedPersonCount > 0 && smoothedPersons.some(p => p.helmet_status === 'OK');
+    const smoothedVestDetected = smoothedPersonCount > 0 && smoothedPersons.some(p => p.vest_status === 'OK');
+    const smoothedGlovesDetected = smoothedPersonCount > 0 && smoothedPersons.some(p => p.gloves_status === 'OK');
+
+    return {
+      ...rawResult,
+      person_count: smoothedPersonCount,
+      persons: smoothedPersons,
+      unhelmeted_count: smoothedUnhelmeted,
+      unvested_count: smoothedUnvested,
+      ungloved_count: smoothedUngloved,
+      helmet_detected: smoothedHelmetDetected,
+      vest_detected: smoothedVestDetected,
+      gloves_detected: smoothedGlovesDetected,
+    };
+  }, []);
+
   // Reset detection session on frontend and backend (clears stale boxes, tracks, sequence IDs)
   const resetDetectionSession = useCallback(async () => {
     setLiveDetections(null);
     frameSeqRef.current = 0;
     lastProcessedSeqRef.current = 0;
     fpsTimesRef.current = [];
+    detectionSmootherRef.current = {
+      lastValidPersons: [],
+      lastPersonDetectedTime: 0,
+      consecutiveEmptyFrames: 0,
+      consecutiveDetectedFrames: 0,
+      personStatusHistory: {},
+    };
     try {
       await resetCvSession();
     } catch (e) {
@@ -155,14 +312,17 @@ export default function CCTVPanel({
   const hasZone = !!(effectiveZone && effectiveZone.polygon && effectiveZone.polygon.length >= 3);
   const isZoneEnabled = hasZone && (localEnabled !== null ? localEnabled : (effectiveZone?.enabled ?? false));
   
-  // Demo Video State 1 Guard: When in DEMO_VIDEO mode with no video loaded, strictly clear all detection state
+  // Live camera mode guard (WEBCAM or DEMO_VIDEO):
+  // By default (real camera feed, no active detection, no zone breach), the video shows clean — no boxes, no overlays.
+  // Never fall back to stale backend alerts or seeded state on a live camera stream!
   const isDemoNoVideo = (sourceMode === 'DEMO_VIDEO' && !demoVideoUrl);
+  const isLiveCameraMode = (sourceMode === 'WEBCAM' || sourceMode === 'DEMO_VIDEO');
 
-  // Real-time AI detection metrics (prefer local real-time inference, fallback to backend status ONLY if not in empty demo video state)
+  // Real-time AI detection metrics (prefer local real-time inference; never fallback to backend alerts in live camera modes)
   const detectedPersons = isDemoNoVideo ? [] : (
     (liveDetections?.persons && liveDetections.persons.length > 0)
       ? liveDetections.persons
-      : (status?.active_alert?.person_findings && status.active_alert.person_findings.length > 0)
+      : (!isLiveCameraMode && status?.active_alert?.person_findings && status.active_alert.person_findings.length > 0)
       ? status.active_alert.person_findings.map(pf => ({
           id: pf.track_id,
           label: pf.person_id,
@@ -177,14 +337,14 @@ export default function CCTVPanel({
         }))
       : []
   );
-  const personCount = isDemoNoVideo ? 0 : (liveDetections ? liveDetections.person_count : (status?.person_count ?? (status?.person_detected ? 1 : 0)));
-  const unhelmetedCount = isDemoNoVideo ? 0 : (liveDetections ? liveDetections.unhelmeted_count : (status?.unhelmeted_count ?? (!status?.helmet_detected && personCount > 0 ? 1 : 0)));
-  const helmetDetected = isDemoNoVideo ? false : (liveDetections ? liveDetections.helmet_detected : (status?.helmet_detected ?? false));
-  const vestDetected = isDemoNoVideo ? false : (liveDetections ? liveDetections.vest_detected : (status?.vest_detected ?? false));
-  const unvestedCount = isDemoNoVideo ? 0 : (liveDetections ? liveDetections.unvested_count : (status?.unvested_count ?? 0));
-  const glovesDetected = isDemoNoVideo ? false : (liveDetections ? liveDetections.gloves_detected : (status?.gloves_detected ?? false));
-  const unglovedCount = isDemoNoVideo ? 0 : (liveDetections ? liveDetections.ungloved_count : (status?.ungloved_count ?? 0));
-  const zoneViolation = isDemoNoVideo ? false : ((isZoneEnabled && !isDeleted) ? (liveDetections ? liveDetections.zone_violation : (status?.zone_violation ?? false)) : false);
+  const personCount = isDemoNoVideo ? 0 : (isLiveCameraMode ? (liveDetections ? liveDetections.person_count : 0) : (liveDetections ? liveDetections.person_count : (status?.person_count ?? (status?.person_detected ? 1 : 0))));
+  const unhelmetedCount = isDemoNoVideo ? 0 : (isLiveCameraMode ? (liveDetections ? liveDetections.unhelmeted_count : 0) : (liveDetections ? liveDetections.unhelmeted_count : (status?.unhelmeted_count ?? (!status?.helmet_detected && personCount > 0 ? 1 : 0))));
+  const helmetDetected = isDemoNoVideo ? false : (isLiveCameraMode ? (liveDetections ? liveDetections.helmet_detected : false) : (liveDetections ? liveDetections.helmet_detected : (status?.helmet_detected ?? false)));
+  const vestDetected = isDemoNoVideo ? false : (isLiveCameraMode ? (liveDetections ? liveDetections.vest_detected : false) : (liveDetections ? liveDetections.vest_detected : (status?.vest_detected ?? false)));
+  const unvestedCount = isDemoNoVideo ? 0 : (isLiveCameraMode ? (liveDetections ? liveDetections.unvested_count : 0) : (liveDetections ? liveDetections.unvested_count : (status?.unvested_count ?? 0)));
+  const glovesDetected = isDemoNoVideo ? false : (isLiveCameraMode ? (liveDetections ? liveDetections.gloves_detected : false) : (liveDetections ? liveDetections.gloves_detected : (status?.gloves_detected ?? false)));
+  const unglovedCount = isDemoNoVideo ? 0 : (isLiveCameraMode ? (liveDetections ? liveDetections.ungloved_count : 0) : (liveDetections ? liveDetections.ungloved_count : (status?.ungloved_count ?? 0)));
+  const zoneViolation = isDemoNoVideo ? false : ((isZoneEnabled && !isDeleted) ? (liveDetections ? liveDetections.zone_violation : (isLiveCameraMode ? false : (status?.zone_violation ?? false))) : false);
 
   // Multi-person tracking counts
   const peopleDetectedCount = isDemoNoVideo ? 0 : Math.max(personCount, detectedPersons.length);
@@ -421,7 +581,10 @@ export default function CCTVPanel({
             setAiFps(calculatedFps);
           }
 
-          setLiveDetections(result);
+          // Temporal Debounce & Hysteresis Smoothing:
+          // Smooths raw per-frame AI detections so borderline frames do not flip UI status
+          const smoothedResult = smoothDetections(result);
+          setLiveDetections(smoothedResult);
           if (result.debug) {
             setDebugStats(result.debug);
           }
@@ -662,7 +825,7 @@ export default function CCTVPanel({
                 : 'bg-red-500/15 border border-red-500/30 text-red-400'
             }`}>
               <span className={`w-1.5 h-1.5 rounded-full ${
-                cameraState === 'LIVE' ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'
+                cameraState === 'LIVE' ? 'bg-emerald-400' : 'bg-amber-400'
               }`}></span>
               <span>{cameraState}</span>
             </span>
@@ -719,7 +882,7 @@ export default function CCTVPanel({
 
           {/* Camera Channel Indicator — Single Physical Node */}
           <div className="bg-slate-800/90 border border-slate-700/90 text-slate-200 text-xs font-bold rounded-md px-2.5 py-1 flex items-center space-x-1.5 shadow-sm">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="w-2 h-2 rounded-full bg-emerald-500" />
             <span className="font-mono text-amber-400">CAMERA C-01</span>
             <span className="text-slate-400 text-[11px] hidden sm:inline">(Laptop Webcam)</span>
           </div>
@@ -772,7 +935,7 @@ export default function CCTVPanel({
           {!activeDrawing ? (
             <button
               onClick={startDrawing}
-              className="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-slate-950 text-xs font-bold rounded-md transition-colors flex items-center space-x-1 shadow-sm"
+              className="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 active:scale-[0.98] text-slate-950 text-xs font-bold rounded-md transition-all flex items-center space-x-1 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
               title="Click to draw safety perimeter"
             >
               <ShieldAlert className="w-3.5 h-3.5" />
@@ -780,7 +943,7 @@ export default function CCTVPanel({
               <span className="sm:hidden">{hasZone ? 'Zone' : '+ Zone'}</span>
             </button>
           ) : (
-            <span className="bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-1 rounded text-xs font-bold animate-pulse">
+            <span className="bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-1 rounded text-xs font-bold">
               Drawing Mode
             </span>
           )}
@@ -1098,8 +1261,8 @@ export default function CCTVPanel({
               onClick={activeDrawing ? handleSvgClick : undefined}
               className={`absolute inset-0 w-full h-full pointer-events-${activeDrawing ? 'auto' : 'none'} select-none z-10`}
             >
-              {/* 1. Restricted Zone Polygon */}
-              {hasZone && isZoneEnabled && (
+              {/* 1. Restricted Zone Polygon: Render only during active zone breach or when drawing/configuring */}
+              {hasZone && isZoneEnabled && (zoneViolation || activeDrawing || showZoneConfig) && (
                 <g>
                   <polygon
                     points={effectiveZone.polygon.map(pt => {
@@ -1109,7 +1272,6 @@ export default function CCTVPanel({
                     fill={zoneViolation ? "rgba(239, 68, 68, 0.28)" : "rgba(16, 185, 129, 0.20)"}
                     stroke={zoneViolation ? "#ef4444" : "#10b981"}
                     strokeWidth="2.5"
-                    className={zoneViolation ? "animate-pulse" : ""}
                   />
                   {/* Zone Label Badge */}
                   {effectiveZone.polygon.length > 0 && (
@@ -1123,7 +1285,7 @@ export default function CCTVPanel({
                       fontFamily="monospace"
                       fontWeight="bold"
                     >
-                      {effectiveZone.name.toUpperCase()} [{zoneViolation ? 'VIOLATION' : 'SECURE'}]
+                      {effectiveZone.name.toUpperCase()} [{zoneViolation ? 'VIOLATION' : 'CONFIG'}]
                     </text>
                   )}
                 </g>
@@ -1309,7 +1471,6 @@ export default function CCTVPanel({
                       strokeWidth={hasProximity ? '2.5' : '1.8'}
                       strokeDasharray={hasProximity ? 'none' : '6 4'}
                       rx="4"
-                      className={hasProximity ? 'animate-pulse' : ''}
                     />
                     {/* Zone Badge Tag */}
                     <rect
@@ -1388,7 +1549,6 @@ export default function CCTVPanel({
                       stroke="#ef4444"
                       strokeWidth="2.5"
                       strokeDasharray="5 3"
-                      className="animate-pulse"
                     />
                     <rect
                       x={midX - 70}
@@ -1427,7 +1587,7 @@ export default function CCTVPanel({
 
                 return (
                   <g key={`fire-${fIdx}`}>
-                    {/* Distinctive semi-transparent orange fill and vibrant pulsating border */}
+                    {/* Distinctive semi-transparent orange fill and high-contrast border */}
                     <rect
                       x={renderFx1}
                       y={fy1}
@@ -1437,7 +1597,6 @@ export default function CCTVPanel({
                       stroke="#ea580c"
                       strokeWidth="2.8"
                       rx="3"
-                      className="animate-pulse"
                     />
                     {/* Orange badge */}
                     <rect
@@ -1495,14 +1654,14 @@ export default function CCTVPanel({
             {/* Minimal CCTV HUD Overlay: Top-Left Hero Status */}
             <div className="absolute top-2 left-2 z-20 flex items-center space-x-2 pointer-events-auto">
               {hasActiveBreach ? (
-                <div className="bg-red-950/90 border border-red-500/80 backdrop-blur-sm text-white px-2.5 py-1 rounded shadow-lg flex items-center space-x-2 animate-pulse">
+                <div className="bg-red-950 border border-red-500 text-white px-2.5 py-1 rounded shadow-lg flex items-center space-x-2">
                   <span className="text-red-400 font-black text-[11px] tracking-wider">
                     🚨 SIF POTENTIAL • {breachTitle}
                   </span>
                   {activeAlert && onSelectAlert && (
                     <button
                       onClick={() => onSelectAlert(activeAlert)}
-                      className="px-2 py-0.5 bg-red-600 hover:bg-red-500 text-white font-black text-[10px] rounded transition-all shadow"
+                      className="px-2 py-0.5 bg-red-600 hover:bg-red-500 text-white font-black text-[10px] rounded transition-all shadow active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
                     >
                       VIEW ALERT
                     </button>
@@ -1515,7 +1674,7 @@ export default function CCTVPanel({
                   </span>
                   <span className="text-slate-500">|</span>
                   <span className="text-emerald-400 font-bold flex items-center space-x-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping inline-block" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
                     <span>MONITORING • ZONE STATUS SAFE</span>
                   </span>
                 </div>
@@ -1634,13 +1793,13 @@ export default function CCTVPanel({
                   </span>
                 ) : (
                   <span className="flex items-center space-x-1 px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-400 border border-blue-500/40">
-                    <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
                     <span>VIDEO MONITORING</span>
                   </span>
                 )
               ) : (
                 <span className="flex items-center space-x-1 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                   <span>LIVE</span>
                 </span>
               )}
@@ -1719,7 +1878,7 @@ export default function CCTVPanel({
 
                         {/* Overall Badge */}
                         <span className={`text-[10px] font-black px-2 py-0.5 rounded uppercase ${
-                          isViolation ? 'bg-red-500/20 text-red-400 border border-red-500/40 animate-pulse' :
+                          isViolation ? 'bg-red-500/20 text-red-400 border border-red-500/40' :
                           isOk ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' :
                           'bg-amber-500/20 text-amber-400 border border-amber-500/40'
                         }`}>
@@ -1766,7 +1925,7 @@ export default function CCTVPanel({
                     <span>Vehicles in Frame ({detectedVehicles.length})</span>
                   </div>
                   {isProximityActive ? (
-                    <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-red-600 text-white animate-pulse">
+                    <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-safety-crimson text-white">
                       PROXIMITY RISK
                     </span>
                   ) : (
@@ -1793,11 +1952,11 @@ export default function CCTVPanel({
                 <span className="text-xs font-semibold text-slate-300">Restricted Zone</span>
               </div>
               <span className={`text-[10px] font-black px-2 py-0.5 rounded flex items-center space-x-1 ${
-                zoneViolation ? 'bg-red-500/20 text-red-400 border border-red-500/40 animate-pulse' :
+                zoneViolation ? 'bg-red-500/20 text-red-400 border border-red-500/40' :
                 hasZone && isZoneEnabled ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' :
                 'bg-slate-800 text-slate-400 border border-slate-700'
               }`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${zoneViolation ? 'bg-red-400 animate-ping' : hasZone && isZoneEnabled ? 'bg-emerald-400' : 'bg-slate-500'}`} />
+                <span className={`w-1.5 h-1.5 rounded-full ${zoneViolation ? 'bg-safety-crimson' : hasZone && isZoneEnabled ? 'bg-safety-emerald' : 'bg-slate-500'}`} />
                 <span>{!hasZone ? 'NO ZONE' : !isZoneEnabled ? 'DISABLED' : zoneViolation ? 'VIOLATION' : 'CLEAR'}</span>
               </span>
             </div>
@@ -1810,10 +1969,10 @@ export default function CCTVPanel({
               </div>
               <span className={`text-[10px] font-black px-2 py-0.5 rounded flex items-center space-x-1 ${
                 isFireActive 
-                  ? 'bg-orange-500/20 text-orange-400 border border-orange-500/40 animate-pulse' 
+                  ? 'bg-orange-500/20 text-orange-400 border border-orange-500/40' 
                   : 'bg-slate-800 text-slate-400 border border-slate-700'
               }`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${isFireActive ? 'bg-orange-400 animate-ping' : 'bg-slate-500'}`} />
+                <span className={`w-1.5 h-1.5 rounded-full ${isFireActive ? 'bg-safety-amber' : 'bg-slate-500'}`} />
                 <span>{isFireActive ? '🟠 FIRE DETECTED' : '● NO FIRE DETECTED'}</span>
               </span>
             </div>
@@ -1829,7 +1988,7 @@ export default function CCTVPanel({
             {isProximityActive && (
               <div className="mb-2 p-2.5 rounded-lg bg-red-950/80 border-2 border-red-500 text-red-100 shadow-md space-y-1">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black text-white bg-red-600 px-1.5 py-0.5 rounded animate-pulse">
+                  <span className="text-[10px] font-black text-white bg-safety-crimson px-1.5 py-0.5 rounded shadow-2xs">
                     🔴 HIGH PRIORITY
                   </span>
                   <span className="text-[9px] font-mono text-red-300">PROXIMITY CONFIRMED</span>
@@ -1849,7 +2008,7 @@ export default function CCTVPanel({
             {isFireActive && (
               <div className="mb-2 p-2.5 rounded-lg bg-orange-950/80 border-2 border-orange-500 text-orange-100 shadow-md space-y-1">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black text-white bg-orange-600 px-1.5 py-0.5 rounded animate-pulse">
+                  <span className="text-[10px] font-black text-white bg-orange-600 px-1.5 py-0.5 rounded shadow-2xs">
                     🟠 FIRE DETECTED
                   </span>
                   <span className="text-[9px] font-mono text-orange-300">
@@ -1900,7 +2059,7 @@ export default function CCTVPanel({
               </div>
             ) : (detectedPersons.length > 0 && detectedPersons.some(p => p.overall_ppe_status === 'UNKNOWN')) ? (
               <div className="p-2.5 rounded-lg bg-amber-950/30 border border-amber-500/30 text-amber-300 flex items-center space-x-2">
-                <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                <span className="w-2 h-2 rounded-full bg-safety-amber" />
                 <div>
                   <div className="text-xs font-bold text-amber-200">PPE MONITORING ACTIVE</div>
                   <div className="text-[10px] text-amber-400/80">Confirming worker PPE status — not yet fully verified</div>

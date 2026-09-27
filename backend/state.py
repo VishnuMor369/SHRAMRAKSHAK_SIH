@@ -3611,17 +3611,22 @@ class AlertStateManager:
             self.camera_active_alert_id = None
             self.current_safety_state = "MONITORING"
 
-            # Clear active CV alert if present
-            if self.active_alert:
+            # Clear active CV alerts from active alerts dictionary
+            to_remove = [
+                aid for aid, a in self._active_alerts.items()
                 if (
-                    self.active_alert.type in ("Person–Vehicle Proximity", "Helmet/PPE Violation", "Restricted Area Breach", "Zone Breach", "CCTV Safety Violation", "Safety Vest Violation", "Gloves Violation", "Fire Hazard", "Fire Detection") or
-                    "fire" in self.active_alert.type.lower() or
-                    getattr(self.active_alert, "source", "") in ("CCTV_CV", "CV_DETECTION", "CCTV") or
-                    self.active_alert.id.startswith("ALT-PROX-") or
-                    self.active_alert.id.startswith("ALT-FIRE-") or
-                    self.active_alert.id.startswith("ALT-CV-")
-                ):
-                    self.active_alert = None
+                    a.type in ("Person–Vehicle Proximity", "Helmet/PPE Violation", "Restricted Area Breach", "Zone Breach", "CCTV Safety Violation", "Safety Vest Violation", "Gloves Violation", "Fire Hazard", "Fire Detection") or
+                    "fire" in a.type.lower() or
+                    getattr(a, "source", "") in ("CCTV_CV", "CV_DETECTION", "CCTV") or
+                    aid.startswith("ALT-PROX-") or
+                    aid.startswith("ALT-FIRE-") or
+                    aid.startswith("ALT-CV-")
+                )
+            ]
+            for aid in to_remove:
+                del self._active_alerts[aid]
+            if hasattr(self, "active_alert"):
+                self.active_alert = None
             
             # Reset detection engine tracks if available
             try:

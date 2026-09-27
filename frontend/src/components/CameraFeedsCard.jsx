@@ -1,5 +1,6 @@
 import React from 'react';
 import { Video, ShieldCheck, Wifi, Eye, CheckCircle2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export default function CameraFeedsCard({ status, activeCamera = 'C-01', onSelectCamera }) {
   const cameraActive = status?.camera_active ?? true;
@@ -8,46 +9,46 @@ export default function CameraFeedsCard({ status, activeCamera = 'C-01', onSelec
     {
       id: 'C-01',
       name: 'CAMERA C-01',
-      location: 'Demo Work Zone (Laptop Webcam)',
+      location: 'Primary Work Zone (Laptop Webcam)',
       resolution: '640×480',
-      badge: 'PHYSICAL WEBCAM',
+      badge: 'PHYSICAL NODE',
       active: cameraActive,
       streamUrl: '/video_feed?camera=C-01'
     }
   ];
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-      <div className="flex items-center justify-between mb-3">
+    <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs space-y-3">
+      {/* Header */}
+      <div className="flex items-center justify-between pb-2 border-b border-slate-100 flex-wrap gap-2">
         <div className="flex items-center space-x-2">
           <Video className="w-4 h-4 text-slate-700" />
           <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider">
             Site Surveillance Node
           </h3>
         </div>
-        <div className="flex items-center space-x-2">
-          <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-            1 / 1 Feed Active (C-01)
-          </span>
-        </div>
+        <span className="text-[11px] font-mono-timer font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+          1/1 Feed Active ({activeCamera})
+        </span>
       </div>
 
-      {/* Primary Camera C-01 */}
-      <div className="grid grid-cols-1 gap-3">
+      {/* Responsive Grid for Camera Feeds */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3">
         {cameras.map((cam) => {
           const isSelected = (activeCamera === cam.id);
           return (
             <div
               key={cam.id}
               onClick={() => onSelectCamera && onSelectCamera(cam.id)}
-              className={`border rounded-lg p-2.5 transition-all cursor-pointer flex flex-col justify-between ${
+              className={cn(
+                "border rounded-xl p-3 transition-all cursor-pointer flex flex-col justify-between active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900",
                 isSelected
-                  ? 'border-amber-500 bg-amber-50/40 ring-2 ring-amber-400/30 shadow-sm'
-                  : 'border-slate-200 bg-slate-50/50 hover:bg-slate-100/80 hover:border-slate-300'
-              }`}
+                  ? "border-slate-900 bg-slate-50/80 shadow-xs ring-1 ring-slate-900/10"
+                  : "border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300"
+              )}
             >
               {/* Snapshot Thumbnail */}
-              <div className="w-full h-24 bg-slate-950 rounded border border-slate-300 overflow-hidden relative shrink-0 flex items-center justify-center mb-2">
+              <div className="w-full aspect-video sm:aspect-[4/3] lg:aspect-video bg-slate-950 rounded-lg border border-slate-300 overflow-hidden relative shrink-0 flex items-center justify-center mb-2.5">
                 {cam.active ? (
                   <img
                     src={cam.streamUrl}
@@ -58,40 +59,42 @@ export default function CameraFeedsCard({ status, activeCamera = 'C-01', onSelec
                     }}
                   />
                 ) : (
-                  <span className="text-[9px] text-slate-500 font-mono">OFFLINE</span>
+                  <span className="text-[10px] text-slate-500 font-mono-timer font-bold">OFFLINE</span>
                 )}
                 
-                {/* Live Dot */}
-                <div className="absolute top-1.5 left-1.5 flex items-center space-x-1 bg-black/70 backdrop-blur-xs px-1.5 py-0.5 rounded">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 block animate-pulse"></span>
-                  <span className="text-[9px] font-mono font-bold text-emerald-400">LIVE</span>
+                {/* Static Live Dot (No pulse) */}
+                <div className="absolute top-2 left-2 flex items-center space-x-1.5 bg-slate-950/85 backdrop-blur-xs px-2 py-0.5 rounded border border-white/10 shadow-xs">
+                  <span className="w-1.5 h-1.5 rounded-full bg-safety-emerald" />
+                  <span className="text-[9px] font-mono-timer font-bold text-white tracking-wider">LIVE</span>
                 </div>
 
                 {/* Selected Indicator */}
                 {isSelected && (
-                  <div className="absolute top-1.5 right-1.5 bg-amber-500 text-slate-950 px-1.5 py-0.5 rounded text-[9px] font-black tracking-wide flex items-center space-x-0.5">
-                    <CheckCircle2 className="w-2.5 h-2.5" />
-                    <span>PRIMARY</span>
+                  <div className="absolute top-2 right-2 bg-slate-900 text-white px-2 py-0.5 rounded text-[9px] font-black tracking-wider uppercase flex items-center space-x-1 shadow-xs">
+                    <CheckCircle2 className="w-3 h-3 text-safety-emerald" />
+                    <span>ACTIVE NODE</span>
                   </div>
                 )}
               </div>
 
               {/* Camera Info */}
-              <div>
+              <div className="space-y-1">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-black text-slate-900">
+                  <span className="text-xs font-black text-slate-900 tracking-tight">
                     {cam.name}
                   </span>
-                  <span className="text-[9px] font-bold text-slate-600 bg-slate-200/80 px-1 py-0.5 rounded">
+                  <span className="text-[9px] font-bold text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 uppercase">
                     {cam.badge}
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-600 truncate font-medium mt-0.5" title={cam.location}>
+                <p className="text-[11px] text-slate-600 truncate font-medium" title={cam.location}>
                   {cam.location}
                 </p>
-                <div className="flex items-center justify-between mt-1.5 pt-1.5 border-t border-slate-200/70 text-[10px] text-slate-400 font-mono">
+                <div className="flex items-center justify-between pt-1.5 border-t border-slate-100 text-[10px] text-slate-400 font-mono-timer font-bold">
                   <span>{cam.resolution}</span>
-                  <span className="text-emerald-700 font-bold bg-emerald-100/70 px-1 rounded">AI Armed</span>
+                  <span className="text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                    AI Armed
+                  </span>
                 </div>
               </div>
             </div>

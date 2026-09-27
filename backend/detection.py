@@ -976,6 +976,10 @@ class VideoDetectionEngine:
                         stale_ids.append(t_id)
             for t_id in stale_ids:
                 del self.tracked_persons[t_id]
+
+            # Temporal Hysteresis: retain confirmed/tracked persons across brief missed frames (frames_unseen <= 3)
+            # Prevents rapid on/off flickering when raw frame inference momentarily misses a borderline frame
+            active_tracks = [t for t in self.tracked_persons.values() if t.frames_unseen <= 3]
         else:
             # On fire-only frames, preserve active person tracks without incrementing frames_unseen
             active_tracks = [t for t in self.tracked_persons.values() if t.frames_unseen <= self.PERSON_LOST_FRAMES]
@@ -1303,10 +1307,13 @@ class VideoDetectionEngine:
                         if track.no_helmet_confirm_count >= (self.NO_HELMET_CONFIRM_FRAMES + 1):
                             track.stable_status = "NO_HELMET"
                     else:
-                        track.helmet_confirm_count = 0
-                        track.no_helmet_confirm_count = 0
-                        track.stable_status = "UNKNOWN"
-                        track.helmet_confidence = 0.0
+                        if track.helmet_confirm_count > 0:
+                            track.helmet_confirm_count -= 1
+                        if track.no_helmet_confirm_count > 0:
+                            track.no_helmet_confirm_count -= 1
+                        if track.helmet_confirm_count == 0 and track.no_helmet_confirm_count == 0:
+                            track.stable_status = "UNKNOWN"
+                            track.helmet_confidence = 0.0
 
                 # --- B. SAFETY VEST DETECTION ---
                 vest_found = False
@@ -2028,20 +2035,22 @@ class VideoDetectionEngine:
             self.last_fire_crop_b64 = None
             self.last_fire_conf = 0.0
 
-    def _generate_synthetic_frame(self, state_text: str, is_safe: bool) -> np.ndarray:
+    def _generate_synthetic_frame(self, state_text: str = "IDLE", is_safe: bool = True, demo_triggered: bool = False) -> np.ndarray:
         frame = np.full((480, 640, 3), 35, dtype=np.uint8)
         for y in range(60, 480, 60):
             cv2.line(frame, (0, y), (640, y), (45, 45, 45), 1)
         for x in range(80, 640, 80):
             cv2.line(frame, (x, 0), (x, 480), (45, 45, 45), 1)
-        box_color = (70, 180, 80) if is_safe else (70, 70, 230)
-        cv2.rectangle(frame, (200, 120), (440, 420), box_color, 2)
-        cv2.circle(frame, (320, 180), 45, (180, 180, 180), 2)
-        if is_safe:
-            cv2.ellipse(frame, (320, 160), (46, 26), 0, 180, 360, (0, 220, 255), -1)
-            cv2.putText(frame, "HELMET DETECTED", (210, 110), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (80, 220, 80), 2)
-        else:
-            cv2.putText(frame, "NO HELMET", (240, 110), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (70, 70, 240), 2)
+        # Gate placeholder detection box: only render when explicitly triggered by a demo control, never in default/idle camera state
+        if demo_triggered and state_text not in ("IDLE", "STANDBY", "CLEAN", "NORMAL"):
+            box_color = (70, 180, 80) if is_safe else (70, 70, 230)
+            cv2.rectangle(frame, (200, 120), (440, 420), box_color, 2)
+            cv2.circle(frame, (320, 180), 45, (180, 180, 180), 2)
+            if is_safe:
+                cv2.ellipse(frame, (320, 160), (46, 26), 0, 180, 360, (0, 220, 255), -1)
+                cv2.putText(frame, "HELMET DETECTED", (210, 110), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (80, 220, 80), 2)
+            else:
+                cv2.putText(frame, "NO HELMET", (240, 110), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (70, 70, 240), 2)
         return frame
 
     def _generate_cctv_channel_frame(self, channel: str) -> np.ndarray:

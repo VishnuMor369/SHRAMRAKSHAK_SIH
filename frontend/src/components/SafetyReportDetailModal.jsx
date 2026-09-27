@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   X, 
   ShieldAlert, 
@@ -22,25 +23,37 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { submitHSEReview, getSingleReportPdfUrl } from '../services/api';
-import { UnifiedModal } from './common';
+import { cn } from '@/lib/utils';
 
 export default function SafetyReportDetailModal({ report, isOpen, onClose, onReviewUpdated }) {
-  if (!isOpen || !report) return null;
+  // Lock background body & html scroll while modal is open
+  useEffect(() => {
+    if (!isOpen) return;
+    const prevBodyOverflow = document.body.style.overflow;
+    const prevHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prevBodyOverflow;
+      document.documentElement.style.overflow = prevHtmlOverflow;
+    };
+  }, [isOpen]);
 
   const [reviewDecision, setReviewDecision] = useState(null); // 'CONFIRM' | 'CORRECT' | 'REJECT'
   const [isEditingCorrection, setIsEditingCorrection] = useState(false);
-  const [corrSif, setCorrSif] = useState(report.sif_potential);
-  const [corrRisk, setCorrRisk] = useState(report.risk_score);
-  const [corrBarrier, setCorrBarrier] = useState(report.barrier || '');
-  const [corrLsr, setCorrLsr] = useState(report.life_saving_rules?.[0] || '');
-  const [corrConsequence, setCorrConsequence] = useState(report.potential_consequence || '');
+  const [corrSif, setCorrSif] = useState(report?.sif_potential);
+  const [corrRisk, setCorrRisk] = useState(report?.risk_score);
+  const [corrBarrier, setCorrBarrier] = useState(report?.barrier || '');
+  const [corrLsr, setCorrLsr] = useState(report?.life_saving_rules?.[0] || '');
+  const [corrConsequence, setCorrConsequence] = useState(report?.potential_consequence || '');
   const [reviewerRole, setReviewerRole] = useState('HSE Superintendent');
   const [reviewNotes, setReviewNotes] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
   const [activeReport, setActiveReport] = useState(report);
 
   // Sync state if report prop changes
-  React.useEffect(() => {
+  useEffect(() => {
+    if (!report) return;
     setActiveReport(report);
     setCorrSif(report.sif_potential);
     setCorrRisk(report.risk_score);
@@ -50,6 +63,8 @@ export default function SafetyReportDetailModal({ report, isOpen, onClose, onRev
     setIsEditingCorrection(false);
     setReviewDecision(null);
   }, [report]);
+
+  if (!isOpen || !activeReport) return null;
 
   const isSif = activeReport.sif_potential;
   const isDataset = activeReport.source === 'OIL_DATASET' || activeReport.source === 'DATASET_CSV';
@@ -104,14 +119,18 @@ export default function SafetyReportDetailModal({ report, isOpen, onClose, onRev
 
   const currentReview = activeReport.hse_review;
 
-  return (
-    <UnifiedModal
-      isOpen={isOpen}
-      onClose={onClose}
-      maxWidthClass="max-w-4xl"
+  const modalContent = (
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/60 backdrop-blur-md overflow-hidden animate-in fade-in duration-150"
+      onClick={onClose}
     >
-      {/* Header */}
-        <div className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between border-b border-slate-800">
+      <div 
+        className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-4xl w-full flex flex-col max-h-[92vh] overflow-hidden my-auto animate-in zoom-in-95 duration-150"
+        onClick={(e) => e.stopPropagation()}
+      >
+        
+        {/* Header */}
+        <div className="shrink-0 bg-slate-900 text-white px-6 py-4 flex items-center justify-between border-b border-slate-800">
           <div className="flex items-center space-x-3">
             <div className="w-9 h-9 rounded-lg bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400">
               <BrainCircuit className="w-5 h-5" />
@@ -161,7 +180,7 @@ export default function SafetyReportDetailModal({ report, isOpen, onClose, onRev
         </div>
 
         {/* Narrative Banner: What happened? */}
-        <div className="bg-slate-50 border-b border-slate-200 px-6 py-3.5">
+        <div className="shrink-0 bg-slate-50 border-b border-slate-200 px-6 py-3.5">
           <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">
             Safety Event Narrative
           </div>
@@ -185,7 +204,7 @@ export default function SafetyReportDetailModal({ report, isOpen, onClose, onRev
         </div>
 
         {/* Modal Scrollable Body */}
-        <div className="p-6 overflow-y-auto space-y-6 text-slate-800 max-h-[calc(85vh-160px)]">
+        <div className="flex-1 overflow-y-auto p-6 space-y-6 text-slate-800 custom-scrollbar">
 
           {/* 4 KPI Dimensions (Risk Score, SIF Potential, AI Confidence, Evidence Strength) */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -654,6 +673,9 @@ export default function SafetyReportDetailModal({ report, isOpen, onClose, onRev
           </div>
 
         </div>
-    </UnifiedModal>
+      </div>
+    </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent;
 }

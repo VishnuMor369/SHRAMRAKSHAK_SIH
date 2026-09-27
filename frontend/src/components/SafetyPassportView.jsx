@@ -30,7 +30,6 @@ import {
   verifyBarrierRestored, 
   closePassport 
 } from '../services/api';
-import { UnifiedModal } from './common';
 
 export default function SafetyPassportView({ status, onClose }) {
   const activePassport = status?.active_passport;
@@ -316,7 +315,7 @@ export default function SafetyPassportView({ status, onClose }) {
 
               {isActive && (
                 <div className="flex items-center space-x-2 bg-black/20 px-3 py-1 rounded-lg">
-                  <Clock className="w-4 h-4 text-emerald-300 animate-spin-slow" />
+                  <Clock className="w-4 h-4 text-emerald-300" />
                   <div className="text-right">
                     <span className="text-xs font-black font-mono-timer">
                       VALID FOR: {remainingTime}
@@ -365,7 +364,7 @@ export default function SafetyPassportView({ status, onClose }) {
               {isPaused && (
                 <div className="p-4 bg-red-100/80 border border-red-300 rounded-xl space-y-2.5">
                   <div className="flex items-center space-x-2 text-red-900 font-bold text-xs">
-                    <AlertTriangle className="w-4 h-4 text-red-600 animate-pulse" />
+                    <AlertTriangle className="w-4 h-4 text-safety-crimson" />
                     <span className="uppercase">SAFETY PASSPORT PAUSED — CRITICAL BARRIER BREACH</span>
                   </div>
                   <div className="text-xs text-red-950 font-medium space-y-1 bg-white/70 p-2.5 rounded-lg border border-red-200">
@@ -658,7 +657,7 @@ export default function SafetyPassportView({ status, onClose }) {
                 const timeStr = new Date(evt.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
                 let dotColor = 'bg-slate-400';
                 if (evt.event_type === 'activated' || evt.event_type === 'reactivated') dotColor = 'bg-emerald-500';
-                if (evt.event_type === 'paused') dotColor = 'bg-red-600 animate-pulse';
+                if (evt.event_type === 'paused') dotColor = 'bg-safety-crimson';
                 if (evt.event_type === 'barrier_clear') dotColor = 'bg-amber-500';
                 if (evt.event_type === 'approved') dotColor = 'bg-purple-600';
 
@@ -681,14 +680,9 @@ export default function SafetyPassportView({ status, onClose }) {
       </div>
 
       {/* CREATE HIGH-RISK TASK MODAL */}
-      <UnifiedModal
-        isOpen={isCreateOpen}
-        onClose={() => {
-          setIsCreateOpen(false);
-          setIsDesigningZone(false);
-        }}
-        maxWidthClass="max-w-lg"
-      >
+      {isCreateOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full overflow-hidden my-6">
             <div className="px-5 py-3.5 bg-slate-900 text-white flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <ShieldCheck className="w-4 h-4 text-amber-400" />
@@ -973,7 +967,9 @@ export default function SafetyPassportView({ status, onClose }) {
                 </div>
               </form>
             )}
-      </UnifiedModal>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

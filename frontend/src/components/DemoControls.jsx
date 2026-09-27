@@ -97,7 +97,7 @@ export default function DemoControls() {
             <button
               onClick={handleSimulateViolation}
               disabled={loading}
-              className="px-3.5 py-2 rounded-md bg-red-600 hover:bg-red-700 active:bg-red-800 text-white text-xs font-bold transition-all shadow-sm flex items-center space-x-1.5 disabled:opacity-50"
+              className="px-3.5 py-2 rounded-lg bg-safety-crimson hover:bg-red-700 active:scale-[0.98] text-white text-xs font-bold transition-all shadow-xs flex items-center space-x-1.5 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
             >
               <AlertTriangle className="w-3.5 h-3.5" />
               <span>SIMULATE NO HELMET</span>
@@ -106,7 +106,7 @@ export default function DemoControls() {
             <button
               onClick={handleSimulateZoneViolation}
               disabled={loading}
-              className="px-3.5 py-2 rounded-md bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white text-xs font-bold transition-all shadow-sm flex items-center space-x-1.5 disabled:opacity-50"
+              className="px-3.5 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 active:scale-[0.98] text-white text-xs font-bold transition-all shadow-xs flex items-center space-x-1.5 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
             >
               <ShieldAlert className="w-3.5 h-3.5" />
               <span>SIMULATE ZONE ENTRY</span>
@@ -115,16 +115,16 @@ export default function DemoControls() {
             <button
               onClick={handleSimulateMultiViolation}
               disabled={loading}
-              className="px-3.5 py-2 rounded-md bg-purple-700 hover:bg-purple-800 active:bg-purple-900 text-white text-xs font-bold transition-all shadow-sm flex items-center space-x-1.5 disabled:opacity-50"
+              className="px-3.5 py-2 rounded-lg bg-purple-700 hover:bg-purple-800 active:scale-[0.98] text-white text-xs font-bold transition-all shadow-xs flex items-center space-x-1.5 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
             >
               <AlertTriangle className="w-3.5 h-3.5" />
-              <span>SIMULATE DUAL HAZARD (ZONE + 2 NO-HELMET)</span>
+              <span>SIMULATE DUAL HAZARD</span>
             </button>
 
             <button
               onClick={handleSimulateSafe}
               disabled={loading}
-              className="px-3.5 py-2 rounded-md bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-bold transition-all shadow-sm flex items-center space-x-1.5 disabled:opacity-50"
+              className="px-3.5 py-2 rounded-lg bg-safety-emerald hover:bg-emerald-700 active:scale-[0.98] text-white text-xs font-bold transition-all shadow-xs flex items-center space-x-1.5 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
             >
               <ShieldCheck className="w-3.5 h-3.5" />
               <span>SIMULATE SAFE</span>
@@ -133,7 +133,7 @@ export default function DemoControls() {
             <button
               onClick={handleReset}
               disabled={loading}
-              className="px-3.5 py-2 rounded-md bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white text-xs font-bold transition-all shadow-sm flex items-center space-x-1.5 disabled:opacity-50"
+              className="px-3.5 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white text-xs font-bold transition-all shadow-xs flex items-center space-x-1.5 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span>RESET DEMO</span>

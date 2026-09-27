@@ -27,7 +27,7 @@ export default function SafetyStatusCard({ status }) {
       badgeBg: 'bg-red-600',
       badgeText: 'text-white',
       titleColor: 'text-red-900',
-      icon: <ShieldAlert className="w-9 h-9 text-red-600 animate-pulse" />,
+      icon: <ShieldAlert className="w-9 h-9 text-safety-crimson" />,
       title: 'SAFETY VIOLATION — NO HELMET',
       subtitle: 'Worker detected in hazardous work zone without required hard hat/PPE.',
       statusBadge: 'CRITICAL HAZARD',
@@ -49,15 +49,20 @@ export default function SafetyStatusCard({ status }) {
   }
 
   return (
-    <div className={`industrial-card p-5 border-2 ${theme.border} ${theme.bg} transition-all duration-300`}>
+    <div 
+      tabIndex={0}
+      role="region"
+      aria-label={`Safety Status: ${theme.title}`}
+      className={`industrial-card group p-5 border-2 ${theme.border} ${theme.bg} rounded-xl hover:shadow-md hover:border-slate-400 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 transition-all duration-200 cursor-default`}
+    >
       <div className="flex items-start justify-between">
         <div className="flex items-start space-x-4">
-          <div className="p-2.5 rounded-lg bg-white shadow-sm border border-slate-200/80">
+          <div className="p-2.5 rounded-lg bg-white shadow-xs border border-slate-200/80 group-hover:scale-105 group-hover:shadow-sm transition-all duration-200 shrink-0">
             {theme.icon}
           </div>
           <div>
             <div className="flex items-center space-x-2">
-              <span className={`px-2.5 py-0.5 rounded text-xs font-black tracking-wider uppercase ${theme.badgeBg} ${theme.badgeText}`}>
+              <span className={`px-2.5 py-0.5 rounded text-xs font-black tracking-wider uppercase transition-transform group-hover:scale-[1.02] ${theme.badgeBg} ${theme.badgeText}`}>
                 {theme.statusBadge}
               </span>
               <span className="text-xs font-semibold text-slate-500">
