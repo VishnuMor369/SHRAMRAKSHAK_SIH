@@ -1,0 +1,96 @@
+{
+  "run_id": "AR-0003",
+  "filename": "dataset_alpha.csv",
+  "file_type": "CSV",
+  "upload_time": "2026-09-27T15:28:37.267960",
+  "provenance": "External safety dataset used for stress testing.",
+  "records_detected": 2,
+  "records_analyzed": 2,
+  "failed_count": 0,
+  "review_required_count": 0,
+  "sif_count": 0,
+  "non_sif_count": 2,
+  "sif_percentage": 0.0,
+  "status": "COMPLETED",
+  "candidate_patterns": [
+    {
+      "pattern_id": "PAT-EXCLUSION_ZONE-01",
+      "title": "Recurring Control Breach: EXCLUSION_ZONE during Mechanical Lifting Operations",
+      "occurrence_count": 2,
+      "activity": "Mechanical Lifting Operations",
+      "barrier": "EXCLUSION_ZONE",
+      "sif_potential": "HIGH",
+      "validation_status": "CANDIDATE",
+      "source_reports": [
+        "REP-AR-0003-0001",
+        "REP-AR-0003-0002"
+      ]
+    }
+  ],
+  "high_potential_cases": [],
+  "hazard_distribution": {
+    "Gravity / Suspended Load": 2
+  },
+  "activity_distribution": {
+    "Mechanical Lifting Operations": 2
+  },
+  "barrier_failure_distribution": {
+    "EXCLUSION_ZONE": 2
+  },
+  "iogp_distribution": {
+    "SAFE_MECHANICAL_LIFTING": 2,
+    "BYPASSING_SAFETY_CONTROLS": 2
+  },
+  "reports": [
+    {
+      "report_id": "REP-AR-0003-0001",
+      "original_text": "Worker entered lifting exclusion zone while load suspended",
+      "activity": "Mechanical Lifting Operations",
+      "location": "Operational Site",
+      "hazard": "Gravity / Suspended Load",
+      "exposure": "Person inside hazardous perimeter",
+      "barrier": "EXCLUSION_ZONE",
+      "barrier_state": "BYPASSED",
+      "consequence": "Potential industrial trauma",
+      "sif_potential": "NON_SIF",
+      "assertion": "AFFIRMED",
+      "lsr": "SAFE_MECHANICAL_LIFTING, BYPASSING_SAFETY_CONTROLS",
+      "evidence_spans": [
+        {
+          "field": "activity",
+          "value": "MECHANICAL_LIFTING",
+          "start_offset": 15,
+          "end_offset": 22,
+          "text": "lifting",
+          "confidence": 1.0,
+          "source": "NLP_EXTRACTION"
+        }
+      ]
+    },
+    {
+      "report_id": "REP-AR-0003-0002",
+      "original_text": "Contractor crossed barricade under active crane",
+      "activity": "Mechanical Lifting Operations",
+      "location": "Operational Site",
+      "hazard": "Gravity / Suspended Load",
+      "exposure": "Person inside hazardous perimeter",
+      "barrier": "EXCLUSION_ZONE",
+      "barrier_state": "BYPASSED",
+      "consequence": "Potential industrial trauma",
+      "sif_potential": "NON_SIF",
+      "assertion": "AFFIRMED",
+      "lsr": "SAFE_MECHANICAL_LIFTING, BYPASSING_SAFETY_CONTROLS",
+      "evidence_spans": [
+        {
+          "field": "activity",
+          "value": "MECHANICAL_LIFTING",
+          "start_offset": 42,
+          "end_offset": 47,
+          "text": "crane",
+          "confidence": 1.0,
+          "source": "NLP_EXTRACTION"
+        }
+      ]
+    }
+  ]
+}

@@ -13,7 +13,20 @@ import {
   Info,
   ExternalLink
 } from 'lucide-react';
-import { executeDemoPhase, resetEnterpriseDemo, analyzeRawText } from '../../services/api';
+import { 
+  executeDemoPhase, 
+  resetEnterpriseDemo, 
+  analyzeRawText,
+  fetchDemoStatus,
+  resetDemoWorkspace,
+  loadDemoData,
+  submitDemoHumanReport,
+  triggerDemoCctvEvent,
+  validateDemoPattern,
+  assignDemoAction,
+  completeDemoAction,
+  verifyDemoAction
+} from '../../services/api';
 
 export default function SettingsDemoView({ onNavigate }) {
   const [currentPhase, setCurrentPhase] = useState(1);
@@ -21,6 +34,91 @@ export default function SettingsDemoView({ onNavigate }) {
   const [phaseResult, setPhaseResult] = useState(null);
   const [resetting, setResetting] = useState(false);
   const [feedback, setFeedback] = useState(null);
+  const [demoStatus, setDemoStatus] = useState(null);
+  const [demoReportText, setDemoReportText] = useState('Worker entered the crane lifting exclusion zone while a suspended load was being moved.');
+  const [demoStepLoading, setDemoStepLoading] = useState(false);
+
+  const loadDemoSummary = () => {
+    fetchDemoStatus()
+      .then(data => setDemoStatus(data))
+      .catch(err => console.error('Failed to load demo status:', err));
+  };
+
+  React.useEffect(() => {
+    loadDemoSummary();
+  }, []);
+
+  const handleResetDemoSession = async () => {
+    try {
+      setResetting(true);
+      const res = await resetDemoWorkspace();
+      setDemoStatus(res.summary);
+      setFeedback('Demo Workspace cleanly reset to 0 events, 0 patterns, 0 actions, 0 verifications.');
+    } catch (err) {
+      setFeedback(`Reset failed: ${err.message}`);
+    } finally {
+      setResetting(false);
+    }
+  };
+
+  const handleLoadRepresentativeData = async () => {
+    try {
+      setDemoStepLoading(true);
+      const res = await loadDemoData();
+      setDemoStatus(res.summary);
+      setFeedback('Representative demo data loaded (4 human reports + 1 CCTV event through canonical pipeline).');
+    } catch (err) {
+      setFeedback(`Load demo data failed: ${err.message}`);
+    } finally {
+      setDemoStepLoading(false);
+    }
+  };
+
+  const handleSubmitHumanReport = async (text) => {
+    const t = text || demoReportText;
+    if (!t) return;
+    try {
+      setDemoStepLoading(true);
+      const res = await submitDemoHumanReport(t);
+      setDemoStatus(res.summary);
+      setFeedback(`Added human report! Total events: ${res.summary.total_events}, patterns: ${res.summary.pattern_count}`);
+    } catch (err) {
+      setFeedback(`Human report failed: ${err.message}`);
+    } finally {
+      setDemoStepLoading(false);
+    }
+  };
+
+  const handleTriggerCctv = async () => {
+    try {
+      setDemoStepLoading(true);
+      const res = await triggerDemoCctvEvent('CAM-RIG-01', 'Temporary Lifting Exclusion Zone');
+      setDemoStatus(res.summary);
+      setFeedback(`Added CCTV machine observation! Linked to pattern. Total events: ${res.summary.total_events}`);
+    } catch (err) {
+      setFeedback(`CCTV trigger failed: ${err.message}`);
+    } finally {
+      setDemoStepLoading(false);
+    }
+  };
+
+  const handleValidateTopPattern = async (action = 'CONFIRM') => {
+    const topPat = demoStatus?.patterns?.[0];
+    if (!topPat) {
+      setFeedback('No candidate pattern to validate. Submit reports first.');
+      return;
+    }
+    try {
+      setDemoStepLoading(true);
+      const res = await validateDemoPattern(topPat.pattern_id, action, 'HSE_MANAGER_OIL', 'Confirmed recurring failure of lifting exclusion zone boundary.');
+      loadDemoSummary();
+      setFeedback(`HSE ${action} recorded! Status is now: ${res.status}`);
+    } catch (err) {
+      setFeedback(`Validation failed: ${err.message}`);
+    } finally {
+      setDemoStepLoading(false);
+    }
+  };
 
   // Interactive Live NLP Assertion Lab (Phase 8)
   const [nlpText, setNlpText] = useState('Worker entered lifting exclusion zone while 15T pipe was suspended.');
@@ -159,12 +257,19 @@ export default function SettingsDemoView({ onNavigate }) {
 
         <div className="flex items-center space-x-2">
           <button
-            onClick={handleReset}
+            onClick={handleLoadRepresentativeData}
+            disabled={demoStepLoading}
+            className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs rounded-lg shadow-sm transition-all"
+          >
+            {demoStepLoading ? 'Loading...' : 'LOAD DEMO DATA'}
+          </button>
+          <button
+            onClick={handleResetDemoSession}
             disabled={resetting}
-            className="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-lg border border-slate-300 transition-colors flex items-center space-x-1"
+            className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-lg shadow-sm transition-all flex items-center space-x-1"
           >
             <RotateCcw className={`w-3.5 h-3.5 ${resetting ? 'animate-spin' : ''}`} />
-            <span>RESET DEMO TO BASELINE</span>
+            <span>RESET DEMO</span>
           </button>
         </div>
       </div>
@@ -176,7 +281,118 @@ export default function SettingsDemoView({ onNavigate }) {
         </div>
       )}
 
-      {/* 2. Synthetic Dataset Notice (Section 17 Compliance) */}
+      {/* 2. Isolated Clean Demonstration Workspace Card (Sections 10–20) */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+          <div>
+            <div className="flex items-center space-x-2">
+              <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-amber-500/20 text-amber-900 border border-amber-500/30">
+                JUDGE EVALUATION WORKSPACE
+              </span>
+              <span className="text-xs text-slate-500 font-mono">
+                {demoStatus?.is_clean_start ? 'CLEAN START ACTIVE (0/0)' : 'LIVE DEMO SESSION'}
+              </span>
+            </div>
+            <h2 className="text-sm font-black text-slate-900 tracking-tight mt-1">
+              Live Judge Demonstration Flow (Human Reports → Pattern Discovery → CCTV Link → HSE Validation)
+            </h2>
+          </div>
+
+          <div className="flex items-center space-x-3 text-xs font-mono">
+            <span className="px-2.5 py-1 rounded bg-slate-100 text-slate-800 font-bold">
+              Events: <strong className="text-slate-950">{demoStatus?.total_events || 0}</strong>
+            </span>
+            <span className="px-2.5 py-1 rounded bg-red-50 text-red-700 font-bold border border-red-200">
+              SIF: {demoStatus?.sif_potential_count || 0}
+            </span>
+            <span className="px-2.5 py-1 rounded bg-purple-50 text-purple-700 font-bold border border-purple-200">
+              Patterns: {demoStatus?.pattern_count || 0}
+            </span>
+          </div>
+        </div>
+
+        {/* Narrative Input & Preset Buttons */}
+        <div className="space-y-2">
+          <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
+            Step 1–4: Enter Differently Worded Human Reports to Discover Pattern:
+          </label>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={demoReportText}
+              onChange={(e) => setDemoReportText(e.target.value)}
+              placeholder="Enter human safety report narrative..."
+              className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 outline-none font-sans"
+            />
+            <button
+              onClick={() => handleSubmitHumanReport(demoReportText)}
+              disabled={demoStepLoading}
+              className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-amber-400 font-extrabold text-xs rounded-lg shadow-sm whitespace-nowrap"
+            >
+              Submit Report
+            </button>
+          </div>
+
+          {/* Quick presets from Section 13 */}
+          <div className="flex flex-wrap items-center gap-1.5 pt-1 text-[11px]">
+            <span className="text-slate-400 font-bold mr-1">4 Differently Worded Reports:</span>
+            {[
+              { id: 1, text: 'Worker entered the crane lifting exclusion zone while a suspended load was being moved.' },
+              { id: 2, text: 'During lifting, a contractor crossed the barricaded area beneath the suspended load.' },
+              { id: 3, text: 'Personnel were observed inside the drop zone during an active crane operation.' },
+              { id: 4, text: 'A worker bypassed the temporary lifting barrier and entered the restricted area.' }
+            ].map(p => (
+              <button
+                key={p.id}
+                onClick={() => {
+                  setDemoReportText(p.text);
+                  handleSubmitHumanReport(p.text);
+                }}
+                disabled={demoStepLoading}
+                className="px-2 py-1 rounded bg-slate-100 hover:bg-amber-100 hover:border-amber-300 border border-slate-200 text-slate-700 text-[10px] font-semibold transition-all"
+              >
+                + Report {p.id}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Subsequent Steps: CCTV & HSE Validation */}
+        <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={handleTriggerCctv}
+              disabled={demoStepLoading}
+              className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-lg shadow-sm flex items-center space-x-1.5 transition-all"
+            >
+              <Video className="w-3.5 h-3.5" />
+              <span>Step 5: + Add 1 CCTV Occurrence</span>
+            </button>
+
+            <button
+              onClick={() => handleValidateTopPattern('CONFIRM')}
+              disabled={demoStepLoading || (demoStatus?.pattern_count || 0) === 0}
+              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg shadow-sm flex items-center space-x-1.5 transition-all disabled:opacity-40"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>Step 6: HSE Validate Pattern</span>
+            </button>
+
+            <button
+              onClick={() => onNavigate && onNavigate('SAFETY MEMORY')}
+              className="px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-lg shadow-sm flex items-center space-x-1.5 transition-all"
+            >
+              <span>View In Safety Memory →</span>
+            </button>
+          </div>
+
+          <div className="text-[11px] text-slate-500 italic">
+            Representative demonstration observations — not actual OIL incident records.
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Synthetic Dataset Notice */}
       <div className="p-4 bg-amber-50/80 border border-amber-300 rounded-xl text-xs space-y-1 text-amber-950">
         <div className="flex items-center space-x-2 font-bold uppercase tracking-wider text-[11px] text-amber-900">
           <Info className="w-4 h-4 text-amber-700" />

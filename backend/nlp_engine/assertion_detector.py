@@ -604,7 +604,7 @@ class AssertionDetector:
             else:
                 barrier_states_found.append("PRESENT_UNVERIFIED")
 
-            if "zone" in text_lower or "barricade" in text_lower:
+            if any(w in text_lower for w in ["zone", "barricade", "restricted area", "exclusion", "lifting barrier", "drop area", "perimeter"]):
                 barriers_found.append("EXCLUSION_ZONE")
             elif "lockout" in text_lower or "loto" in text_lower or "isolation" in text_lower or "padlock" in text_lower:
                 barriers_found.append("ENERGY_ISOLATION_LOTO")

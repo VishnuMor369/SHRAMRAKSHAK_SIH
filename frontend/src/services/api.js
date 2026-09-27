@@ -804,4 +804,129 @@ export async function fetchDatasetImportStatus() {
   return res.json();
 }
 
+// ==========================================
+// DATASET INTELLIGENCE & ANALYSIS RUNS (Sections 21-31)
+// ==========================================
+
+export async function uploadAnalysisRun(formData) {
+  const res = await fetch(`${API_BASE}/api/analysis-runs/upload`, {
+    method: 'POST',
+    body: formData
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to analyze uploaded dataset');
+  }
+  return res.json();
+}
+
+export async function fetchAnalysisRuns() {
+  const res = await fetch(`${API_BASE}/api/analysis-runs`);
+  if (!res.ok) throw new Error('Failed to fetch analysis runs');
+  return res.json();
+}
+
+export async function fetchAnalysisRunById(runId) {
+  const res = await fetch(`${API_BASE}/api/analysis-runs/${runId}`);
+  if (!res.ok) throw new Error(`Failed to fetch analysis run ${runId}`);
+  return res.json();
+}
+
+export function getAnalysisRunPdfUrl(runId) {
+  return `${API_BASE}/api/analysis-runs/${runId}/pdf`;
+}
+
+// ==========================================
+// DEMONSTRATION WORKSPACE HELPERS (Sections 10-20)
+// ==========================================
+
+export async function fetchDemoStatus() {
+  const res = await fetch(`${API_BASE}/api/demo/status`);
+  if (!res.ok) throw new Error('Failed to fetch demo workspace status');
+  return res.json();
+}
+
+export async function resetDemoWorkspace() {
+  const res = await fetch(`${API_BASE}/api/demo/reset`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({})
+  });
+  if (!res.ok) throw new Error('Failed to reset demo workspace');
+  return res.json();
+}
+
+export async function loadDemoData() {
+  const res = await fetch(`${API_BASE}/api/demo/load-data`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({})
+  });
+  if (!res.ok) throw new Error('Failed to load demo data');
+  return res.json();
+}
+
+export async function submitDemoHumanReport(narrative, location = 'Drilling Rig 04 - Drill Floor', activity = 'Mechanical Lifting Operations') {
+  const res = await fetch(`${API_BASE}/api/demo/human-report`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ narrative, location, activity })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to submit human report');
+  }
+  return res.json();
+}
+
+export async function triggerDemoCctvEvent(cameraId = 'CAM-RIG-01', zoneName = 'Temporary Lifting Exclusion Zone') {
+  const res = await fetch(`${API_BASE}/api/demo/cctv-event`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ camera_id: cameraId, zone_name: zoneName })
+  });
+  if (!res.ok) throw new Error('Failed to trigger demo CCTV observation');
+  return res.json();
+}
+
+export async function validateDemoPattern(patternId, action = 'CONFIRM', reviewer = 'HSE_MANAGER_OIL', notes = '') {
+  const res = await fetch(`${API_BASE}/api/demo/validate-pattern`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ pattern_id: patternId, action, reviewer, notes })
+  });
+  if (!res.ok) throw new Error('Failed to validate demo pattern');
+  return res.json();
+}
+
+export async function assignDemoAction(patternId, supervisor = 'SUP-01', requiredAction = 'Reinstate physical exclusion barrier and clear lifting drop zone.') {
+  const res = await fetch(`${API_BASE}/api/demo/assign-action`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ pattern_id: patternId, supervisor, required_action: requiredAction })
+  });
+  if (!res.ok) throw new Error('Failed to assign demo action');
+  return res.json();
+}
+
+export async function completeDemoAction(actionId, notes = 'Physical barrier reinforced. Zone cleared.') {
+  const res = await fetch(`${API_BASE}/api/demo/complete-action`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action_id: actionId, notes })
+  });
+  if (!res.ok) throw new Error('Failed to complete demo action');
+  return res.json();
+}
+
+export async function verifyDemoAction(actionId, rebreach = false, notes = '') {
+  const res = await fetch(`${API_BASE}/api/demo/verify-action`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action_id: actionId, rebreach, notes })
+  });
+  if (!res.ok) throw new Error('Failed to verify demo action');
+  return res.json();
+}
+
 

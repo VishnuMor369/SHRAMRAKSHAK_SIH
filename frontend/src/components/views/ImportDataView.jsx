@@ -13,12 +13,15 @@ import {
   HelpCircle,
   Clock,
   Sparkles,
-  Info
+  Info,
+  BrainCircuit,
+  Eye
 } from 'lucide-react';
 import { 
   uploadDatasetFile, 
   executeDatasetImport, 
-  fetchDatasetImportStatus 
+  fetchDatasetImportStatus,
+  uploadAnalysisRun 
 } from '../../services/api';
 
 export default function ImportDataView({ onNavigate }) {
@@ -84,6 +87,36 @@ export default function ImportDataView({ onNavigate }) {
     } catch (err) {
       setErrorMsg(err.message || 'Failed to execute import batch');
       setIsProcessing(false);
+    }
+  };
+
+  const [analyzingRun, setAnalyzingRun] = useState(false);
+  const [analysisSuccessMsg, setAnalysisSuccessMsg] = useState('');
+
+  const handleRunDatasetAnalysis = async () => {
+    if (!selectedFile) {
+      setErrorMsg('Please select or drag a CSV or PDF file first.');
+      return;
+    }
+    setErrorMsg('');
+    setAnalysisSuccessMsg('');
+    setAnalyzingRun(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      formData.append('max_rows', batchLimit);
+      const res = await uploadAnalysisRun(formData);
+      if (res.success && res.run?.run_id) {
+        setAnalysisSuccessMsg(`Analysis complete! Created Run ${res.run.run_id}. Navigating to Dataset Intelligence...`);
+        setTimeout(() => {
+          if (onNavigate) onNavigate('DATASET ANALYSIS', res.run.run_id);
+        }, 700);
+      }
+    } catch (err) {
+      setErrorMsg(err.message || 'Dataset analysis execution failed');
+    } finally {
+      setAnalyzingRun(false);
     }
   };
 
@@ -160,6 +193,60 @@ export default function ImportDataView({ onNavigate }) {
               <span>{errorMsg}</span>
             </div>
           )}
+
+          {/* Dedicated AnalysisRun Execution Card (Sections 21-32) */}
+          <div className="bg-slate-900 text-white rounded-xl p-4 shadow-md space-y-3 border border-slate-800">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <BrainCircuit className="w-4 h-4 text-amber-400" />
+                <span className="font-extrabold text-xs uppercase tracking-wider text-amber-400">
+                  Execute Isolated Analysis Run
+                </span>
+              </div>
+              <span className="text-[10px] font-mono text-slate-400 bg-slate-800 px-2 py-0.5 rounded">
+                SECTIONS 21–32
+              </span>
+            </div>
+
+            <p className="text-[11px] text-slate-300 leading-relaxed">
+              Analyzes the uploaded file strictly in an isolated workspace (AR-XXXX). Extracts SIF potential, IOGP Life-Saving Rules, and candidate recurring patterns without polluting live Safety Memory. Generates publication-grade downloadable PDF report.
+            </p>
+
+            {analysisSuccessMsg && (
+              <div className="p-2.5 rounded-lg bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-semibold flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>{analysisSuccessMsg}</span>
+              </div>
+            )}
+
+            <div className="flex flex-col sm:flex-row gap-2 pt-1">
+              <button
+                onClick={handleRunDatasetAnalysis}
+                disabled={analyzingRun || !selectedFile}
+                className="flex-1 py-2.5 px-4 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs shadow flex items-center justify-center gap-2 transition-all disabled:opacity-40"
+              >
+                {analyzingRun ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>ANALYZING DATASET RUN...</span>
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-3.5 h-3.5 fill-slate-950" />
+                    <span>RUN DATASET INTELLIGENCE (ANALYSIS RUN)</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={() => onNavigate && onNavigate('ANALYSIS RUNS')}
+                className="py-2.5 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700 flex items-center justify-center gap-1.5 transition-all"
+              >
+                <Eye className="w-3.5 h-3.5 text-slate-400" />
+                <span>VIEW RUNS</span>
+              </button>
+            </div>
+          </div>
 
           {/* Normalization & Schema Guidance */}
           <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-3 shadow-sm text-xs">

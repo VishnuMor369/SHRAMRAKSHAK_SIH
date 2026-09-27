@@ -1,0 +1,178 @@
+{
+  "run_id": "AR-0001",
+  "filename": "oil_representative_sample_q3.csv",
+  "file_type": "CSV",
+  "upload_time": "2026-09-27T14:15:12.507896",
+  "provenance": "Representative demonstration observations \u2014 not actual OIL incident records.",
+  "records_detected": 5,
+  "records_analyzed": 5,
+  "failed_count": 0,
+  "review_required_count": 1,
+  "sif_count": 0,
+  "non_sif_count": 4,
+  "sif_percentage": 0.0,
+  "status": "COMPLETED",
+  "candidate_patterns": [
+    {
+      "pattern_id": "PAT-EXCLUSION_ZONE-01",
+      "title": "Recurring Control Breach: EXCLUSION_ZONE during Mechanical Lifting Operations",
+      "occurrence_count": 2,
+      "activity": "Mechanical Lifting Operations",
+      "barrier": "EXCLUSION_ZONE",
+      "sif_potential": "HIGH",
+      "validation_status": "CANDIDATE",
+      "source_reports": [
+        "REP-AR-0001-0001",
+        "REP-AR-0001-0003"
+      ]
+    }
+  ],
+  "high_potential_cases": [],
+  "hazard_distribution": {
+    "Gravity / Suspended Load": 3,
+    "Thermal / Flammable Atmosphere / Sparks": 1,
+    "Mechanical / Kinetic Energy": 1
+  },
+  "activity_distribution": {
+    "Mechanical Lifting Operations": 2,
+    "High Pressure Testing": 1,
+    "Hot Work Operations": 1,
+    "Confined Space Entry": 1
+  },
+  "barrier_failure_distribution": {
+    "EXCLUSION_ZONE": 3,
+    "GENERAL_ADMINISTRATIVE_CONTROL": 1
+  },
+  "iogp_distribution": {
+    "SAFE_MECHANICAL_LIFTING": 3,
+    "BYPASSING_SAFETY_CONTROLS": 4,
+    "General Industrial Safety": 1
+  },
+  "reports": [
+    {
+      "report_id": "REP-AR-0001-0001",
+      "original_text": "Worker stepped into the lifting zone without hard hat while crane was hoisting pipe.",
+      "activity": "Mechanical Lifting Operations",
+      "location": "Drilling Rig 04 - Drill Floor",
+      "hazard": "Gravity / Suspended Load",
+      "exposure": "Person inside hazardous perimeter",
+      "barrier": "EXCLUSION_ZONE",
+      "barrier_state": "BYPASSED",
+      "consequence": "Potential industrial trauma",
+      "sif_potential": "NON_SIF",
+      "assertion": "AFFIRMED",
+      "lsr": "SAFE_MECHANICAL_LIFTING, BYPASSING_SAFETY_CONTROLS",
+      "evidence_spans": [
+        {
+          "field": "activity",
+          "value": "MECHANICAL_LIFTING",
+          "start_offset": 24,
+          "end_offset": 31,
+          "text": "lifting",
+          "confidence": 1.0,
+          "source": "NLP_EXTRACTION"
+        }
+      ]
+    },
+    {
+      "report_id": "REP-AR-0001-0002",
+      "original_text": "Rigger crossed the barricaded perimeter under suspended drill collar during repositioning.",
+      "activity": "High Pressure Testing",
+      "location": "Drilling Rig 04 - Drill Floor",
+      "hazard": "Gravity / Suspended Load",
+      "exposure": "Person inside hazardous perimeter",
+      "barrier": "EXCLUSION_ZONE",
+      "barrier_state": "BYPASSED",
+      "consequence": "Potential industrial trauma",
+      "sif_potential": "NON_SIF",
+      "assertion": "AFFIRMED",
+      "lsr": "SAFE_MECHANICAL_LIFTING, BYPASSING_SAFETY_CONTROLS",
+      "evidence_spans": [
+        {
+          "field": "activity",
+          "value": "PRESSURE_TESTING",
+          "start_offset": 19,
+          "end_offset": 22,
+          "text": "bar",
+          "confidence": 1.0,
+          "source": "NLP_EXTRACTION"
+        }
+      ]
+    },
+    {
+      "report_id": "REP-AR-0001-0003",
+      "original_text": "Personnel observed standing in drop radius while 10-ton mud motor was suspended by crane.",
+      "activity": "Mechanical Lifting Operations",
+      "location": "Drilling Rig 04 - Drill Floor",
+      "hazard": "Gravity / Suspended Load",
+      "exposure": "Person inside hazardous perimeter",
+      "barrier": "EXCLUSION_ZONE",
+      "barrier_state": "BYPASSED",
+      "consequence": "Potential industrial trauma",
+      "sif_potential": "NON_SIF",
+      "assertion": "AFFIRMED",
+      "lsr": "SAFE_MECHANICAL_LIFTING, BYPASSING_SAFETY_CONTROLS",
+      "evidence_spans": [
+        {
+          "field": "activity",
+          "value": "MECHANICAL_LIFTING",
+          "start_offset": 83,
+          "end_offset": 88,
+          "text": "crane",
+          "confidence": 1.0,
+          "source": "NLP_EXTRACTION"
+        }
+      ]
+    },
+    {
+      "report_id": "REP-AR-0001-0004",
+      "original_text": "Hot work permit was approved; welder had full fire blanket and continuous atmospheric monitoring.",
+      "activity": "Hot Work Operations",
+      "location": "Separator Skid Area",
+      "hazard": "Thermal / Flammable Atmosphere / Sparks",
+      "exposure": "Person inside hazardous perimeter",
+      "barrier": "GENERAL_ADMINISTRATIVE_CONTROL",
+      "barrier_state": "PRESENT_UNVERIFIED",
+      "consequence": "Potential industrial trauma",
+      "sif_potential": "REVIEW_REQUIRED",
+      "assertion": "AFFIRMED",
+      "lsr": "General Industrial Safety",
+      "evidence_spans": [
+        {
+          "field": "activity",
+          "value": "HOT_WORK",
+          "start_offset": 0,
+          "end_offset": 8,
+          "text": "Hot work",
+          "confidence": 1.0,
+          "source": "NLP_EXTRACTION"
+        }
+      ]
+    },
+    {
+      "report_id": "REP-AR-0001-0005",
+      "original_text": "Technician observed entering confined vessel before gas test results were officially posted.",
+      "activity": "Confined Space Entry",
+      "location": "Crude Storage Tank T-102",
+      "hazard": "Mechanical / Kinetic Energy",
+      "exposure": "Person inside hazardous perimeter",
+      "barrier": "GENERAL_ADMINISTRATIVE_CONTROL",
+      "barrier_state": "BYPASSED",
+      "consequence": "Potential industrial trauma",
+      "sif_potential": "NON_SIF",
+      "assertion": "AFFIRMED",
+      "lsr": "BYPASSING_SAFETY_CONTROLS",
+      "evidence_spans": [
+        {
+          "field": "activity",
+          "value": "CONFINED_SPACE_ENTRY",
+          "start_offset": 38,
+          "end_offset": 44,
+          "text": "vessel",
+          "confidence": 1.0,
+          "source": "NLP_EXTRACTION"
+        }
+      ]
+    }
+  ]
+}

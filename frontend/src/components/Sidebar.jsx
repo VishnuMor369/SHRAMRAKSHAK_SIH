@@ -10,7 +10,9 @@ import {
   FileSpreadsheet,
   SlidersHorizontal,
   X, 
-  Bell
+  Bell,
+  BarChart3,
+  History
 } from 'lucide-react';
 
 export default function Sidebar({ isOpen, onClose, activeTab = 'OVERVIEW', onTabChange, activeAlertsCount = 0 }) {
@@ -21,8 +23,10 @@ export default function Sidebar({ isOpen, onClose, activeTab = 'OVERVIEW', onTab
     { id: 'SAFETY MEMORY', label: '4. SAFETY MEMORY', icon: Database, badge: 'RECURRENCE' },
     { id: 'LIVE SAFETY', label: '5. LIVE SAFETY', icon: Video, badge: 'CCTV' },
     { id: 'ACTIONS', label: '6. ACTIONS', icon: CheckCircle2, badge: activeAlertsCount > 0 ? `${activeAlertsCount}` : null, badgeClass: activeAlertsCount > 0 ? 'bg-red-500/20 text-red-400 border-red-500/30' : null },
-    { id: 'IMPORT DATA', label: '7. IMPORT DATA', icon: FileSpreadsheet, badge: 'CSV / PDF' },
-    { id: 'SETTINGS / DEMO', label: '8. SETTINGS / DEMO', icon: SlidersHorizontal, badge: 'DEMO 1-9' },
+    { id: 'IMPORT DATA', label: '7. DATASET INTELLIGENCE', icon: FileSpreadsheet, badge: 'UPLOAD' },
+    { id: 'DATASET ANALYSIS', label: '8. DATASET ANALYSIS', icon: BarChart3, badge: 'AR RUNS' },
+    { id: 'ANALYSIS RUNS', label: '9. ANALYSIS RUNS', icon: History, badge: 'PDF' },
+    { id: 'SETTINGS / DEMO', label: '10. SETTINGS / DEMO', icon: SlidersHorizontal, badge: 'DEMO' },
   ];
 
   return (

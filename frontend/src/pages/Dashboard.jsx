@@ -13,6 +13,8 @@ import LiveSafetyView from '../components/views/LiveSafetyView';
 import ActionsVerificationView from '../components/views/ActionsVerificationView';
 import ImportDataView from '../components/views/ImportDataView';
 import SettingsDemoView from '../components/views/SettingsDemoView';
+import DatasetAnalysisView from '../components/views/DatasetAnalysisView';
+import AnalysisRunsHistoryView from '../components/views/AnalysisRunsHistoryView';
 
 // Field / Supporting Modals & Views (Secondary)
 import SafetyPassportView from '../components/SafetyPassportView';
@@ -21,6 +23,7 @@ import HSEObservationView from '../components/HSEObservationView';
 export default function Dashboard({ stateData }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('OVERVIEW');
+  const [selectedRunId, setSelectedRunId] = useState(null);
   const [isQrOpen, setIsQrOpen] = useState(false);
   const [selectedAlert, setSelectedAlert] = useState(null);
   const [isAlertModalOpen, setIsAlertModalOpen] = useState(false);
@@ -90,6 +93,22 @@ export default function Dashboard({ stateData }) {
             />
           ) : activeTab === 'IMPORT DATA' ? (
             <ImportDataView 
+              onNavigate={(tab, runId) => {
+                if (runId) setSelectedRunId(runId);
+                setActiveTab(tab);
+              }}
+            />
+          ) : activeTab === 'DATASET ANALYSIS' ? (
+            <DatasetAnalysisView
+              activeRunId={selectedRunId}
+              onNavigate={(tab) => setActiveTab(tab)}
+            />
+          ) : activeTab === 'ANALYSIS RUNS' ? (
+            <AnalysisRunsHistoryView
+              onSelectRun={(runId) => {
+                setSelectedRunId(runId);
+                setActiveTab('DATASET ANALYSIS');
+              }}
               onNavigate={(tab) => setActiveTab(tab)}
             />
           ) : activeTab === 'SETTINGS / DEMO' ? (

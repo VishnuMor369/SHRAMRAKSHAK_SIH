@@ -1,0 +1,233 @@
+{
+  "run_id": "AR-0005",
+  "filename": "test_safety_reports_batch.csv",
+  "file_type": "CSV",
+  "upload_time": "2026-09-27T15:31:32.818416",
+  "provenance": "Uploaded dataset intelligence file.",
+  "records_detected": 4,
+  "records_analyzed": 4,
+  "failed_count": 0,
+  "review_required_count": 0,
+  "sif_count": 4,
+  "non_sif_count": 0,
+  "sif_percentage": 100.0,
+  "status": "COMPLETED",
+  "candidate_patterns": [
+    {
+      "pattern_id": "PAT-EXCLUSION_ZONE-01",
+      "title": "Recurring Control Breach: EXCLUSION_ZONE during Mechanical Lifting Operations",
+      "occurrence_count": 2,
+      "activity": "Mechanical Lifting Operations",
+      "barrier": "EXCLUSION_ZONE",
+      "sif_potential": "HIGH",
+      "validation_status": "CANDIDATE",
+      "source_reports": [
+        "REP-AR-0005-0001",
+        "REP-AR-0005-0002"
+      ]
+    }
+  ],
+  "high_potential_cases": [
+    {
+      "report_id": "REP-AR-0005-0001",
+      "original_text": "Worker stepped inside lifting drop zone while drill pipe was being moved",
+      "activity": "Mechanical Lifting Operations",
+      "location": "Drilling Rig 01",
+      "hazard": "Gravity / Suspended Load",
+      "exposure": "Person inside hazardous perimeter",
+      "barrier": "EXCLUSION_ZONE",
+      "barrier_state": "BYPASSED",
+      "consequence": "Potential industrial trauma",
+      "sif_potential": "HIGH",
+      "assertion": "AFFIRMED",
+      "lsr": "SAFE_MECHANICAL_LIFTING, BYPASSING_SAFETY_CONTROLS",
+      "evidence_spans": [
+        {
+          "field": "activity",
+          "value": "MECHANICAL_LIFTING",
+          "start_offset": 22,
+          "end_offset": 29,
+          "text": "lifting",
+          "confidence": 1.0,
+          "source": "NLP_EXTRACTION"
+        }
+      ]
+    },
+    {
+      "report_id": "REP-AR-0005-0002",
+      "original_text": "Contractor entered restricted area under crane boom during hoisting",
+      "activity": "Mechanical Lifting Operations",
+      "location": "Drilling Rig 01",
+      "hazard": "Gravity / Suspended Load",
+      "exposure": "Person inside hazardous perimeter",
+      "barrier": "EXCLUSION_ZONE",
+      "barrier_state": "BYPASSED",
+      "consequence": "Potential industrial trauma",
+      "sif_potential": "HIGH",
+      "assertion": "AFFIRMED",
+      "lsr": "SAFE_MECHANICAL_LIFTING, BYPASSING_SAFETY_CONTROLS",
+      "evidence_spans": [
+        {
+          "field": "activity",
+          "value": "MECHANICAL_LIFTING",
+          "start_offset": 41,
+          "end_offset": 46,
+          "text": "crane",
+          "confidence": 1.0,
+          "source": "NLP_EXTRACTION"
+        }
+      ]
+    },
+    {
+      "report_id": "REP-AR-0005-0003",
+      "original_text": "Technician observed unhooked fall harness at 6m platform near tank",
+      "activity": "Working at Height / Mast & Derrick",
+      "location": "Tank Farm B",
+      "hazard": "Elevation / Fall Potential",
+      "exposure": "Person inside hazardous perimeter",
+      "barrier": "FALL_PROTECTION",
+      "barrier_state": "PRESENT_UNVERIFIED",
+      "consequence": "Potential industrial trauma",
+      "sif_potential": "HIGH",
+      "assertion": "AFFIRMED",
+      "lsr": "WORKING_AT_HEIGHT",
+      "evidence_spans": [
+        {
+          "field": "activity",
+          "value": "WORKING_AT_HEIGHT",
+          "start_offset": 34,
+          "end_offset": 41,
+          "text": "harness",
+          "confidence": 1.0,
+          "source": "NLP_EXTRACTION"
+        }
+      ]
+    },
+    {
+      "report_id": "REP-AR-0005-0004",
+      "original_text": "Electrician opened 440V distribution panel without verifying zero energy state",
+      "activity": "General Operations & Maintenance",
+      "location": "Substation 2",
+      "hazard": "Mechanical / Kinetic Energy",
+      "exposure": "Person inside hazardous perimeter",
+      "barrier": "GENERAL_ADMINISTRATIVE_CONTROL",
+      "barrier_state": "BYPASSED",
+      "consequence": "Potential industrial trauma",
+      "sif_potential": "HIGH",
+      "assertion": "AFFIRMED",
+      "lsr": "BYPASSING_SAFETY_CONTROLS",
+      "evidence_spans": []
+    }
+  ],
+  "hazard_distribution": {
+    "Gravity / Suspended Load": 2,
+    "Elevation / Fall Potential": 1,
+    "Mechanical / Kinetic Energy": 1
+  },
+  "activity_distribution": {
+    "Mechanical Lifting Operations": 2,
+    "Working at Height / Mast & Derrick": 1,
+    "General Operations & Maintenance": 1
+  },
+  "barrier_failure_distribution": {
+    "EXCLUSION_ZONE": 2,
+    "GENERAL_ADMINISTRATIVE_CONTROL": 1
+  },
+  "iogp_distribution": {
+    "SAFE_MECHANICAL_LIFTING": 2,
+    "BYPASSING_SAFETY_CONTROLS": 3,
+    "WORKING_AT_HEIGHT": 1
+  },
+  "reports": [
+    {
+      "report_id": "REP-AR-0005-0001",
+      "original_text": "Worker stepped inside lifting drop zone while drill pipe was being moved",
+      "activity": "Mechanical Lifting Operations",
+      "location": "Drilling Rig 01",
+      "hazard": "Gravity / Suspended Load",
+      "exposure": "Person inside hazardous perimeter",
+      "barrier": "EXCLUSION_ZONE",
+      "barrier_state": "BYPASSED",
+      "consequence": "Potential industrial trauma",
+      "sif_potential": "HIGH",
+      "assertion": "AFFIRMED",
+      "lsr": "SAFE_MECHANICAL_LIFTING, BYPASSING_SAFETY_CONTROLS",
+      "evidence_spans": [
+        {
+          "field": "activity",
+          "value": "MECHANICAL_LIFTING",
+          "start_offset": 22,
+          "end_offset": 29,
+          "text": "lifting",
+          "confidence": 1.0,
+          "source": "NLP_EXTRACTION"
+        }
+      ]
+    },
+    {
+      "report_id": "REP-AR-0005-0002",
+      "original_text": "Contractor entered restricted area under crane boom during hoisting",
+      "activity": "Mechanical Lifting Operations",
+      "location": "Drilling Rig 01",
+      "hazard": "Gravity / Suspended Load",
+      "exposure": "Person inside hazardous perimeter",
+      "barrier": "EXCLUSION_ZONE",
+      "barrier_state": "BYPASSED",
+      "consequence": "Potential industrial trauma",
+      "sif_potential": "HIGH",
+      "assertion": "AFFIRMED",
+      "lsr": "SAFE_MECHANICAL_LIFTING, BYPASSING_SAFETY_CONTROLS",
+      "evidence_spans": [
+        {
+          "field": "activity",
+          "value": "MECHANICAL_LIFTING",
+          "start_offset": 41,
+          "end_offset": 46,
+          "text": "crane",
+          "confidence": 1.0,
+          "source": "NLP_EXTRACTION"
+        }
+      ]
+    },
+    {
+      "report_id": "REP-AR-0005-0003",
+      "original_text": "Technician observed unhooked fall harness at 6m platform near tank",
+      "activity": "Working at Height / Mast & Derrick",
+      "location": "Tank Farm B",
+      "hazard": "Elevation / Fall Potential",
+      "exposure": "Person inside hazardous perimeter",
+      "barrier": "FALL_PROTECTION",
+      "barrier_state": "PRESENT_UNVERIFIED",
+      "consequence": "Potential industrial trauma",
+      "sif_potential": "HIGH",
+      "assertion": "AFFIRMED",
+      "lsr": "WORKING_AT_HEIGHT",
+      "evidence_spans": [
+        {
+          "field": "activity",
+          "value": "WORKING_AT_HEIGHT",
+          "start_offset": 34,
+          "end_offset": 41,
+          "text": "harness",
+          "confidence": 1.0,
+          "source": "NLP_EXTRACTION"
+        }
+      ]
+    },
+    {
+      "report_id": "REP-AR-0005-0004",
+      "original_text": "Electrician opened 440V distribution panel without verifying zero energy state",
+      "activity": "General Operations & Maintenance",
+      "location": "Substation 2",
+      "hazard": "Mechanical / Kinetic Energy",
+      "exposure": "Person inside hazardous perimeter",
+      "barrier": "GENERAL_ADMINISTRATIVE_CONTROL",
+      "barrier_state": "BYPASSED",
+      "consequence": "Potential industrial trauma",
+      "sif_potential": "HIGH",
+      "assertion": "AFFIRMED",
+      "lsr": "BYPASSING_SAFETY_CONTROLS",
+      "evidence_spans": []
+    }
+  ]
+}

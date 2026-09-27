@@ -108,7 +108,7 @@ class SIFPathwayEngine:
             "wireline", "tension", "winch", "trench", "corrosive", "forklift", "loader", "transport", "flange", "valve", "crude", "compressor", "nitrogen", "chemical", "slurry", "esd",
             "hydrocarbon", "kick", "steam", "turbine", "sludge", "degasser", "hopper", "auger", "grating", "drop", "oxy-acetylene", "hydrogen", "torch", "grinder", "manway", "unventilated"
         ]) or any(kw in narrative_lower for kw in [
-            "suspended", "crane", "hoist", "derrick", "mast", "scaffold", "height", "high-pressure",
+            "suspended", "crane", "hoist", "derrick", "mast", "scaffold", "height", "high-pressure", "lifting", "rigging",
             "pressurized", "psi", "hydrotest", "hydraulic", "h2s", "toxic", "confined", "480v", "voltage",
             "switchgear", "mcc", "welding", "grinding", "sparks", "blowout", "arc flash", "running pump",
             "wireline", "tension", "winch", "trench", "corrosive", "forklift", "loader", "transport",

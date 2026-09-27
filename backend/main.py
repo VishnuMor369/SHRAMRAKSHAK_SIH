@@ -18,7 +18,7 @@ from datetime import datetime, timedelta
 from typing import Optional, List, Dict, Any
 
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request, UploadFile, File, BackgroundTasks, Query
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request, UploadFile, File, BackgroundTasks, Query, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse, Response
 
@@ -50,6 +50,9 @@ try:
     from backend.nlp_engine.propagation import propagation_engine as real_propagation_engine
     from backend.nlp_engine.precondition_engine import precondition_engine as real_precondition_engine
     from backend.dataset_pipeline.ingest import dataset_ingester as real_dataset_ingester
+    from backend.demo_workspace import demo_workspace
+    from backend.dataset_analysis import dataset_analysis_manager
+    from backend.analysis_pdf_generator import generate_analysis_run_pdf
 except ImportError:
     from database import db
     from models_canonical import SafetyEvent as RealSafetyEvent, SIFStatus as CanonicalSIFStatus, ReviewStatus as CanonicalReviewStatus
@@ -61,6 +64,9 @@ except ImportError:
     from nlp_engine.propagation import propagation_engine as real_propagation_engine
     from nlp_engine.precondition_engine import precondition_engine as real_precondition_engine
     from dataset_pipeline.ingest import dataset_ingester as real_dataset_ingester
+    from demo_workspace import demo_workspace
+    from dataset_analysis import dataset_analysis_manager
+    from analysis_pdf_generator import generate_analysis_run_pdf
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -516,9 +522,15 @@ def add_hse_observation(alert_id: str, req: HSEObservationRequest):
 
 @app.post("/api/demo/reset")
 def reset_demo():
-    """Resets the entire demo state to IDLE and clears alerts"""
+    """Resets the entire demo state to IDLE, clears alerts, and cleanly resets demo workspace to ZERO"""
     state_manager.reset_demo()
-    return {"message": "Demo reset successfully"}
+    demo_workspace.reset()
+    state_manager.notify_clients()
+    return {
+        "success": True,
+        "message": "Demo reset successfully",
+        "summary": demo_workspace.get_summary()
+    }
 
 @app.post("/api/demo/simulate-no-helmet")
 def simulate_no_helmet():
@@ -608,7 +620,10 @@ def cctv_verify_alert(alert_id: Optional[str] = None, req: Dict[str, Any] = {}):
 @app.get("/api/safety-memory/summary")
 @app.get("/api/safety-memory/status")
 def get_safety_memory_summary():
-    """Returns consolidated Safety Memory status, recurring patterns, candidate vs validated counts from SQLite"""
+    """Returns consolidated Safety Memory status, recurring patterns, candidate vs validated counts from SQLite or isolated demo workspace"""
+    if getattr(demo_workspace, "is_active", False):
+        return demo_workspace.get_summary()
+
     counts = db.count_events()
     patterns = db.list_patterns()
     cand_count = sum(1 for p in patterns if p.validation_status == CanonicalReviewStatus.CANDIDATE or str(p.validation_status) == "CANDIDATE")
@@ -633,6 +648,18 @@ def get_safety_memory_summary():
 @app.get("/api/safety-memory/events")
 def get_safety_memory_events(limit: Optional[int] = Query(None), offset: int = Query(0), sif_filter: Optional[str] = Query(None)):
     """Returns recorded safety events in SQLite persistent database with full pagination support"""
+    if getattr(demo_workspace, "is_active", False):
+        demo_evts = demo_workspace.get_events()
+        sif_cnt = sum(1 for e in demo_evts if e.get("sif_potential") in ["HIGH", "CRITICAL", "SIF_POTENTIAL"])
+        return {
+            "total": len(demo_evts),
+            "offset": offset,
+            "limit": limit if limit is not None else len(demo_evts),
+            "returned": len(demo_evts),
+            "counts": {"total": len(demo_evts), "sif_potential": sif_cnt},
+            "events": demo_evts
+        }
+
     counts = db.count_events()
     events = db.list_events(limit=limit, sif_filter=sif_filter, offset=offset)
     return {
@@ -684,7 +711,10 @@ def post_memory_reconcile():
 
 @app.get("/api/safety-memory/patterns")
 def get_safety_memory_patterns():
-    """Returns all Candidate and HSE Validated Recurring Safety-Control Patterns from SQLite with linked preconditions & operational state"""
+    """Returns all Candidate and HSE Validated Recurring Safety-Control Patterns from SQLite or isolated demo workspace"""
+    if getattr(demo_workspace, "is_active", False):
+        return {"patterns": demo_workspace.get_patterns()}
+
     patterns = db.list_patterns()
     precs = db.list_preconditions(active_only=True)
     prec_by_pat = {}
@@ -735,6 +765,26 @@ def get_safety_memory_patterns():
 @app.get("/api/safety-memory/patterns/{pattern_id}")
 def get_pattern_details_route(pattern_id: str):
     """Returns evidence-grounded explanation and history for a recurring pattern"""
+    if getattr(demo_workspace, "is_active", False):
+        p = demo_workspace.get_pattern(pattern_id)
+        if p:
+            supporting_events = [e for e in demo_workspace.get_events() if e.get("event_id") in p.get("event_members", [])]
+            p_dict = dict(p)
+            p_dict["supporting_events"] = supporting_events
+            p_dict["evidence_snippets"] = [e.get("narrative") for e in supporting_events]
+            p_dict["reviews_history"] = []
+            p_dict["verification_history"] = demo_workspace.verifications
+            p_dict["future_work_requirements"] = [
+                {
+                    "id": pr["precondition_id"],
+                    "title": pr["title"],
+                    "description": f"Mandatory evidence: {', '.join(pr.get('required_evidence', []))}",
+                    "evidence_type": ', '.join(pr.get('required_evidence', []))
+                }
+                for pr in demo_workspace.future_requirements if pr.get("pattern_id") == pattern_id
+            ]
+            return p_dict
+
     pat = db.get_pattern(pattern_id)
     if not pat:
         raise HTTPException(status_code=404, detail=f"Pattern '{pattern_id}' not found")
@@ -872,6 +922,22 @@ def validate_safety_pattern_route(pattern_id: Optional[str] = None, req: Dict[st
     decision = req.get("decision", "VALIDATE")
     reviewer = req.get("reviewer", "DEMO_HSE_REVIEWER")
     notes = req.get("notes", "Confirmed recurring failure of safety barrier.")
+
+    if getattr(demo_workspace, "is_active", False):
+        demo_p = demo_workspace.get_pattern(target_id)
+        if demo_p:
+            res = demo_workspace.validate_pattern(
+                pattern_id=target_id,
+                action="CONFIRM" if decision.upper() in ["CONFIRM", "VALIDATE"] else ("REJECT" if decision.upper() == "REJECT" else "CORRECT"),
+                reviewer=reviewer,
+                notes=notes
+            )
+            state_manager.notify_clients()
+            return {
+                "message": f"Pattern {target_id} {decision}ed by HSE",
+                "pattern": res.get("pattern"),
+                "precondition": res.get("precondition")
+            }
 
     try:
         pat = real_propagation_engine.validate_safety_pattern(
@@ -1062,6 +1128,25 @@ def get_unified_safety_events(
     page_size: int = 20
 ):
     """Returns filtered, paginated Unified Safety Events (HUMAN, IMPORTED, CCTV)."""
+    if getattr(demo_workspace, "is_active", False):
+        evts = demo_workspace.get_events()
+        if source and source.upper() != "ALL":
+            evts = [e for e in evts if e.get("source", "").upper() == source.upper()]
+        if sif_status and sif_status.upper() != "ALL":
+            evts = [e for e in evts if e.get("sif_potential", "").upper() == sif_status.upper()]
+        if search:
+            q = search.lower()
+            evts = [e for e in evts if q in e.get("narrative", "").lower() or q in e.get("activity", "").lower()]
+        total = len(evts)
+        start = (page - 1) * page_size
+        paged = evts[start:start + page_size]
+        return {
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+            "events": paged
+        }
+
     return unified_event_store.get_events(
         source=source,
         sif_status=sif_status,
@@ -1074,12 +1159,58 @@ def get_unified_safety_events(
 @app.get("/api/events/summary-stats")
 @app.get("/api/events/summary")
 def get_unified_safety_event_summary():
-    """Returns dynamically computed SIF intelligence metrics from real stored events."""
+    """Returns dynamically computed SIF intelligence metrics from real stored events or isolated demo workspace."""
+    if getattr(demo_workspace, "is_active", False):
+        evts = demo_workspace.get_events()
+        sif_cnt = sum(1 for e in evts if e.get("sif_potential") in ["HIGH", "CRITICAL", "SIF_POTENTIAL"])
+        awaiting_verif = sum(1 for a in demo_workspace.actions if a.get("status") == "AWAITING_VERIFICATION")
+        verified_cnt = sum(1 for a in demo_workspace.actions if a.get("status") == "VERIFIED")
+        open_cnt = sum(1 for a in demo_workspace.actions if a.get("status") in ["ASSIGNED", "IN_PROGRESS", "AWAITING_VERIFICATION"])
+
+        hazard_counts: Dict[str, int] = {}
+        for e in evts:
+            hz = e.get("hazard", "Unspecified")
+            hazard_counts[hz] = hazard_counts.get(hz, 0) + 1
+        top_hazards = [{"hazard": k, "name": k, "count": v} for k, v in sorted(hazard_counts.items(), key=lambda x: x[1], reverse=True)[:5]]
+
+        lsr_counts: Dict[str, int] = {}
+        for e in evts:
+            r = e.get("lsr", "General Safety")
+            lsr_counts[r] = lsr_counts.get(r, 0) + 1
+        top_lsrs = [{"rule": k, "name": k, "count": v} for k, v in sorted(lsr_counts.items(), key=lambda x: x[1], reverse=True)[:5]]
+
+        total = len(evts)
+        return {
+            "total_events": total,
+            "sif_events_count": sif_cnt,
+            "sif_potential_count": sif_cnt,
+            "sif_high_count": sif_cnt,
+            "sif_medium_count": 0,
+            "sif_low_count": 0,
+            "not_sif_count": total - sif_cnt,
+            "non_sif_count": total - sif_cnt,
+            "sif_rate": round((sif_cnt / total * 100), 1) if total > 0 else 0.0,
+            "awaiting_verification_count": awaiting_verif,
+            "open_actions_count": open_cnt,
+            "verified_count": verified_cnt,
+            "recurring_patterns_count": len(demo_workspace.patterns),
+            "pattern_count": len(demo_workspace.patterns),
+            "source_breakdown": demo_workspace.get_source_breakdown(),
+            "top_hazards": top_hazards,
+            "top_lsrs": top_lsrs,
+            "top_activities": [],
+            "top_failed_barriers": [],
+            "demo_active": True
+        }
     return unified_event_store.get_summary_stats()
 
 @app.get("/api/events/{event_id}")
 def get_unified_safety_event_by_id(event_id: str):
     """Returns complete details, evidence spans, and audit trail for a single event."""
+    if getattr(demo_workspace, "is_active", False):
+        ev = demo_workspace.get_event(event_id)
+        if ev:
+            return ev
     ev = unified_event_store.get_event(event_id)
     if not ev:
         raise HTTPException(status_code=404, detail=f"Safety Event '{event_id}' not found")
@@ -2180,6 +2311,183 @@ def load_sample_dataset(max_rows: int = 1500, background_tasks: BackgroundTasks 
         "quality_report": quality_info,
         "processing_started": True
     }
+
+# ==========================================
+# DEMONSTRATION WORKSPACE ENDPOINTS (Sections 10-20)
+# ==========================================
+
+@app.get("/api/demo/status")
+@app.get("/api/demo/summary")
+def get_demo_status():
+    """Returns exact status for clean demonstration workspace."""
+    return demo_workspace.get_summary()
+
+@app.post("/api/demo/load-data")
+def post_demo_load_data():
+    """Populates representative demonstration data through canonical pipeline."""
+    res = demo_workspace.load_demo_data()
+    state_manager.notify_clients()
+    return {
+        "success": True,
+        "message": res["message"],
+        "summary": demo_workspace.get_summary()
+    }
+
+@app.post("/api/demo/toggle")
+def toggle_demo_mode(active: Optional[bool] = None):
+    """Toggles demonstration mode between isolated clean demo and underlying persistent database."""
+    if active is not None:
+        demo_workspace.is_active = active
+    else:
+        demo_workspace.is_active = not demo_workspace.is_active
+    state_manager.notify_clients()
+    return {
+        "success": True,
+        "demo_active": demo_workspace.is_active,
+        "message": f"Demonstration mode is now {'ACTIVE' if demo_workspace.is_active else 'INACTIVE'}"
+    }
+
+@app.post("/api/demo/human-report")
+def post_demo_human_report(req: Dict[str, Any]):
+    """Processes genuine human report through canonical pipeline into demo workspace."""
+    narrative = req.get("narrative") or req.get("text") or req.get("description")
+    if not narrative:
+        raise HTTPException(status_code=400, detail="Report narrative text is required.")
+    location = req.get("location", "Drilling Rig 04 - Drill Floor")
+    activity = req.get("activity", "Mechanical Lifting Operations")
+    event = demo_workspace.add_human_report(narrative=narrative, location=location, activity=activity)
+    state_manager.notify_clients()
+    return {
+        "success": True,
+        "message": "Human observation processed via canonical pipeline into demo workspace.",
+        "event": event,
+        "summary": demo_workspace.get_summary()
+    }
+
+@app.post("/api/demo/cctv-event")
+def post_demo_cctv_event(req: Dict[str, Any] = {}):
+    """Processes genuine CCTV zone entry event through canonical pipeline into demo workspace."""
+    camera_id = req.get("camera_id", "CAM-RIG-01")
+    zone_name = req.get("zone_name", "Temporary Lifting Exclusion Zone")
+    person_id = req.get("person_id", "WORKER-402")
+    event = demo_workspace.add_cctv_event(camera_id=camera_id, zone_name=zone_name, person_id=person_id)
+    state_manager.notify_clients()
+    return {
+        "success": True,
+        "message": "CCTV observation processed via canonical pipeline into demo workspace.",
+        "event": event,
+        "summary": demo_workspace.get_summary()
+    }
+
+@app.post("/api/demo/validate-pattern")
+def post_demo_validate_pattern(req: Dict[str, Any]):
+    """HSE formal review decision: CONFIRM, REJECT, or CORRECT."""
+    pattern_id = req.get("pattern_id")
+    action = req.get("action", "CONFIRM")
+    reviewer = req.get("reviewer", "HSE_MANAGER_OIL")
+    notes = req.get("notes", "")
+    if not pattern_id:
+        raise HTTPException(status_code=400, detail="pattern_id is required")
+    res = demo_workspace.validate_pattern(pattern_id, action=action, reviewer=reviewer, notes=notes)
+    state_manager.notify_clients()
+    return res
+
+@app.post("/api/demo/assign-action")
+def post_demo_assign_action(req: Dict[str, Any]):
+    """Assigns corrective action for a recurring pattern."""
+    pattern_id = req.get("pattern_id")
+    supervisor = req.get("supervisor", "SUP-01")
+    action_text = req.get("required_action", "Reinstate physical exclusion barrier and clear lifting drop zone.")
+    if not pattern_id:
+        raise HTTPException(status_code=400, detail="pattern_id is required")
+    res = demo_workspace.assign_action(pattern_id, supervisor=supervisor, required_action=action_text)
+    state_manager.notify_clients()
+    return res
+
+@app.post("/api/demo/complete-action")
+def post_demo_complete_action(req: Dict[str, Any]):
+    """Supervisor completes action -> AWAITING_VERIFICATION."""
+    action_id = req.get("action_id")
+    notes = req.get("notes", "Physical barrier reinforced. Zone cleared.")
+    if not action_id:
+        raise HTTPException(status_code=400, detail="action_id is required")
+    res = demo_workspace.complete_action(action_id, notes=notes)
+    state_manager.notify_clients()
+    return res
+
+@app.post("/api/demo/verify-action")
+def post_demo_verify_action(req: Dict[str, Any]):
+    """CCTV field verification: Restoration vs Re-breach."""
+    action_id = req.get("action_id")
+    rebreach = bool(req.get("rebreach", False))
+    notes = req.get("notes", "")
+    if not action_id:
+        raise HTTPException(status_code=400, detail="action_id is required")
+    res = demo_workspace.verify_action(action_id, simulate_rebreach=rebreach, notes=notes)
+    state_manager.notify_clients()
+    return res
+
+# ==========================================
+# DATASET INTELLIGENCE & ANALYSIS RUNS (Sections 21-31)
+# ==========================================
+
+@app.post("/api/analysis-runs/upload")
+async def upload_analysis_run(file: UploadFile = File(...), max_rows: Optional[int] = Form(None)):
+    """
+    Ingests uploaded CSV or PDF, validates data health, executes canonical NLP/SIF/LSR pipeline,
+    and returns isolated AnalysisRun without mutating live safety memory.
+    Transparently fails on non-extractable / scanned PDFs requiring OCR.
+    """
+    content = await file.read()
+    filename = file.filename or "uploaded_dataset"
+    try:
+        run = dataset_analysis_manager.create_analysis_run(
+            file_bytes=content,
+            filename=filename,
+            max_rows=max_rows
+        )
+        return {
+            "success": True,
+            "message": f"Dataset analyzed successfully as run {run.run_id}",
+            "run": run.to_dict()
+        }
+    except ValueError as e:
+        err_msg = str(e)
+        logger.warning(f"Dataset analysis failed validation: {err_msg}")
+        raise HTTPException(status_code=400, detail=err_msg)
+    except Exception as e:
+        logger.error(f"Dataset analysis processing error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to process dataset: {str(e)}")
+
+@app.get("/api/analysis-runs")
+def list_analysis_runs():
+    """Returns all completed AnalysisRun history summaries."""
+    return {"runs": dataset_analysis_manager.list_analysis_runs()}
+
+@app.get("/api/analysis-runs/{run_id}")
+def get_analysis_run(run_id: str):
+    """Returns full details, SIF analysis, IOGP distribution, candidate patterns, and reports for a run."""
+    run = dataset_analysis_manager.get_analysis_run(run_id)
+    if not run:
+        raise HTTPException(status_code=404, detail=f"Analysis run '{run_id}' not found.")
+    return run
+
+@app.get("/api/analysis-runs/{run_id}/pdf")
+def download_analysis_run_pdf(run_id: str):
+    """Generates and downloads publication-grade PDF report from exact persisted AnalysisRun metrics."""
+    run = dataset_analysis_manager.get_analysis_run(run_id)
+    if not run:
+        raise HTTPException(status_code=404, detail=f"Analysis run '{run_id}' not found.")
+    pdf_bytes = generate_analysis_run_pdf(run)
+    safe_filename = f"{run_id}_HSE_Intelligence_Report.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"attachment; filename=\"{safe_filename}\"",
+            "Content-Type": "application/pdf"
+        }
+    )
 
 if __name__ == "__main__":
     import uvicorn

@@ -113,10 +113,21 @@ def isolated_test_environment(prefix: str = "shramrakshak_test_"):
         # Isolate unified_event_store file
         try:
             from backend.unified_event_store import unified_event_store
-            orig_ues_file = unified_event_store.events_file
-            unified_event_store.events_file = os.path.join(temp_dir, "test_safety_events.json")
+            orig_ues_file = getattr(unified_event_store, "persistence_file", getattr(unified_event_store, "events_file", None))
+            test_ues_path = os.path.join(temp_dir, "test_safety_events.json")
+            unified_event_store.persistence_file = test_ues_path
+            unified_event_store.events_file = test_ues_path
         except Exception:
             orig_ues_file = None
+
+        # Isolate demo_workspace mode (turn off during hermetic tests)
+        orig_demo_active = None
+        try:
+            from backend.demo_workspace import demo_workspace
+            orig_demo_active = demo_workspace.is_active
+            demo_workspace.is_active = False
+        except Exception:
+            pass
 
         # Hard isolation assertions: verify active paths point to temp directory
         abs_temp = os.path.abspath(temp_dir)
@@ -188,7 +199,15 @@ def isolated_test_environment(prefix: str = "shramrakshak_test_"):
         if orig_ues_file is not None:
             try:
                 from backend.unified_event_store import unified_event_store
+                unified_event_store.persistence_file = orig_ues_file
                 unified_event_store.events_file = orig_ues_file
+            except Exception:
+                pass
+
+        if orig_demo_active is not None:
+            try:
+                from backend.demo_workspace import demo_workspace
+                demo_workspace.is_active = orig_demo_active
             except Exception:
                 pass
 
