@@ -115,66 +115,66 @@ export default function SafetyIntelligenceView({ onNavigate }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         
         {/* Metric 1: SIF Precursor Potential */}
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-1">
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-1">
           <div className="flex items-center justify-between text-xs text-slate-500">
-            <span className="font-bold uppercase tracking-wider text-[10px]">SIF Precursors</span>
-            <span className="p-1 rounded-lg bg-red-50 text-red-600">
+            <span className="font-bold uppercase tracking-wider text-[10px]">SIF Potential Precursors</span>
+            <span className="p-1.5 rounded-lg bg-red-50 text-red-600">
               <ShieldAlert className="w-4 h-4" />
             </span>
           </div>
-          <div className="text-2xl font-black text-slate-900">
+          <div className="text-3xl font-black text-slate-900">
             {sifCount}
           </div>
           <div className="text-[11px] text-red-600 font-semibold flex items-center gap-1">
-            <span>{sifRate}% of events contain SIF precursor potential</span>
+            <span>{sifRate}% of events contain fatal potential</span>
           </div>
         </div>
 
         {/* Metric 2: Non-SIF / Safeguarded */}
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-1">
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-1">
           <div className="flex items-center justify-between text-xs text-slate-500">
-            <span className="font-bold uppercase tracking-wider text-[10px]">Non-SIF / Negated</span>
-            <span className="p-1 rounded-lg bg-emerald-50 text-emerald-600">
+            <span className="font-bold uppercase tracking-wider text-[10px]">Non-SIF / Safeguarded</span>
+            <span className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600">
               <ShieldCheck className="w-4 h-4" />
             </span>
           </div>
-          <div className="text-2xl font-black text-slate-900">
+          <div className="text-3xl font-black text-slate-900">
             {nonSifCount}
           </div>
           <div className="text-[11px] text-emerald-700 font-semibold">
-            Zero fatal potential / barrier held intact
+            Zero fatal exposure / barrier held intact
           </div>
         </div>
 
-        {/* Metric 3: Top Life-Saving Rule */}
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-1">
+        {/* Metric 3: Review Required */}
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-1">
           <div className="flex items-center justify-between text-xs text-slate-500">
-            <span className="font-bold uppercase tracking-wider text-[10px]">Primary Life-Saving Rule</span>
-            <span className="p-1 rounded-lg bg-amber-50 text-amber-600">
-              <Flame className="w-4 h-4" />
+            <span className="font-bold uppercase tracking-wider text-[10px]">Review Required</span>
+            <span className="p-1.5 rounded-lg bg-amber-50 text-amber-600">
+              <AlertTriangle className="w-4 h-4" />
             </span>
           </div>
-          <div className="text-sm font-extrabold text-slate-900 truncate">
-            {topLsrs[0]?.name || 'Line of Fire'}
+          <div className="text-3xl font-black text-slate-900">
+            {summary?.review_required_count || (totalEvents - sifCount - nonSifCount > 0 ? totalEvents - sifCount - nonSifCount : 0)}
           </div>
-          <div className="text-[11px] text-slate-500">
-            {topLsrs[0]?.count || 0} precursor triggers recorded
+          <div className="text-[11px] text-amber-700 font-semibold">
+            Uncertain exposure or ambiguous wording
           </div>
         </div>
 
-        {/* Metric 4: Dominant Control Failure */}
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-1">
+        {/* Metric 4: SIF Precursor Density */}
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-1">
           <div className="flex items-center justify-between text-xs text-slate-500">
-            <span className="font-bold uppercase tracking-wider text-[10px]">Dominant Failed Barrier</span>
-            <span className="p-1 rounded-lg bg-purple-50 text-purple-600">
+            <span className="font-bold uppercase tracking-wider text-[10px]">SIF Precursor Density</span>
+            <span className="p-1.5 rounded-lg bg-purple-50 text-purple-600">
               <Compass className="w-4 h-4" />
             </span>
           </div>
-          <div className="text-sm font-extrabold text-slate-900 truncate">
-            {topBarriers[0]?.name || 'Lifting Exclusion Zone'}
+          <div className="text-3xl font-black text-slate-900">
+            {totalEvents > 0 ? (sifCount / Math.max(totalEvents, 1)).toFixed(2) : '0.00'}
           </div>
           <div className="text-[11px] text-purple-700 font-semibold">
-            {topBarriers[0]?.count || 0} breach observations verified
+            Ratio of fatal precursors to total events
           </div>
         </div>
       </div>

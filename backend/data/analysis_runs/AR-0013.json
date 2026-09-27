@@ -1,0 +1,178 @@
+{
+  "run_id": "AR-0013",
+  "filename": "dataset_beta.csv",
+  "file_type": "CSV",
+  "upload_time": "2026-09-27T22:37:54.654273",
+  "provenance": "External safety dataset used for stress testing.",
+  "records_detected": 3,
+  "records_analyzed": 3,
+  "failed_count": 0,
+  "review_required_count": 0,
+  "sif_count": 3,
+  "non_sif_count": 0,
+  "sif_percentage": 100.0,
+  "status": "COMPLETED",
+  "candidate_patterns": [
+    {
+      "pattern_id": "PAT-GENERAL_ADMINISTRATIVE_CONTROL-01",
+      "title": "Recurring Control Breach: GENERAL_ADMINISTRATIVE_CONTROL during Confined Space Entry",
+      "occurrence_count": 3,
+      "activity": "Confined Space Entry",
+      "barrier": "GENERAL_ADMINISTRATIVE_CONTROL",
+      "sif_potential": "HIGH",
+      "validation_status": "CANDIDATE",
+      "source_reports": [
+        "REP-AR-0013-0001",
+        "REP-AR-0013-0002",
+        "REP-AR-0013-0003"
+      ]
+    }
+  ],
+  "high_potential_cases": [
+    {
+      "report_id": "REP-AR-0013-0001",
+      "original_text": "Operator entered tank without multi-gas clearance test",
+      "activity": "Confined Space Entry",
+      "location": "Operational Site",
+      "hazard": "Mechanical / Kinetic Energy",
+      "exposure": "Person inside hazardous perimeter",
+      "barrier": "GENERAL_ADMINISTRATIVE_CONTROL",
+      "barrier_state": "BYPASSED",
+      "consequence": "Potential industrial trauma",
+      "sif_potential": "HIGH",
+      "assertion": "AFFIRMED",
+      "lsr": "BYPASSING_SAFETY_CONTROLS",
+      "evidence_spans": []
+    },
+    {
+      "report_id": "REP-AR-0013-0002",
+      "original_text": "Confined space entry made without continuous atmosphere monitor",
+      "activity": "Confined Space Entry",
+      "location": "Operational Site",
+      "hazard": "Hazardous Gas / H2S / Toxic Vapor",
+      "exposure": "Person inside hazardous perimeter",
+      "barrier": "GENERAL_ADMINISTRATIVE_CONTROL",
+      "barrier_state": "BYPASSED",
+      "consequence": "Potential industrial trauma",
+      "sif_potential": "HIGH",
+      "assertion": "AFFIRMED",
+      "lsr": "BYPASSING_SAFETY_CONTROLS",
+      "evidence_spans": [
+        {
+          "field": "activity",
+          "value": "CONFINED_SPACE_ENTRY",
+          "start_offset": 0,
+          "end_offset": 14,
+          "text": "Confined space",
+          "confidence": 1.0,
+          "source": "NLP_EXTRACTION"
+        }
+      ]
+    },
+    {
+      "report_id": "REP-AR-0013-0003",
+      "original_text": "Worker entered vessel before gas test completed",
+      "activity": "Confined Space Entry",
+      "location": "Operational Site",
+      "hazard": "Mechanical / Kinetic Energy",
+      "exposure": "Person inside hazardous perimeter",
+      "barrier": "GENERAL_ADMINISTRATIVE_CONTROL",
+      "barrier_state": "BYPASSED",
+      "consequence": "Potential industrial trauma",
+      "sif_potential": "HIGH",
+      "assertion": "AFFIRMED",
+      "lsr": "BYPASSING_SAFETY_CONTROLS",
+      "evidence_spans": [
+        {
+          "field": "activity",
+          "value": "CONFINED_SPACE_ENTRY",
+          "start_offset": 15,
+          "end_offset": 21,
+          "text": "vessel",
+          "confidence": 1.0,
+          "source": "NLP_EXTRACTION"
+        }
+      ]
+    }
+  ],
+  "hazard_distribution": {
+    "Mechanical / Kinetic Energy": 2,
+    "Hazardous Gas / H2S / Toxic Vapor": 1
+  },
+  "activity_distribution": {
+    "Confined Space Entry": 3
+  },
+  "barrier_failure_distribution": {
+    "GENERAL_ADMINISTRATIVE_CONTROL": 3
+  },
+  "iogp_distribution": {
+    "BYPASSING_SAFETY_CONTROLS": 3
+  },
+  "reports": [
+    {
+      "report_id": "REP-AR-0013-0001",
+      "original_text": "Operator entered tank without multi-gas clearance test",
+      "activity": "Confined Space Entry",
+      "location": "Operational Site",
+      "hazard": "Mechanical / Kinetic Energy",
+      "exposure": "Person inside hazardous perimeter",
+      "barrier": "GENERAL_ADMINISTRATIVE_CONTROL",
+      "barrier_state": "BYPASSED",
+      "consequence": "Potential industrial trauma",
+      "sif_potential": "HIGH",
+      "assertion": "AFFIRMED",
+      "lsr": "BYPASSING_SAFETY_CONTROLS",
+      "evidence_spans": []
+    },
+    {
+      "report_id": "REP-AR-0013-0002",
+      "original_text": "Confined space entry made without continuous atmosphere monitor",
+      "activity": "Confined Space Entry",
+      "location": "Operational Site",
+      "hazard": "Hazardous Gas / H2S / Toxic Vapor",
+      "exposure": "Person inside hazardous perimeter",
+      "barrier": "GENERAL_ADMINISTRATIVE_CONTROL",
+      "barrier_state": "BYPASSED",
+      "consequence": "Potential industrial trauma",
+      "sif_potential": "HIGH",
+      "assertion": "AFFIRMED",
+      "lsr": "BYPASSING_SAFETY_CONTROLS",
+      "evidence_spans": [
+        {
+          "field": "activity",
+          "value": "CONFINED_SPACE_ENTRY",
+          "start_offset": 0,
+          "end_offset": 14,
+          "text": "Confined space",
+          "confidence": 1.0,
+          "source": "NLP_EXTRACTION"
+        }
+      ]
+    },
+    {
+      "report_id": "REP-AR-0013-0003",
+      "original_text": "Worker entered vessel before gas test completed",
+      "activity": "Confined Space Entry",
+      "location": "Operational Site",
+      "hazard": "Mechanical / Kinetic Energy",
+      "exposure": "Person inside hazardous perimeter",
+      "barrier": "GENERAL_ADMINISTRATIVE_CONTROL",
+      "barrier_state": "BYPASSED",
+      "consequence": "Potential industrial trauma",
+      "sif_potential": "HIGH",
+      "assertion": "AFFIRMED",
+      "lsr": "BYPASSING_SAFETY_CONTROLS",
+      "evidence_spans": [
+        {
+          "field": "activity",
+          "value": "CONFINED_SPACE_ENTRY",
+          "start_offset": 15,
+          "end_offset": 21,
+          "text": "vessel",
+          "confidence": 1.0,
+          "source": "NLP_EXTRACTION"
+        }
+      ]
+    }
+  ]
+}

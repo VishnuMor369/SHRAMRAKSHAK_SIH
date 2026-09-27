@@ -27,7 +27,11 @@ import {
   Camera,
   Activity,
   User,
-  MapPin
+  MapPin,
+  Sparkles,
+  Zap,
+  SlidersHorizontal,
+  ExternalLink
 } from 'lucide-react';
 import { 
   fetchSafetyMemoryPatterns, 
@@ -42,7 +46,7 @@ import {
 
 const TASK_EVIDENCE_MAP = {
   'Mechanical Lifting': [
-    { key: 'PHYSICAL_PERIMETER_DEMARCATION', label: 'Physical Perimeter Demarcation (Barricades / Tape)' },
+    { key: 'PHYSICAL_PERIMETER_DEMARCATION', label: 'Physical Perimeter Demarcation (Barricades / Barrier Tape)' },
     { key: 'AUTHORIZED_ENTRANTS_PASSPORT', label: 'Authorized Entrants Temporary Safety Passport' },
     { key: 'OBSERVABLE_CCTV_CLEAR_ZONE', label: 'Observable CCTV Clear Zone Verification' },
   ],
@@ -72,6 +76,7 @@ export default function SafetyMemoryView() {
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [selectedDetails, setSelectedDetails] = useState(null);
+  const [detailsTab, setDetailsTab] = useState('breakdown'); // breakdown | events | snippets | history
 
   // Assign Corrective Action Modal State
   const [assignModalOpen, setAssignModalOpen] = useState(false);
@@ -150,6 +155,7 @@ export default function SafetyMemoryView() {
     try {
       setDetailsModalOpen(true);
       setDetailsLoading(true);
+      setDetailsTab('breakdown');
       const res = await fetchPatternDetails(pattern.pattern_id);
       setSelectedDetails(res?.pattern_details || null);
     } catch (err) {
@@ -291,7 +297,7 @@ export default function SafetyMemoryView() {
     return true;
   });
 
-  const candidateCount = patterns.filter(p => p.validation_status === 'CANDIDATE').length;
+  const candidateCount = patterns.filter(p => p.validation_status === 'CANDIDATE' || (!p.is_validated && p.validation_status !== 'REJECTED')).length;
   const actionRequiredCount = patterns.filter(p => p.operational_status === 'ACTION_REQUIRED' || p.operational_status === 'REOPENED').length;
   const awaitingVerifCount = patterns.filter(p => p.operational_status === 'AWAITING_VERIFICATION').length;
   const verifiedCount = patterns.filter(p => p.operational_status === 'VERIFIED').length;
@@ -302,166 +308,221 @@ export default function SafetyMemoryView() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
       
-      {/* 1. Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-slate-200">
+      {/* 1. Header Bar — Primary Question: "What keeps recurring again?" */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-4 border-b border-slate-200">
         <div>
-          <div className="flex items-center space-x-2">
-            <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-purple-100 text-purple-900 border border-purple-200">
-              SAFETY MEMORY ARCHITECTURE
+          <div className="flex items-center gap-2 mb-1">
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-purple-100 text-purple-900 border border-purple-200 flex items-center gap-1">
+              <Database className="w-3 h-3 text-purple-700" />
+              Organizational Safety Memory
             </span>
+            <span className="text-xs text-slate-400">•</span>
             <span className="text-xs font-semibold text-slate-500">
-              Underlying Control Breaches • HSE Human-in-Loop • Closed-Loop Corrective Action
+              Two-Stage Vector Recurrence Clustering
             </span>
           </div>
-          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight mt-1 flex items-center gap-2">
-            Safety Memory & Recurring Pattern Governance
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+            Safety Memory & Recurring Patterns
           </h1>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Surfaces underlying control failures across human reports & computer vision • Human HSE validation required before action dispatch
+          </p>
         </div>
 
         <div className="flex items-center gap-3">
           {lastRefreshed && (
-            <span className="text-[11px] font-mono text-slate-500">
+            <span className="text-[11px] font-mono text-slate-400 hidden sm:inline">
               Updated: {lastRefreshed}
             </span>
           )}
           <button 
             onClick={loadData}
             disabled={loading}
-            className="p-2 rounded-lg bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors shadow-sm flex items-center gap-1.5 text-xs font-bold disabled:opacity-50"
+            className="px-3 py-2 rounded-lg bg-white border border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-50 transition-colors shadow-sm flex items-center gap-1.5 text-xs font-bold disabled:opacity-50"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-purple-600' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-purple-600' : 'text-slate-500'}`} />
             <span>{loading ? 'Refreshing...' : 'Refresh Memory'}</span>
           </button>
         </div>
       </div>
 
+      {/* Feedback Banner */}
       {feedbackMsg && (
-        <div className={`p-3.5 rounded-xl border font-bold text-xs flex items-center justify-between animate-fade-in shadow-sm ${
+        <div className={`p-3.5 rounded-xl border text-xs font-semibold flex items-center justify-between shadow-sm animate-fade-in ${
           feedbackType === 'error' 
-            ? 'bg-red-50 border-red-300 text-red-950' 
-            : 'bg-purple-50 border-purple-300 text-purple-950'
+            ? 'bg-rose-50 border-rose-200 text-rose-900' 
+            : 'bg-purple-50 border-purple-200 text-purple-900'
         }`}>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2.5">
             {feedbackType === 'error' ? (
-              <AlertOctagon className="w-4 h-4 text-red-700 flex-shrink-0" />
+              <AlertOctagon className="w-4 h-4 text-rose-600 flex-shrink-0" />
             ) : (
-              <CheckCircle2 className="w-4 h-4 text-purple-700 flex-shrink-0" />
+              <CheckCircle2 className="w-4 h-4 text-purple-600 flex-shrink-0" />
             )}
             <span>{feedbackMsg}</span>
           </div>
-          <button onClick={() => setFeedbackMsg(null)} className="hover:opacity-70 text-xs font-bold">✕</button>
+          <button onClick={() => setFeedbackMsg(null)} className="text-slate-400 hover:text-slate-700 font-bold ml-2">✕</button>
         </div>
       )}
 
-      {/* 2. Top Metric Telemetry */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Safety Observations</span>
-          <span className="text-2xl font-black text-slate-900 mt-1 block">{summary?.total_events ?? patterns.reduce((a, b) => a + (b.occurrence_count || 1), 0)}</span>
-          <span className="text-[11px] text-slate-500 mt-1 block">Cross-report persistent events</span>
+      {/* 2. Top Metric Telemetry Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-bl-full pointer-events-none" />
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Candidate Patterns</span>
+            <div className="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-xs">
+              ⚡
+            </div>
+          </div>
+          <div className="text-2xl font-black text-slate-900 mt-2">{candidateCount}</div>
+          <p className="text-[11px] text-amber-700 mt-1 font-medium">Awaiting HSE human validation</p>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Independent Occurrences</span>
-          <span className="text-2xl font-black text-purple-700 mt-1 block">
-            {patterns.reduce((acc, p) => acc + (p.independent_occurrences || p.occurrence_count || 0), 0)}
-          </span>
-          <span className="text-[11px] text-slate-500 mt-1 block">Distinct underlying control events</span>
+        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/5 rounded-bl-full pointer-events-none" />
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">HSE Validated</span>
+            <div className="w-7 h-7 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center font-bold text-xs">
+              <ShieldCheck className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="text-2xl font-black text-purple-700 mt-2">{validatedCount}</div>
+          <p className="text-[11px] text-slate-500 mt-1 font-medium">Active in organizational memory</p>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Active Pattern Actions</span>
-          <span className="text-2xl font-black text-amber-600 mt-1 block">
-            {actionRequiredCount + awaitingVerifCount}
-          </span>
-          <span className="text-[11px] text-slate-500 mt-1 block">{actionRequiredCount} assigned • {awaitingVerifCount} awaiting verification</span>
+        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-orange-500/5 rounded-bl-full pointer-events-none" />
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Active Actions</span>
+            <div className="w-7 h-7 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center font-bold text-xs">
+              <Send className="w-3.5 h-3.5" />
+            </div>
+          </div>
+          <div className="text-2xl font-black text-orange-600 mt-2">{actionRequiredCount + awaitingVerifCount}</div>
+          <p className="text-[11px] text-slate-500 mt-1 font-medium">
+            {actionRequiredCount} assigned • {awaitingVerifCount} awaiting verification
+          </p>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Closed / Historical Memory</span>
-          <span className="text-2xl font-black text-emerald-700 mt-1 block">
-            {closedHistoryCount}
-          </span>
-          <span className="text-[11px] text-slate-500 mt-1 block">Verified & preserved in history</span>
+        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-bl-full pointer-events-none" />
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Historical Memory</span>
+            <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-xs">
+              <Archive className="w-3.5 h-3.5" />
+            </div>
+          </div>
+          <div className="text-2xl font-black text-emerald-700 mt-2">{closedHistoryCount}</div>
+          <p className="text-[11px] text-slate-500 mt-1 font-medium">Verified & closed into learning</p>
         </div>
       </div>
 
-      {/* 3. Operational Filter Navigation Tabs */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 pb-2 gap-2">
+      {/* 3. Operational Filter Navigation Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 p-2 rounded-xl border border-slate-200">
         <div className="flex flex-wrap items-center gap-1.5">
           <button
             onClick={() => setStatusFilter('ALL')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
               statusFilter === 'ALL'
                 ? 'bg-slate-900 text-white shadow-sm'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
             }`}
           >
-            All Patterns ({patterns.length})
+            <span>All Patterns</span>
+            <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${statusFilter === 'ALL' ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-600'}`}>
+              {patterns.length}
+            </span>
           </button>
+
           <button
             onClick={() => setStatusFilter('CANDIDATE')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
               statusFilter === 'CANDIDATE'
                 ? 'bg-amber-600 text-white shadow-sm'
-                : 'bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200'
+                : 'bg-white text-amber-800 hover:bg-amber-50 border border-amber-200'
             }`}
           >
-            Candidate Queue ({candidateCount})
+            <span>Candidates</span>
+            <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${statusFilter === 'CANDIDATE' ? 'bg-amber-700 text-white' : 'bg-amber-100 text-amber-800'}`}>
+              {candidateCount}
+            </span>
           </button>
+
           <button
             onClick={() => setStatusFilter('ACTION_REQUIRED')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
               statusFilter === 'ACTION_REQUIRED'
                 ? 'bg-orange-600 text-white shadow-sm'
-                : 'bg-orange-50 text-orange-800 hover:bg-orange-100 border border-orange-200'
+                : 'bg-white text-orange-800 hover:bg-orange-50 border border-orange-200'
             }`}
           >
-            Action Required ({actionRequiredCount})
+            <span>Action Required</span>
+            <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${statusFilter === 'ACTION_REQUIRED' ? 'bg-orange-700 text-white' : 'bg-orange-100 text-orange-800'}`}>
+              {actionRequiredCount}
+            </span>
           </button>
+
           <button
             onClick={() => setStatusFilter('AWAITING_VERIFICATION')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
               statusFilter === 'AWAITING_VERIFICATION'
                 ? 'bg-yellow-600 text-white shadow-sm'
-                : 'bg-yellow-50 text-yellow-800 hover:bg-yellow-100 border border-yellow-200'
+                : 'bg-white text-yellow-800 hover:bg-yellow-50 border border-yellow-200'
             }`}
           >
-            Awaiting Verification ({awaitingVerifCount})
+            <span>Awaiting Verification</span>
+            <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${statusFilter === 'AWAITING_VERIFICATION' ? 'bg-yellow-700 text-white' : 'bg-yellow-100 text-yellow-800'}`}>
+              {awaitingVerifCount}
+            </span>
           </button>
+
           <button
             onClick={() => setStatusFilter('VERIFIED')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
               statusFilter === 'VERIFIED'
                 ? 'bg-emerald-600 text-white shadow-sm'
-                : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200'
+                : 'bg-white text-emerald-800 hover:bg-emerald-50 border border-emerald-200'
             }`}
           >
-            Verified / Ready to Close ({verifiedCount})
+            <span>Verified (Ready to Close)</span>
+            <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${statusFilter === 'VERIFIED' ? 'bg-emerald-700 text-white' : 'bg-emerald-100 text-emerald-800'}`}>
+              {verifiedCount}
+            </span>
           </button>
+
           <button
             onClick={() => setStatusFilter('CLOSED_HISTORY')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
               statusFilter === 'CLOSED_HISTORY'
                 ? 'bg-slate-700 text-white shadow-sm'
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300'
+                : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-300'
             }`}
           >
-            Closed / History ({closedHistoryCount})
+            <span>Closed History</span>
+            <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${statusFilter === 'CLOSED_HISTORY' ? 'bg-slate-600 text-white' : 'bg-slate-100 text-slate-700'}`}>
+              {closedHistoryCount}
+            </span>
           </button>
-          <button
-            onClick={() => setStatusFilter('REJECTED')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              statusFilter === 'REJECTED'
-                ? 'bg-rose-700 text-white shadow-sm'
-                : 'bg-rose-50 text-rose-800 hover:bg-rose-100 border border-rose-200'
-            }`}
-          >
-            Rejected ({rejectedCount})
-          </button>
+
+          {rejectedCount > 0 && (
+            <button
+              onClick={() => setStatusFilter('REJECTED')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                statusFilter === 'REJECTED'
+                  ? 'bg-rose-700 text-white shadow-sm'
+                  : 'bg-white text-rose-800 hover:bg-rose-50 border border-rose-200'
+              }`}
+            >
+              <span>Rejected</span>
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${statusFilter === 'REJECTED' ? 'bg-rose-800 text-white' : 'bg-rose-100 text-rose-800'}`}>
+                {rejectedCount}
+              </span>
+            </button>
+          )}
         </div>
 
-        <span className="text-xs text-slate-500 hidden md:inline">
+        <span className="text-xs text-slate-500 font-medium px-2">
           Showing <strong className="text-slate-800">{filteredPatterns.length}</strong> patterns
         </span>
       </div>
@@ -469,10 +530,12 @@ export default function SafetyMemoryView() {
       {/* 4. Pattern Cards Display */}
       <div className="space-y-4">
         {filteredPatterns.length === 0 ? (
-          <div className="bg-white rounded-xl border border-slate-200 p-8 text-center text-slate-500 space-y-2">
-            <Layers className="w-8 h-8 text-slate-400 mx-auto" />
-            <p className="text-xs font-bold text-slate-700">No recurring control patterns in this category.</p>
-            <p className="text-[11px] text-slate-400">Patterns are discovered by two-stage recurrence analysis and managed through the HSE lifecycle.</p>
+          <div className="bg-white rounded-xl border border-slate-200 p-12 text-center text-slate-500 space-y-3">
+            <Layers className="w-10 h-10 text-slate-300 mx-auto" />
+            <p className="text-sm font-bold text-slate-700">No recurring control patterns in this view</p>
+            <p className="text-xs text-slate-400 max-w-md mx-auto">
+              Candidate patterns are automatically formulated by vector recurrence clustering when multiple independent reports violate identical critical safety barriers.
+            </p>
           </div>
         ) : (
           filteredPatterns.map((p) => {
@@ -494,37 +557,37 @@ export default function SafetyMemoryView() {
                 key={p.pattern_id}
                 className={`bg-white rounded-xl border p-5 shadow-sm space-y-4 transition-all ${
                   isClosedHistory
-                    ? 'border-slate-300 bg-slate-50/50'
+                    ? 'border-slate-200 bg-slate-50/40 opacity-90'
                     : isVerified
-                    ? 'border-emerald-300 ring-1 ring-emerald-200 bg-emerald-50/15'
+                    ? 'border-emerald-300 ring-1 ring-emerald-100 bg-emerald-50/10'
                     : isAwaitingVerification
-                    ? 'border-yellow-400 ring-1 ring-yellow-200 bg-yellow-50/20'
+                    ? 'border-yellow-300 ring-1 ring-yellow-100 bg-yellow-50/15'
                     : isReopened
-                    ? 'border-rose-400 ring-1 ring-rose-200 bg-rose-50/20'
+                    ? 'border-rose-300 ring-1 ring-rose-100 bg-rose-50/15'
                     : isActionRequired
-                    ? 'border-orange-300 ring-1 ring-orange-200 bg-orange-50/15'
+                    ? 'border-orange-300 ring-1 ring-orange-100 bg-orange-50/10'
                     : isValidated 
-                    ? 'border-emerald-300 ring-1 ring-emerald-200 bg-emerald-50/10' 
+                    ? 'border-purple-200 ring-1 ring-purple-100' 
                     : isRejected
-                    ? 'border-slate-300 bg-slate-50/60 opacity-80'
+                    ? 'border-slate-200 bg-slate-50/60 opacity-75'
                     : 'border-amber-200 ring-1 ring-amber-100'
                 }`}
               >
                 {/* Header Row */}
-                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 border-b border-slate-100 pb-3">
+                <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3 border-b border-slate-100 pb-3">
                   <div className="space-y-1.5 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-100 text-slate-700 border">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-100 text-slate-700 border border-slate-200">
                         {p.pattern_id}
                       </span>
 
                       {/* HSE Validation State Badge */}
-                      <span className={`px-2.5 py-0.5 rounded text-[10px] font-black uppercase border ${
+                      <span className={`px-2.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider border ${
                         isValidated 
-                          ? 'bg-emerald-100 text-emerald-800 border-emerald-300' 
+                          ? 'bg-emerald-50 text-emerald-800 border-emerald-300' 
                           : isRejected
-                          ? 'bg-slate-200 text-slate-700 border-slate-300'
-                          : 'bg-amber-100 text-amber-800 border-amber-300'
+                          ? 'bg-slate-100 text-slate-700 border-slate-300'
+                          : 'bg-amber-50 text-amber-800 border-amber-300'
                       }`}>
                         {isValidated 
                           ? '✓ HSE VALIDATED' 
@@ -535,9 +598,9 @@ export default function SafetyMemoryView() {
 
                       {/* Operational Lifecycle Badge */}
                       {opStatus !== 'NONE' && (
-                        <span className={`px-2.5 py-0.5 rounded text-[10px] font-black uppercase border flex items-center gap-1 ${
+                        <span className={`px-2.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider border flex items-center gap-1 ${
                           isClosedHistory
-                            ? 'bg-slate-200 text-slate-800 border-slate-300'
+                            ? 'bg-slate-100 text-slate-700 border-slate-300'
                             : isVerified
                             ? 'bg-emerald-100 text-emerald-900 border-emerald-400'
                             : isAwaitingVerification
@@ -556,31 +619,31 @@ export default function SafetyMemoryView() {
                         </span>
                       )}
 
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-50 text-purple-800 border border-purple-200">
                         {p.independent_occurrences || p.occurrence_count || 1} INDEPENDENT OCCURRENCES
                       </span>
 
                       {p.sif_potential && (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-800 border border-rose-200">
                           SIF: {p.sif_potential}
                         </span>
                       )}
                     </div>
 
-                    <h3 className="text-sm font-black text-slate-900 mt-1">
+                    <h3 className="text-base font-black text-slate-900 tracking-tight mt-1">
                       {p.pattern_title || p.title}
                     </h3>
                   </div>
 
-                  {/* Operational Action Controls */}
+                  {/* Primary Action Controls */}
                   <div className="flex flex-wrap items-center gap-2">
-                    {/* View Details Button - Always Available */}
+                    {/* View Details Button */}
                     <button
                       onClick={() => handleOpenDetails(p)}
                       className="px-3 py-1.5 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 font-bold text-xs rounded-lg shadow-sm transition-colors flex items-center space-x-1"
                     >
                       <Eye className="w-3.5 h-3.5 text-slate-500" />
-                      <span>VIEW DETAILS</span>
+                      <span>VIEW EVIDENCE</span>
                     </button>
 
                     {/* Candidate Actions */}
@@ -589,7 +652,7 @@ export default function SafetyMemoryView() {
                         <button
                           onClick={() => handleValidate(p.pattern_id, 'CONFIRM')}
                           disabled={validatingId === p.pattern_id}
-                          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg shadow-sm transition-colors flex items-center space-x-1 disabled:opacity-50"
+                          className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg shadow-sm transition-colors flex items-center space-x-1 disabled:opacity-50"
                         >
                           <Check className="w-3.5 h-3.5" />
                           <span>CONFIRM PATTERN</span>
@@ -608,7 +671,7 @@ export default function SafetyMemoryView() {
                     {isValidated && (opStatus === 'NONE' || opStatus === 'ACTIVE' || !p.operational_status) && (
                       <button
                         onClick={() => handleOpenAssignModal(p)}
-                        className="px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs rounded-lg shadow-sm transition-colors flex items-center space-x-1"
+                        className="px-3.5 py-1.5 bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs rounded-lg shadow-sm transition-colors flex items-center space-x-1"
                       >
                         <Send className="w-3.5 h-3.5" />
                         <span>ASSIGN CORRECTIVE ACTION</span>
@@ -619,7 +682,7 @@ export default function SafetyMemoryView() {
                     {isReopened && (
                       <button
                         onClick={() => handleOpenAssignModal(p)}
-                        className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-lg shadow-sm transition-colors flex items-center space-x-1"
+                        className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-lg shadow-sm transition-colors flex items-center space-x-1"
                       >
                         <Send className="w-3.5 h-3.5" />
                         <span>RE-ASSIGN ACTION</span>
@@ -630,7 +693,7 @@ export default function SafetyMemoryView() {
                     {isVerified && (
                       <button
                         onClick={() => handleOpenCloseModal(p)}
-                        className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-black text-xs rounded-lg shadow-sm transition-colors flex items-center space-x-1"
+                        className="px-3.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-black text-xs rounded-lg shadow-sm transition-colors flex items-center space-x-1"
                       >
                         <Archive className="w-3.5 h-3.5" />
                         <span>HSE CLOSE PATTERN</span>
@@ -648,48 +711,48 @@ export default function SafetyMemoryView() {
                 </div>
 
                 {/* Underlying Control Mechanism Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
-                  <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
-                    <span className="text-[10px] text-slate-400 font-bold block uppercase">Activity • Location</span>
-                    <span className="font-bold text-slate-900 mt-1 block">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+                  <div className="p-3 bg-slate-50/70 rounded-lg border border-slate-200/80">
+                    <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Activity • Location</span>
+                    <span className="font-bold text-slate-900 mt-1 block truncate">
                       {p.activity}
                     </span>
                     <span className="text-[11px] text-slate-600 flex items-center gap-1 mt-0.5">
-                      <MapPin className="w-3 h-3 text-slate-400" />
-                      {p.location || 'Lifting Zone 03'}
+                      <MapPin className="w-3 h-3 text-slate-400 flex-shrink-0" />
+                      <span className="truncate">{p.location || 'Lifting Zone 03'}</span>
                     </span>
                   </div>
 
-                  <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
-                    <span className="text-[10px] text-slate-400 font-bold block uppercase">Failed Critical Control</span>
-                    <span className="font-bold text-red-700 mt-1 block">
+                  <div className="p-3 bg-slate-50/70 rounded-lg border border-slate-200/80">
+                    <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Failed Critical Control</span>
+                    <span className="font-bold text-rose-700 mt-1 block truncate">
                       {p.barrier || p.critical_barrier}
                     </span>
-                    <span className="text-[10px] text-slate-500">
-                      {p.barrier_condition || 'Control Breached'} • {p.energy || 'Kinetic / Mechanical'}
+                    <span className="text-[10px] text-slate-500 block truncate">
+                      {p.barrier_condition || 'Control Breached'} • {p.energy || 'Kinetic Energy'}
                     </span>
                   </div>
 
-                  <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
-                    <span className="text-[10px] text-slate-400 font-bold block uppercase">Recurrence Verification</span>
+                  <div className="p-3 bg-slate-50/70 rounded-lg border border-slate-200/80">
+                    <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Recurrence Verification</span>
                     <span className="font-bold text-slate-800 mt-1 block">
                       {p.independent_occurrences || p.occurrence_count || 1} independent failures
                     </span>
                     <span className="text-[10px] text-slate-500 font-mono">
-                      {p.duplicate_count || 0} duplicate reports filtered
+                      {p.duplicate_count || 0} duplicates filtered out
                     </span>
                   </div>
 
-                  <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
-                    <span className="text-[10px] text-slate-400 font-bold block uppercase">Evidence Source Breakdown</span>
-                    <div className="mt-1 flex items-center space-x-1.5 text-[11px] font-bold">
-                      <span className="px-1.5 py-0.5 rounded bg-blue-100 text-blue-800">
+                  <div className="p-3 bg-slate-50/70 rounded-lg border border-slate-200/80">
+                    <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Evidence Source Breakdown</span>
+                    <div className="mt-1 flex items-center space-x-1.5 text-[10px] font-bold">
+                      <span className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-800 border border-blue-200">
                         Human: {sourceBreakdown.Human || 0}
                       </span>
-                      <span className="px-1.5 py-0.5 rounded bg-purple-100 text-purple-800">
+                      <span className="px-1.5 py-0.5 rounded bg-purple-50 text-purple-800 border border-purple-200">
                         CCTV: {sourceBreakdown.CCTV || 0}
                       </span>
-                      <span className="px-1.5 py-0.5 rounded bg-slate-200 text-slate-800">
+                      <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-800 border border-slate-200">
                         Import: {sourceBreakdown.Imported || 0}
                       </span>
                     </div>
@@ -698,25 +761,25 @@ export default function SafetyMemoryView() {
 
                 {/* Assigned Action / Verification Progress Banner */}
                 {(isActionRequired || isAwaitingVerification || isVerified || isReopened) && (
-                  <div className={`p-3.5 rounded-lg border text-xs flex flex-col md:flex-row md:items-center justify-between gap-3 ${
+                  <div className={`p-4 rounded-xl border text-xs flex flex-col md:flex-row md:items-center justify-between gap-3 ${
                     isReopened
-                      ? 'bg-rose-50 border-rose-300 text-rose-950'
+                      ? 'bg-rose-50 border-rose-200 text-rose-950'
                       : isAwaitingVerification
-                      ? 'bg-yellow-50 border-yellow-300 text-yellow-950'
+                      ? 'bg-yellow-50 border-yellow-200 text-yellow-950'
                       : isVerified
-                      ? 'bg-emerald-50 border-emerald-300 text-emerald-950'
-                      : 'bg-orange-50 border-orange-300 text-orange-950'
+                      ? 'bg-emerald-50 border-emerald-200 text-emerald-950'
+                      : 'bg-orange-50 border-orange-200 text-orange-950'
                   }`}>
                     <div className="space-y-1">
-                      <div className="flex items-center space-x-1.5 font-bold uppercase tracking-wider text-[11px]">
+                      <div className="flex items-center space-x-2 font-bold uppercase tracking-wider text-[11px]">
                         {isReopened ? (
-                          <AlertTriangle className="w-4 h-4 text-rose-700" />
+                          <AlertTriangle className="w-4 h-4 text-rose-700 flex-shrink-0" />
                         ) : isAwaitingVerification ? (
-                          <Clock className="w-4 h-4 text-yellow-700 animate-spin" />
+                          <Clock className="w-4 h-4 text-yellow-700 animate-spin flex-shrink-0" />
                         ) : isVerified ? (
-                          <CheckCircle2 className="w-4 h-4 text-emerald-700" />
+                          <CheckCircle2 className="w-4 h-4 text-emerald-700 flex-shrink-0" />
                         ) : (
-                          <Send className="w-4 h-4 text-orange-700" />
+                          <Send className="w-4 h-4 text-orange-700 flex-shrink-0" />
                         )}
                         <span>
                           {isReopened && 'Action Reopened: Person re-entered restricted zone during verification'}
@@ -739,7 +802,7 @@ export default function SafetyMemoryView() {
 
                     {/* Quick Verification Trigger Controls for Demo/Operator */}
                     {isAwaitingVerification && (
-                      <div className="flex items-center space-x-2 flex-shrink-0">
+                      <div className="flex items-center space-x-2 flex-shrink-0 pt-2 md:pt-0">
                         <button
                           onClick={() => handleCctvVerify(p.pattern_id, false)}
                           disabled={verifyingId === p.pattern_id}
@@ -762,7 +825,7 @@ export default function SafetyMemoryView() {
                     )}
 
                     {isReopened && (
-                      <div className="flex items-center space-x-2 flex-shrink-0">
+                      <div className="flex items-center space-x-2 flex-shrink-0 pt-2 md:pt-0">
                         <button
                           onClick={() => handleCctvVerify(p.pattern_id, false)}
                           disabled={verifyingId === p.pattern_id}
@@ -778,7 +841,7 @@ export default function SafetyMemoryView() {
 
                 {/* Embedded CCTV Preview (If awaiting verification or reopened) */}
                 {(isAwaitingVerification || isReopened) && (
-                  <div className="p-3 bg-slate-900 rounded-lg border border-slate-700 text-white space-y-2">
+                  <div className="p-3.5 bg-slate-900 rounded-xl border border-slate-800 text-white space-y-2.5">
                     <div className="flex items-center justify-between text-xs">
                       <div className="flex items-center space-x-2 font-mono font-bold">
                         <Camera className="w-4 h-4 text-emerald-400" />
@@ -790,7 +853,7 @@ export default function SafetyMemoryView() {
                       </span>
                     </div>
 
-                    <div className="relative aspect-video max-h-52 rounded overflow-hidden bg-black flex items-center justify-center border border-slate-800">
+                    <div className="relative aspect-video max-h-56 rounded-lg overflow-hidden bg-black flex items-center justify-center border border-slate-800">
                       <img 
                         src={`/video_feed?camera=C-01&t=${cctvStreamKey}`} 
                         alt="CCTV Verification Stream"
@@ -811,7 +874,7 @@ export default function SafetyMemoryView() {
                   </div>
                 )}
 
-                {/* Future Safety Preconditions Banner (Section 13) */}
+                {/* Future Safety Preconditions Banner */}
                 {isValidated && p.future_work_requirements && p.future_work_requirements.length > 0 && (
                   <div className="p-3.5 bg-emerald-50/70 border border-emerald-200 rounded-lg space-y-1.5">
                     <div className="flex items-center space-x-1.5 text-emerald-900 font-bold text-xs uppercase tracking-wider">
@@ -832,27 +895,31 @@ export default function SafetyMemoryView() {
       </div>
 
       {/* 5. Future Work Package Safety Verification (Section 14) */}
-      <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-4">
-        <div className="border-b border-slate-100 pb-3">
+      <div className="bg-white rounded-xl border border-slate-200 p-5 sm:p-6 shadow-sm space-y-5">
+        <div className="border-b border-slate-100 pb-4">
           <div className="flex items-center space-x-2">
-            <FileCheck className="w-4 h-4 text-blue-600" />
-            <h2 className="text-xs font-black uppercase tracking-wider text-slate-900">
-              Future-Work Safety Evidence Check (Pre-Job Authorization)
-            </h2>
+            <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">
+              <FileCheck className="w-4 h-4" />
+            </div>
+            <div>
+              <h2 className="text-sm font-black uppercase tracking-wider text-slate-900">
+                Future-Work Safety Evidence Check (Pre-Job Authorization)
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Simulates how validated Safety Memory checks upcoming permits against required observable evidence before authorization.
+                SHRAMRAKSHAK flags missing critical safety evidence for human HSE review.
+              </p>
+            </div>
           </div>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Test how validated Safety Memory automatically evaluates upcoming work packages for required observable safety evidence before permit authorization.
-            SHRAMRAKSHAK does <strong>not</strong> autonomously approve permits; it flags missing critical safety evidence for human HSE review.
-          </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 text-xs">
           <div>
-            <label className="font-bold text-slate-700 block mb-1">Work Package Task Type</label>
+            <label className="font-bold text-slate-700 block mb-1.5">Work Package Task Type</label>
             <select
               value={wpTaskType}
               onChange={(e) => handleTaskTypeChange(e.target.value)}
-              className="w-full p-2 rounded-lg border border-slate-300 bg-white text-slate-900 font-semibold"
+              className="w-full p-2.5 rounded-lg border border-slate-300 bg-white text-slate-900 font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none"
             >
               <option value="Mechanical Lifting">Mechanical Lifting Operations</option>
               <option value="Electrical Maintenance (LOTO)">Electrical Maintenance (LOTO)</option>
@@ -861,27 +928,27 @@ export default function SafetyMemoryView() {
           </div>
 
           <div>
-            <label className="font-bold text-slate-700 block mb-1">Target Location</label>
+            <label className="font-bold text-slate-700 block mb-1.5">Target Location</label>
             <input
               type="text"
               value={wpLocation}
               onChange={(e) => setWpLocation(e.target.value)}
-              className="w-full p-2 rounded-lg border border-slate-300 text-slate-900 font-semibold"
+              className="w-full p-2.5 rounded-lg border border-slate-300 text-slate-900 font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none"
             />
           </div>
 
           <div>
-            <label className="font-bold text-slate-700 block mb-1">Submitted Safety Evidence</label>
-            <div className="space-y-1.5 pt-1">
+            <label className="font-bold text-slate-700 block mb-1.5">Submitted Safety Evidence</label>
+            <div className="space-y-2 pt-0.5">
               {(TASK_EVIDENCE_MAP[wpTaskType] || []).map((evItem) => (
-                <label key={evItem.key} className="flex items-center space-x-2 cursor-pointer">
+                <label key={evItem.key} className="flex items-start space-x-2.5 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={wpEvidenceProvided.includes(evItem.key)}
                     onChange={() => handleToggleEvidence(evItem.key)}
-                    className="rounded text-purple-600 focus:ring-purple-500"
+                    className="mt-0.5 rounded text-blue-600 focus:ring-blue-500"
                   />
-                  <span className="text-slate-800 text-[11px]">{evItem.label}</span>
+                  <span className="text-slate-800 text-[11px] font-medium leading-tight">{evItem.label}</span>
                 </label>
               ))}
             </div>
@@ -892,7 +959,7 @@ export default function SafetyMemoryView() {
           <button
             onClick={handleRunWpCheck}
             disabled={wpChecking}
-            className="px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white font-bold text-xs rounded-lg shadow transition-colors flex items-center space-x-1.5 disabled:opacity-50"
+            className="px-4 py-2.5 bg-blue-700 hover:bg-blue-800 text-white font-bold text-xs rounded-lg shadow-sm transition-colors flex items-center space-x-2 disabled:opacity-50"
           >
             {wpChecking ? (
               <RefreshCw className="w-3.5 h-3.5 animate-spin" />
@@ -908,14 +975,14 @@ export default function SafetyMemoryView() {
           <div className={`p-4 rounded-xl border animate-fade-in ${
             wpResult.status === 'PASS' 
               ? 'bg-emerald-50 border-emerald-300 text-emerald-950' 
-              : 'bg-red-50 border-red-300 text-red-950'
+              : 'bg-rose-50 border-rose-300 text-rose-950'
           }`}>
             <div className="flex items-center justify-between font-bold mb-1">
               <span className="text-xs uppercase tracking-wider flex items-center gap-1.5">
                 {wpResult.status === 'PASS' ? (
                   <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                 ) : (
-                  <AlertOctagon className="w-4 h-4 text-red-600" />
+                  <AlertOctagon className="w-4 h-4 text-rose-600" />
                 )}
                 {wpResult.status === 'PASS' 
                   ? 'ALL REQUIRED CRITICAL SAFETY EVIDENCE SATISFIED' 
@@ -936,7 +1003,7 @@ export default function SafetyMemoryView() {
 
             {/* Findings List */}
             {wpResult.findings && wpResult.findings.length > 0 && (
-              <div className="mt-2.5 pt-2 border-t border-slate-200/80 text-xs">
+              <div className="mt-3 pt-2.5 border-t border-slate-200/80 text-xs">
                 <span className="font-bold block mb-1 text-slate-800">Evaluated Precondition Findings:</span>
                 <ul className="list-disc list-inside space-y-0.5 text-slate-700 text-[11px]">
                   {wpResult.findings.map((finding, idx) => (
@@ -948,9 +1015,9 @@ export default function SafetyMemoryView() {
 
             {/* Missing Evidence List */}
             {wpResult.missing_evidence && wpResult.missing_evidence.length > 0 && (
-              <div className="mt-2 pt-2 border-t border-red-200 text-xs">
-                <span className="font-bold text-red-900 block mb-1">Missing Evidence Items:</span>
-                <ul className="list-disc list-inside space-y-0.5 text-red-800 text-[11px]">
+              <div className="mt-2.5 pt-2.5 border-t border-rose-200 text-xs">
+                <span className="font-bold text-rose-900 block mb-1">Missing Evidence Items:</span>
+                <ul className="list-disc list-inside space-y-0.5 text-rose-800 text-[11px]">
                   {wpResult.missing_evidence.map((miss, idx) => (
                     <li key={idx}>
                       <strong>{miss}</strong> — Required by validated organizational learning
@@ -968,13 +1035,13 @@ export default function SafetyMemoryView() {
       {/* ============================================================ */}
       {detailsModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-200 p-6 space-y-6">
+          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-200 p-6 space-y-5">
             
             {/* Header */}
             <div className="flex items-center justify-between border-b pb-4">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-100 text-slate-800 border">
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-100 text-slate-800 border border-slate-200">
                     {selectedDetails?.pattern_id || 'PAT-DETAILS'}
                   </span>
                   <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-purple-100 text-purple-900">
@@ -993,165 +1060,218 @@ export default function SafetyMemoryView() {
               </button>
             </div>
 
+            {/* Modal Navigation Tabs */}
+            <div className="flex border-b border-slate-200 gap-4 text-xs font-bold">
+              <button
+                onClick={() => setDetailsTab('breakdown')}
+                className={`pb-2.5 border-b-2 transition-colors flex items-center gap-1.5 ${
+                  detailsTab === 'breakdown'
+                    ? 'border-purple-600 text-purple-700'
+                    : 'border-transparent text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                <span>Control Breakdown</span>
+              </button>
+              <button
+                onClick={() => setDetailsTab('events')}
+                className={`pb-2.5 border-b-2 transition-colors flex items-center gap-1.5 ${
+                  detailsTab === 'events'
+                    ? 'border-purple-600 text-purple-700'
+                    : 'border-transparent text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                <span>Supporting Events</span>
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-100 text-slate-600">
+                  {selectedDetails?.supporting_safety_events?.length || 0}
+                </span>
+              </button>
+              <button
+                onClick={() => setDetailsTab('snippets')}
+                className={`pb-2.5 border-b-2 transition-colors flex items-center gap-1.5 ${
+                  detailsTab === 'snippets'
+                    ? 'border-purple-600 text-purple-700'
+                    : 'border-transparent text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                <span>Evidence Snippets</span>
+              </button>
+              <button
+                onClick={() => setDetailsTab('history')}
+                className={`pb-2.5 border-b-2 transition-colors flex items-center gap-1.5 ${
+                  detailsTab === 'history'
+                    ? 'border-purple-600 text-purple-700'
+                    : 'border-transparent text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                <span>Verification History</span>
+              </button>
+            </div>
+
             {detailsLoading ? (
               <div className="p-12 text-center text-slate-500 space-y-2">
                 <RefreshCw className="w-8 h-8 animate-spin text-purple-600 mx-auto" />
                 <p className="text-xs font-bold">Retrieving evidence-grounded pattern details from SQLite...</p>
               </div>
             ) : selectedDetails ? (
-              <div className="space-y-5 text-xs">
+              <div className="space-y-4 text-xs">
                 
-                {/* 18-Point Evidence Breakdown Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase">1. Activity & Location</span>
-                    <p className="font-bold text-slate-900">{selectedDetails.activity || 'Mechanical Lifting'}</p>
-                    <p className="text-slate-600 flex items-center gap-1">
-                      <MapPin className="w-3 h-3 text-slate-400" />
-                      {selectedDetails.location || 'Lifting Zone 03'}
-                    </p>
-                  </div>
+                {detailsTab === 'breakdown' && (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase">1. Activity & Location</span>
+                      <p className="font-bold text-slate-900">{selectedDetails.activity || 'Mechanical Lifting'}</p>
+                      <p className="text-slate-600 flex items-center gap-1">
+                        <MapPin className="w-3 h-3 text-slate-400" />
+                        {selectedDetails.location || 'Lifting Zone 03'}
+                      </p>
+                    </div>
 
-                  <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase">2. Occurrences & Sources</span>
-                    <p className="font-bold text-purple-900">
-                      {selectedDetails.independent_occurrences} Independent Occurrences
-                    </p>
-                    <div className="flex gap-1.5 text-[10px] font-bold mt-0.5">
-                      <span className="px-1.5 py-0.5 bg-blue-100 text-blue-800 rounded">
-                        Human: {selectedDetails.source_breakdown?.Human || 0}
+                    <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase">2. Occurrences & Sources</span>
+                      <p className="font-bold text-purple-900">
+                        {selectedDetails.independent_occurrences} Independent Occurrences
+                      </p>
+                      <div className="flex gap-1.5 text-[10px] font-bold mt-0.5">
+                        <span className="px-1.5 py-0.5 bg-blue-100 text-blue-800 rounded">
+                          Human: {selectedDetails.source_breakdown?.Human || 0}
+                        </span>
+                        <span className="px-1.5 py-0.5 bg-purple-100 text-purple-800 rounded">
+                          CCTV: {selectedDetails.source_breakdown?.CCTV || 0}
+                        </span>
+                        <span className="px-1.5 py-0.5 bg-slate-200 text-slate-800 rounded">
+                          Import: {selectedDetails.source_breakdown?.Imported || 0}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase">3. SIF Potential & LSR</span>
+                      <p className="font-bold text-rose-700">
+                        SIF: {selectedDetails.sif_potential || 'HIGH'}
+                      </p>
+                      <p className="text-slate-700 font-semibold">
+                        Rule: {selectedDetails.iogp_life_saving_rule || 'Line of Fire'}
+                      </p>
+                    </div>
+
+                    <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase">4. Failed Critical Barrier</span>
+                      <p className="font-bold text-rose-700">{selectedDetails.failed_barrier || 'Exclusion Zone Perimeter'}</p>
+                      <p className="text-slate-500 text-[11px]">{selectedDetails.hazard_energy || 'Kinetic / Gravitational Energy'}</p>
+                    </div>
+
+                    <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase">5. Human Exposure</span>
+                      <p className="font-semibold text-slate-800">{selectedDetails.human_exposure || 'Personnel inside active zone under suspended load'}</p>
+                    </div>
+
+                    <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase">6. HSE Validation State</span>
+                      <span className="inline-block px-2 py-0.5 rounded text-[10px] font-black uppercase bg-emerald-100 text-emerald-800 border border-emerald-300">
+                        {selectedDetails.hse_validation_state || 'HSE_VALIDATED'}
                       </span>
-                      <span className="px-1.5 py-0.5 bg-purple-100 text-purple-800 rounded">
-                        CCTV: {selectedDetails.source_breakdown?.CCTV || 0}
-                      </span>
-                      <span className="px-1.5 py-0.5 bg-slate-200 text-slate-800 rounded">
-                        Import: {selectedDetails.source_breakdown?.Imported || 0}
-                      </span>
+                      <p className="text-slate-500 text-[10px]">Reviewed by Oil India HSE Lead</p>
+                    </div>
+
+                    <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase">7. Operational Action State</span>
+                      <p className="font-bold text-orange-900">{selectedDetails.action_state || (typeof selectedDetails.assigned_action === 'object' ? selectedDetails.assigned_action?.operational_status : null) || 'ACTION_REQUIRED'}</p>
+                      <p className="text-slate-600 text-[11px]">Supervisor: {selectedDetails.assigned_supervisor || (typeof selectedDetails.assigned_action === 'object' ? selectedDetails.assigned_action?.supervisor_name : null) || 'SUP-01 (Rajesh Kumar)'}</p>
+                      {typeof selectedDetails.assigned_action === 'object' && selectedDetails.assigned_action?.required_action && (
+                        <p className="text-slate-700 text-[11px]"><strong>Action:</strong> {selectedDetails.assigned_action.required_action}</p>
+                      )}
+                    </div>
+
+                    <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase">8. Verification Status</span>
+                      <p className="font-bold text-slate-900">{selectedDetails.verification_state || 'PENDING'}</p>
+                      <p className="text-slate-500 text-[10px]">Method: Observable CCTV Stream</p>
+                    </div>
+
+                    <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase">9. Lifecycle Stage</span>
+                      <p className="font-bold text-purple-900">{selectedDetails.operational_status || 'ACTIVE'}</p>
+                      <p className="text-slate-500 text-[10px]">Audit trail logged to SQLite</p>
                     </div>
                   </div>
+                )}
 
-                  <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase">3. SIF Potential & LSR</span>
-                    <p className="font-bold text-rose-700">
-                      SIF: {selectedDetails.sif_potential || 'HIGH'}
-                    </p>
-                    <p className="text-slate-700 font-semibold">
-                      Rule: {selectedDetails.iogp_life_saving_rule || 'Line of Fire'}
-                    </p>
-                  </div>
+                {detailsTab === 'events' && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+                        <Layers className="w-4 h-4 text-purple-600" />
+                        <span>Supporting Safety Events ({selectedDetails.supporting_safety_events?.length || 0})</span>
+                      </h3>
+                      <span className="text-[10px] text-slate-400">Ground-truth SQLite records</span>
+                    </div>
 
-                  <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase">4. Failed Critical Barrier</span>
-                    <p className="font-bold text-red-700">{selectedDetails.failed_barrier || 'Exclusion Zone Perimeter'}</p>
-                    <p className="text-slate-500 text-[11px]">{selectedDetails.hazard_energy || 'Kinetic / Gravitational Energy'}</p>
-                  </div>
-
-                  <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase">5. Human Exposure</span>
-                    <p className="font-semibold text-slate-800">{selectedDetails.human_exposure || 'Personnel inside active zone under suspended load'}</p>
-                  </div>
-
-                  <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase">6. HSE Validation State</span>
-                    <span className="inline-block px-2 py-0.5 rounded text-[10px] font-black uppercase bg-emerald-100 text-emerald-800 border border-emerald-300">
-                      {selectedDetails.hse_validation_state || 'HSE_VALIDATED'}
-                    </span>
-                    <p className="text-slate-500 text-[10px]">Reviewed by Oil India HSE Lead</p>
-                  </div>
-
-                  <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase">7. Operational Action State</span>
-                    <p className="font-bold text-orange-900">{selectedDetails.action_state || (typeof selectedDetails.assigned_action === 'object' ? selectedDetails.assigned_action?.operational_status : null) || 'ACTION_REQUIRED'}</p>
-                    <p className="text-slate-600 text-[11px]">Supervisor: {selectedDetails.assigned_supervisor || (typeof selectedDetails.assigned_action === 'object' ? selectedDetails.assigned_action?.supervisor_name : null) || 'SUP-01 (Rajesh Kumar)'}</p>
-                    {typeof selectedDetails.assigned_action === 'object' && selectedDetails.assigned_action?.required_action && (
-                      <p className="text-slate-700 text-[11px]"><strong>Action:</strong> {selectedDetails.assigned_action.required_action}</p>
-                    )}
-                  </div>
-
-                  <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase">8. Verification Status</span>
-                    <p className="font-bold text-slate-900">{selectedDetails.verification_state || 'PENDING'}</p>
-                    <p className="text-slate-500 text-[10px]">Method: Observable CCTV Stream</p>
-                  </div>
-
-                  <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase">9. Lifecycle Stage</span>
-                    <p className="font-bold text-purple-900">{selectedDetails.operational_status || 'ACTIVE'}</p>
-                    <p className="text-slate-500 text-[10px]">Audit trail logged to SQLite</p>
-                  </div>
-                </div>
-
-                {/* Real Supporting Safety Events (Point 5) */}
-                <div className="space-y-2 pt-2 border-t">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
-                      <Layers className="w-4 h-4 text-purple-600" />
-                      <span>Supporting Safety Events ({selectedDetails.supporting_safety_events?.length || 0})</span>
-                    </h3>
-                    <span className="text-[10px] text-slate-400">Ground-truth SQLite records</span>
-                  </div>
-
-                  <div className="max-h-48 overflow-y-auto space-y-2 pr-1">
-                    {(selectedDetails.supporting_safety_events || []).map((ev, idx) => (
-                      <div key={idx} className="p-2.5 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
-                        <div className="flex items-center justify-between">
-                          <span className="font-mono font-bold text-[10px] text-slate-800">{ev.event_id}</span>
-                          <span className="text-[10px] text-slate-400">{ev.timestamp}</span>
-                        </div>
-                        <p className="text-slate-700 text-[11px] font-medium leading-relaxed">{ev.narrative}</p>
-                        <div className="flex items-center gap-2 text-[10px] text-slate-500">
-                          <span>Source: <strong>{ev.source}</strong></span>
-                          <span>•</span>
-                          <span>Location: <strong>{ev.location}</strong></span>
-                          <span>•</span>
-                          <span>Barrier: <strong className="text-red-700">{ev.barrier} ({ev.barrier_condition})</strong></span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Evidence Snippets (Point 12) */}
-                {selectedDetails.evidence_snippets && selectedDetails.evidence_snippets.length > 0 && (
-                  <div className="space-y-2 pt-2 border-t">
-                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
-                      <FileText className="w-4 h-4 text-blue-600" />
-                      <span>Evidence Text Snippets from Reports</span>
-                    </h3>
-                    <div className="space-y-1.5">
-                      {selectedDetails.evidence_snippets.map((snip, sIdx) => (
-                        <div key={sIdx} className="p-2 rounded bg-blue-50/60 border border-blue-200 font-mono text-[11px] text-blue-950">
-                          "{snip}"
+                    <div className="max-h-80 overflow-y-auto space-y-2 pr-1">
+                      {(selectedDetails.supporting_safety_events || []).map((ev, idx) => (
+                        <div key={idx} className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="font-mono font-bold text-[10px] text-slate-800">{ev.event_id}</span>
+                            <span className="text-[10px] text-slate-400">{ev.timestamp}</span>
+                          </div>
+                          <p className="text-slate-700 text-xs font-medium leading-relaxed">{ev.narrative}</p>
+                          <div className="flex items-center gap-2 text-[10px] text-slate-500 pt-1">
+                            <span>Source: <strong>{ev.source}</strong></span>
+                            <span>•</span>
+                            <span>Location: <strong>{ev.location}</strong></span>
+                            <span>•</span>
+                            <span>Barrier: <strong className="text-rose-700">{ev.barrier} ({ev.barrier_condition})</strong></span>
+                          </div>
                         </div>
                       ))}
                     </div>
                   </div>
                 )}
 
-                {/* Verification & Re-Breach History (Point 18) */}
-                <div className="space-y-2 pt-2 border-t">
-                  <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
-                    <History className="w-4 h-4 text-slate-600" />
-                    <span>Previous Verification & Re-Breach History</span>
-                  </h3>
-                  {selectedDetails.verification_history && selectedDetails.verification_history.length > 0 ? (
-                    <div className="space-y-1.5">
-                      {selectedDetails.verification_history.map((vh, vIdx) => (
-                        <div key={vIdx} className={`p-2 rounded border text-[11px] flex items-center justify-between ${
-                          vh.status === 'VERIFIED' ? 'bg-emerald-50 border-emerald-200 text-emerald-950' : 'bg-red-50 border-red-200 text-red-950'
-                        }`}>
-                          <div className="space-y-0.5">
-                            <span className="font-bold uppercase tracking-wider">{vh.status}</span>
-                            <p className="text-[10px]">{vh.details?.message || vh.details?.notes || 'Verification event logged'}</p>
+                {detailsTab === 'snippets' && (
+                  <div className="space-y-2">
+                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+                      <FileText className="w-4 h-4 text-blue-600" />
+                      <span>Evidence Text Snippets from Reports</span>
+                    </h3>
+                    {selectedDetails.evidence_snippets && selectedDetails.evidence_snippets.length > 0 ? (
+                      <div className="space-y-2">
+                        {selectedDetails.evidence_snippets.map((snip, sIdx) => (
+                          <div key={sIdx} className="p-3 rounded-lg bg-blue-50/60 border border-blue-200 font-mono text-xs text-blue-950">
+                            "{snip}"
                           </div>
-                          <span className="text-[10px] font-mono opacity-75">{vh.timestamp}</span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-slate-400 italic text-[11px]">No previous verification attempts recorded for this pattern.</p>
-                  )}
-                </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-slate-400 italic text-xs">No direct text snippets available.</p>
+                    )}
+                  </div>
+                )}
+
+                {detailsTab === 'history' && (
+                  <div className="space-y-2">
+                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+                      <History className="w-4 h-4 text-slate-600" />
+                      <span>Previous Verification & Re-Breach History</span>
+                    </h3>
+                    {selectedDetails.verification_history && selectedDetails.verification_history.length > 0 ? (
+                      <div className="space-y-2">
+                        {selectedDetails.verification_history.map((vh, vIdx) => (
+                          <div key={vIdx} className={`p-3 rounded-lg border text-xs flex items-center justify-between ${
+                            vh.status === 'VERIFIED' ? 'bg-emerald-50 border-emerald-200 text-emerald-950' : 'bg-rose-50 border-rose-200 text-rose-950'
+                          }`}>
+                            <div className="space-y-0.5">
+                              <span className="font-bold uppercase tracking-wider">{vh.status}</span>
+                              <p className="text-[11px]">{vh.details?.message || vh.details?.notes || 'Verification event logged'}</p>
+                            </div>
+                            <span className="text-[10px] font-mono opacity-75">{vh.timestamp}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-slate-400 italic text-xs">No previous verification attempts recorded for this pattern.</p>
+                    )}
+                  </div>
+                )}
 
               </div>
             ) : null}
@@ -1213,7 +1333,7 @@ export default function SafetyMemoryView() {
                     if (sid === 'SUP-CIVIL-03') sname = 'Pooja Sharma (Site Safety Supervisor)';
                     setAssignForm(prev => ({ ...prev, supervisor_id: sid, supervisor_name: sname }));
                   }}
-                  className="w-full p-2.5 rounded-lg border border-slate-300 font-semibold bg-white text-slate-900"
+                  className="w-full p-2.5 rounded-lg border border-slate-300 font-semibold bg-white text-slate-900 focus:ring-2 focus:ring-orange-500 focus:outline-none"
                 >
                   <option value="SUP-01">Rajesh Kumar (Field Lead - Rig Operations)</option>
                   <option value="SUP-ELEC-02">Amit Verma (Electrical Maintenance Lead)</option>
@@ -1227,7 +1347,7 @@ export default function SafetyMemoryView() {
                   type="text"
                   value={assignForm.location}
                   onChange={(e) => setAssignForm(prev => ({ ...prev, location: e.target.value }))}
-                  className="w-full p-2.5 rounded-lg border border-slate-300 font-semibold text-slate-900"
+                  className="w-full p-2.5 rounded-lg border border-slate-300 font-semibold text-slate-900 focus:ring-2 focus:ring-orange-500 focus:outline-none"
                   required
                 />
               </div>
@@ -1238,7 +1358,7 @@ export default function SafetyMemoryView() {
                   rows={2}
                   value={assignForm.required_action}
                   onChange={(e) => setAssignForm(prev => ({ ...prev, required_action: e.target.value }))}
-                  className="w-full p-2.5 rounded-lg border border-slate-300 font-medium text-slate-900"
+                  className="w-full p-2.5 rounded-lg border border-slate-300 font-medium text-slate-900 focus:ring-2 focus:ring-orange-500 focus:outline-none"
                   required
                 />
               </div>
@@ -1341,7 +1461,7 @@ export default function SafetyMemoryView() {
                   rows={3}
                   value={closureNotes}
                   onChange={(e) => setClosureNotes(e.target.value)}
-                  className="w-full p-2.5 rounded-lg border border-slate-300 font-medium text-slate-900"
+                  className="w-full p-2.5 rounded-lg border border-slate-300 font-medium text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                   required
                 />
               </div>
