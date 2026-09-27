@@ -24,7 +24,11 @@ import logging
 from datetime import datetime
 from typing import Dict, List, Optional, Any, Tuple
 import math
-import pandas as pd
+import csv
+try:
+    import pandas as pd
+except Exception:
+    pd = None
 from pypdf import PdfReader
 
 try:
@@ -93,20 +97,27 @@ class DatasetImportManager:
         records: List[Dict[str, Any]] = []
 
         if ext == ".csv":
-            df = pd.read_csv(io.BytesIO(contents), low_memory=False)
-            try:
-                df = df.where(pd.notnull(df), None)
-            except Exception:
-                pass
-            records = df.to_dict(orient="records")
+            if pd is not None:
+                df = pd.read_csv(io.BytesIO(contents), low_memory=False)
+                try:
+                    df = df.where(pd.notnull(df), None)
+                except Exception:
+                    pass
+                records = df.to_dict(orient="records")
+            else:
+                reader = csv.DictReader(io.StringIO(contents.decode("utf-8", errors="replace")))
+                records = [row for row in reader]
 
         elif ext in [".xlsx", ".xls"]:
-            df = pd.read_excel(io.BytesIO(contents))
-            try:
-                df = df.where(pd.notnull(df), None)
-            except Exception:
-                pass
-            records = df.to_dict(orient="records")
+            if pd is not None:
+                df = pd.read_excel(io.BytesIO(contents))
+                try:
+                    df = df.where(pd.notnull(df), None)
+                except Exception:
+                    pass
+                records = df.to_dict(orient="records")
+            else:
+                raise ValueError("Excel parsing requires pandas which is currently unavailable.")
 
         elif ext == ".json":
             parsed = json.loads(contents.decode("utf-8"))

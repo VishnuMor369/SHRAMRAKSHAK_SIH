@@ -16,7 +16,11 @@ import uuid
 import json
 import logging
 from typing import Dict, List, Any, Optional, Callable
-import pandas as pd
+import csv
+try:
+    import pandas as pd
+except Exception:
+    pd = None
 
 from .validate import DatasetValidator
 from .normalize import DatasetNormalizer
@@ -70,9 +74,17 @@ class DatasetIngester:
         ext = meta["extension"]
         records = []
         if ext == ".csv":
-            df = pd.read_csv(filepath, nrows=max_records if max_records else None, low_memory=False)
-            df = df.where(pd.notnull(df), None)
-            records = df.to_dict(orient="records")
+            if pd is not None:
+                df = pd.read_csv(filepath, nrows=max_records if max_records else None, low_memory=False)
+                df = df.where(pd.notnull(df), None)
+                records = df.to_dict(orient="records")
+            else:
+                with open(filepath, "r", encoding="utf-8", errors="replace") as f:
+                    reader = csv.DictReader(f)
+                    for idx, row in enumerate(reader):
+                        if max_records and idx >= max_records:
+                            break
+                        records.append(row)
         elif ext == ".json":
             with open(filepath, "r", encoding="utf-8") as f:
                 data = json.load(f)
