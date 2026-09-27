@@ -722,12 +722,19 @@ export default function SafetyMemoryView() {
                           {isReopened && 'Action Reopened: Person re-entered restricted zone during verification'}
                           {isAwaitingVerification && 'Supervisor Reported Completion — Awaiting CCTV Verification'}
                           {isVerified && 'CCTV Objective Verification Passed: Observable Condition Clear'}
-                          {isActionRequired && `Corrective Action Dispatched to Supervisor (${p.assigned_supervisor || 'Rajesh Kumar'})`}
+                          {isActionRequired && `Corrective Action Dispatched to Supervisor (${p.assigned_supervisor || (typeof p.assigned_action === 'object' ? p.assigned_action?.supervisor_name : null) || 'Rajesh Kumar'})`}
                         </span>
                       </div>
                       <p className="text-xs text-slate-800">
-                        <strong>Required Action:</strong> {p.assigned_action || 'Clear unauthorized personnel and secure restricted zone.'}
+                        <strong>Required Action:</strong> {(typeof p.assigned_action === 'object' ? p.assigned_action?.required_action : p.assigned_action) || 'Clear unauthorized personnel and secure restricted zone.'}
                       </p>
+                      {typeof p.assigned_action === 'object' && p.assigned_action && (
+                        <div className="flex flex-wrap gap-3 text-[11px] text-slate-600 pt-0.5">
+                          {p.assigned_action.location && <span><strong>Location:</strong> {p.assigned_action.location}</span>}
+                          {p.assigned_action.priority && <span><strong>Priority:</strong> {p.assigned_action.priority}</span>}
+                          {p.assigned_action.verification_method && <span><strong>Verification:</strong> {p.assigned_action.verification_method}</span>}
+                        </div>
+                      )}
                     </div>
 
                     {/* Quick Verification Trigger Controls for Demo/Operator */}
@@ -1054,8 +1061,11 @@ export default function SafetyMemoryView() {
 
                   <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
                     <span className="text-[10px] font-bold text-slate-400 uppercase">7. Operational Action State</span>
-                    <p className="font-bold text-orange-900">{selectedDetails.action_state || 'ACTION_REQUIRED'}</p>
-                    <p className="text-slate-600 text-[11px]">Supervisor: {selectedDetails.assigned_supervisor || 'SUP-01 (Rajesh Kumar)'}</p>
+                    <p className="font-bold text-orange-900">{selectedDetails.action_state || (typeof selectedDetails.assigned_action === 'object' ? selectedDetails.assigned_action?.operational_status : null) || 'ACTION_REQUIRED'}</p>
+                    <p className="text-slate-600 text-[11px]">Supervisor: {selectedDetails.assigned_supervisor || (typeof selectedDetails.assigned_action === 'object' ? selectedDetails.assigned_action?.supervisor_name : null) || 'SUP-01 (Rajesh Kumar)'}</p>
+                    {typeof selectedDetails.assigned_action === 'object' && selectedDetails.assigned_action?.required_action && (
+                      <p className="text-slate-700 text-[11px]"><strong>Action:</strong> {selectedDetails.assigned_action.required_action}</p>
+                    )}
                   </div>
 
                   <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-1">

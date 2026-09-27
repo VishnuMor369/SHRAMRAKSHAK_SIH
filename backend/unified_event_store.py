@@ -300,7 +300,7 @@ class UnifiedEventStore:
     def _sync_with_db(self):
         """Pulls events from persistent SQLite database so dataset and human records are always live."""
         try:
-            db_events = db.list_events(limit=500)
+            db_events = db.list_events(limit=None)
             for dbe in db_events:
                 if dbe.event_id not in self.events:
                     sif_p = "NOT_SIF"

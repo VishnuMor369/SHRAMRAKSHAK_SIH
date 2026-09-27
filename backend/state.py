@@ -543,6 +543,30 @@ class AlertStateManager:
         self._running = True
         self._watcher_thread = threading.Thread(target=self._watchdog_loop, daemon=True)
         self._watcher_thread.start()
+        self._load_persisted_pattern_actions()
+
+    def _load_persisted_pattern_actions(self):
+        try:
+            try:
+                from backend.database import db
+            except ImportError:
+                from database import db
+            with db.get_connection() as conn:
+                cur = conn.execute("""
+                    SELECT target_id, new_value FROM reviews 
+                    WHERE target_type = 'PATTERN_ACTION' 
+                    ORDER BY timestamp ASC
+                """)
+                for target_id, new_val in cur.fetchall():
+                    if new_val:
+                        try:
+                            data = json.loads(new_val) if isinstance(new_val, str) else new_val
+                            if isinstance(data, dict):
+                                self.pattern_actions[target_id] = data
+                        except Exception:
+                            pass
+        except Exception as e:
+            logger.warning(f"Could not preload pattern actions from reviews: {e}")
 
     def get_next_incident_id(self) -> str:
         with self.lock:
@@ -2497,10 +2521,24 @@ class AlertStateManager:
                 "verification_notes": None,
                 "verified_at": None,
                 "closed_at": None,
-                "closed_by": None,
-                "closure_notes": None
             }
             self.pattern_actions[pattern_id] = record
+
+            # Durably persist to SQLite reviews table
+            try:
+                rev_id = f"REV-{uuid.uuid4().hex[:8].upper()}"
+                db.log_review(
+                    review_id=rev_id,
+                    target_type="PATTERN_ACTION",
+                    target_id=pattern_id,
+                    reviewer_role="HSE_DESK",
+                    action="ASSIGN_ACTION",
+                    previous_value=None,
+                    new_value=record,
+                    reason=f"Action assigned to {supervisor_name}: {required_action}"
+                )
+            except Exception as e:
+                logger.warning(f"Failed to persist pattern action review: {e}")
 
             return {
                 "success": True,

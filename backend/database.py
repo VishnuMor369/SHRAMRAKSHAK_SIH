@@ -138,6 +138,7 @@ class DatabaseManager:
                 reviewer_role TEXT,
                 reviewed_at TEXT,
                 review_notes TEXT,
+                operational_status TEXT DEFAULT 'ACTIVE',
                 created_at TEXT,
                 updated_at TEXT
             );
@@ -231,6 +232,12 @@ class DatabaseManager:
             CREATE INDEX IF NOT EXISTS idx_pattern_members_event ON pattern_members(event_id);
             CREATE INDEX IF NOT EXISTS idx_reviews_target ON reviews(target_id);
             """)
+
+            # Ensure operational_status column exists in patterns table
+            try:
+                conn.execute("ALTER TABLE patterns ADD COLUMN operational_status TEXT DEFAULT 'ACTIVE'")
+            except Exception:
+                pass
 
     # -------------------------------------------------------------
     # Report CRUD
@@ -335,13 +342,21 @@ class DatabaseManager:
                 return None
             return self._row_to_event(conn, row)
 
-    def list_events(self, limit: int = 100, sif_filter: Optional[str] = None) -> List[SafetyEvent]:
+    def list_events(self, limit: Optional[int] = None, sif_filter: Optional[str] = None, offset: int = 0) -> List[SafetyEvent]:
         with self.get_connection() as conn:
+            query = "SELECT * FROM events"
+            params: List[Any] = []
             if sif_filter:
-                cur = conn.execute("SELECT * FROM events WHERE sif_status = ? ORDER BY timestamp DESC LIMIT ?",
-                                   (sif_filter, limit))
-            else:
-                cur = conn.execute("SELECT * FROM events ORDER BY timestamp DESC LIMIT ?", (limit,))
+                query += " WHERE sif_status = ?"
+                params.append(sif_filter)
+            query += " ORDER BY timestamp DESC"
+            if limit is not None and limit > 0:
+                query += " LIMIT ? OFFSET ?"
+                params.extend([limit, offset])
+            elif offset > 0:
+                query += " LIMIT -1 OFFSET ?"
+                params.append(offset)
+            cur = conn.execute(query, tuple(params))
             rows = cur.fetchall()
             return [self._row_to_event(conn, r) for r in rows]
 
@@ -445,13 +460,14 @@ class DatabaseManager:
     # Pattern CRUD
     # -------------------------------------------------------------
     def save_pattern(self, pattern: SafetyPattern) -> SafetyPattern:
+        op_status = getattr(pattern, "operational_status", "ACTIVE") or "ACTIVE"
         with self.get_connection() as conn:
             conn.execute("""
             INSERT OR REPLACE INTO patterns
             (pattern_id, title, activity, energy, exposure, barrier,
              occurrence_count, duplicate_count, validation_status,
-             reviewer_role, reviewed_at, review_notes, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             reviewer_role, reviewed_at, review_notes, operational_status, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 pattern.pattern_id,
                 pattern.title,
@@ -465,6 +481,7 @@ class DatabaseManager:
                 pattern.reviewer_role,
                 pattern.reviewed_at,
                 pattern.review_notes,
+                op_status,
                 pattern.created_at,
                 datetime.now().isoformat()
             ))
@@ -490,6 +507,7 @@ class DatabaseManager:
                 reviewer_role=d["reviewer_role"],
                 reviewed_at=d["reviewed_at"],
                 review_notes=d["review_notes"],
+                operational_status=d.get("operational_status") or "ACTIVE",
                 created_at=d["created_at"],
                 updated_at=d["updated_at"]
             )
@@ -512,6 +530,7 @@ class DatabaseManager:
                     reviewer_role=d["reviewer_role"],
                     reviewed_at=d["reviewed_at"],
                     review_notes=d["review_notes"],
+                    operational_status=d.get("operational_status") or "ACTIVE",
                     created_at=d["created_at"],
                     updated_at=d["updated_at"]
                 ) for d in [dict(r) for r in rows]
@@ -551,16 +570,35 @@ class DatabaseManager:
                 datetime.now().isoformat()
             ))
 
-    def list_reviews(self, limit: int = 50) -> List[Dict[str, Any]]:
+    def list_reviews(self, limit: int = 50, target_id: Optional[str] = None, target_type: Optional[str] = None) -> List[Dict[str, Any]]:
         with self.get_connection() as conn:
-            cur = conn.execute("SELECT * FROM reviews ORDER BY timestamp DESC LIMIT ?", (limit,))
+            query = "SELECT * FROM reviews WHERE 1=1"
+            params = []
+            if target_id is not None:
+                query += " AND target_id = ?"
+                params.append(target_id)
+            if target_type is not None:
+                query += " AND target_type = ?"
+                params.append(target_type)
+            query += " ORDER BY timestamp DESC LIMIT ?"
+            params.append(limit)
+            cur = conn.execute(query, params)
             rows = [dict(r) for r in cur.fetchall()]
             for r in rows:
                 if r["previous_value"]:
-                    r["previous_value"] = json.loads(r["previous_value"])
+                    try:
+                        r["previous_value"] = json.loads(r["previous_value"])
+                    except Exception:
+                        pass
                 if r["new_value"]:
-                    r["new_value"] = json.loads(r["new_value"])
+                    try:
+                        r["new_value"] = json.loads(r["new_value"])
+                    except Exception:
+                        pass
             return rows
+
+    def get_reviews_for_event(self, event_id: str) -> List[Dict[str, Any]]:
+        return [r for r in self.list_reviews(limit=500) if r.get("target_id") == event_id]
 
     # -------------------------------------------------------------
     # Future-Work Preconditions & Checks

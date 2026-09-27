@@ -18,7 +18,7 @@ from datetime import datetime, timedelta
 from typing import Optional, List, Dict, Any
 
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request, UploadFile, File, BackgroundTasks
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request, UploadFile, File, BackgroundTasks, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse, Response
 
@@ -631,9 +631,56 @@ def get_safety_memory_summary():
     }
 
 @app.get("/api/safety-memory/events")
-def get_safety_memory_events():
-    """Returns all recorded safety events in SQLite persistent database"""
-    return {"events": [ev.to_dict() for ev in db.list_events(limit=200)]}
+def get_safety_memory_events(limit: Optional[int] = Query(None), offset: int = Query(0), sif_filter: Optional[str] = Query(None)):
+    """Returns recorded safety events in SQLite persistent database with full pagination support"""
+    counts = db.count_events()
+    events = db.list_events(limit=limit, sif_filter=sif_filter, offset=offset)
+    return {
+        "total": counts["total"],
+        "offset": offset,
+        "limit": limit if limit is not None else counts["total"],
+        "returned": len(events),
+        "counts": counts,
+        "events": [ev.to_dict() for ev in events]
+    }
+
+@app.get("/api/memory/integrity")
+def get_memory_integrity_status():
+    """
+    Returns verified semantic memory integrity report across SQLite, FAISS vectors, and mappings.
+    Enforces Phase 9: Real integrity status (PASS or REPAIR REQUIRED).
+    """
+    try:
+        from tools.check_memory_integrity import check_memory_integrity
+    except ImportError:
+        import sys
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from tools.check_memory_integrity import check_memory_integrity
+    return check_memory_integrity()
+
+@app.get("/api/density")
+@app.get("/api/sih/density")
+def get_sih_density_metrics():
+    """
+    Returns official SIH SIF Precursor Density metrics computed from SQLite events.
+    Formula: (SIF-Potential Events / Total Eligible Events) * 100
+    Includes mandatory regulatory disclaimer (Not a substitute for regulatory incident rates).
+    """
+    from backend.nlp_engine.sih_density import sih_density_service
+    res = sih_density_service.calculate_from_db(db)
+    res["formula"] = "(SIF-Potential / Total Eligible) * 100"
+    res["total_eligible_count"] = res.get("total_eligible_reports", 0)
+    res["regulatory_disclaimer"] = res.get("disclaimer", "")
+    return res
+
+@app.post("/api/memory/reconcile")
+def post_memory_reconcile():
+    """
+    Triggers atomic reconciliation and safe rebuild of FAISS index & mappings from canonical SQLite events.
+    """
+    from backend.nlp_engine.semantic_memory import semantic_memory
+    res = semantic_memory.reconcile_and_rebuild(force=True)
+    return res
 
 @app.get("/api/safety-memory/patterns")
 def get_safety_memory_patterns():
@@ -1598,6 +1645,7 @@ def export_single_report_pdf(report_id: str):
         headers={"Content-Disposition": f"attachment; filename={report_id}_Dossier.pdf"}
     )
 
+@app.post("/api/analyze")
 @app.post("/api/analyze-raw")
 @app.post("/api/reports/analyze-text")
 def analyze_raw_text(req: dict):
@@ -1605,11 +1653,13 @@ def analyze_raw_text(req: dict):
     Demonstrates ingestion of external text (e.g. OIL's real UA/UC, Near-Miss or Incident reports)
     directly through the same AI/NLP engine.
     """
-    text = req.get("text", "")
+    text = req.get("text") or req.get("narrative") or ""
     context = req.get("context", {})
     if not text:
-        raise HTTPException(status_code=400, detail="Field 'text' is required")
-    return nlp_analyzer.analyze_raw_text(text, context)
+        raise HTTPException(status_code=400, detail="Field 'text' or 'narrative' is required")
+    res = nlp_analyzer.analyze_raw_text(text, context)
+    res["sif_reasons"] = res.get("why_flagged", [])
+    return res
 
 @app.get("/api/zones")
 def get_zones():

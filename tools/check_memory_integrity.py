@@ -197,12 +197,11 @@ def check_memory_integrity(
             report["dimension_mismatches"].append(f"SQLite embedding {emb_id} for event {eid} has dim {dim} != {EXPECTED_DIM}")
 
     # Final Status
-    if report["orphan_mappings"] or report["orphan_vectors"] or report["dimension_mismatches"] or report["invalid_ids"]:
+    if (report["orphan_mappings"] or report["orphan_vectors"] or 
+        report["dimension_mismatches"] or report["invalid_ids"] or 
+        report["missing_embeddings_in_db"] or report["unindexed_events"]):
         report["status"] = "FAIL"
         report["persistence_state"] = "REPAIR_REQUIRED"
-    elif report["missing_embeddings_in_db"] or report["unindexed_events"]:
-        report["status"] = "PARTIAL_ALIGNMENT"
-        report["persistence_state"] = "CONSISTENT_BUT_UNINDEXED_EVENTS_PRESENT"
     else:
         report["status"] = "PASS"
         report["persistence_state"] = "CLEAN"
@@ -211,6 +210,21 @@ def check_memory_integrity(
 
 
 if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description="Check and optionally reconcile semantic memory integrity.")
+    parser.add_argument("--reconcile", action="store_true", help="Atomically reconcile and rebuild FAISS index and mappings from SQLite canonical events.")
+    args = parser.parse_args()
+
+    if args.reconcile:
+        print("[INFO] Reconciling and rebuilding semantic memory from SQLite canonical events...")
+        try:
+            from backend.nlp_engine.semantic_memory import semantic_memory
+        except ImportError:
+            sys.path.insert(0, ROOT_DIR)
+            from backend.nlp_engine.semantic_memory import semantic_memory
+        rec_res = semantic_memory.reconcile_and_rebuild(force=True)
+        print(f"[INFO] Rebuild completed: {rec_res}")
+
     rep = check_memory_integrity()
     print(json.dumps(rep, indent=2))
     print(f"\nFinal Memory Integrity Status: {rep['status']}")
@@ -219,3 +233,6 @@ if __name__ == "__main__":
         print(f"Issues detected ({len(rep['issues'])}):")
         for iss in rep["issues"]:
             print(f"  - {iss}")
+
+    # Enforce strict exit codes: 0 for PASS, 1 for FAIL
+    sys.exit(0 if rep["status"] == "PASS" else 1)

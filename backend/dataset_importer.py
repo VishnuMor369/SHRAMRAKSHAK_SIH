@@ -295,7 +295,8 @@ class DatasetImportManager:
                 logger.info("Batch import is already running.")
                 return
 
-            limit = max_rows if (max_rows and max_rows > 0) else 200
+            limit = max_rows if (max_rows is not None and max_rows > 0) else None
+            self.batch_target_rows = limit
             self.status = "PROCESSING"
             self.stage = "Initializing Batch Ingestion Pipeline..."
             self.progress = 0.01
@@ -310,14 +311,15 @@ class DatasetImportManager:
             try:
                 # 1. Read target records chunk
                 records: List[Dict[str, Any]] = []
+                target_desc = f"{limit} rows" if limit else "all available rows"
                 if self.current_filepath and os.path.exists(self.current_filepath):
                     with self._lock:
-                        self.stage = f"Reading {limit} rows from {self.current_filename}..."
+                        self.stage = f"Reading {target_desc} from {self.current_filename}..."
                     df = pd.read_csv(self.current_filepath, nrows=limit, low_memory=False)
                     df = df.where(pd.notnull(df), None)
                     records = df.to_dict(orient="records")
                 elif self._cached_records:
-                    records = self._cached_records[:limit]
+                    records = self._cached_records[:limit] if limit else self._cached_records
                 else:
                     self.parse_default_dataset()
                     if self.current_filepath and os.path.exists(self.current_filepath):
@@ -325,7 +327,7 @@ class DatasetImportManager:
                         df = df.where(pd.notnull(df), None)
                         records = df.to_dict(orient="records")
                     else:
-                        records = self._cached_records[:limit]
+                        records = self._cached_records[:limit] if limit else self._cached_records
 
                 total_batch = len(records)
                 if total_batch == 0:
@@ -459,6 +461,8 @@ class DatasetImportManager:
                 "error": self.error_message,
                 "column_mapping": self.column_mapping,
                 "preview_samples": self.preview_records,
+                "persisted_canonical_events": db.count_events()["total"] if hasattr(db, "count_events") else 0,
+                "batch_target_rows": getattr(self, "batch_target_rows", None),
                 "is_external_stress_dataset": True,
                 "disclaimer": "External industrial dataset used for prototype stress testing. OIL proprietary records were not available for development validation."
             }

@@ -1,0 +1,26 @@
+{
+  "run_id": "RUN-BATCH-29AAAFBD",
+  "timestamp": "2026-09-26T21:53:11.917208",
+  "dataset_name": "January2015toNovember2025_cleaned.csv",
+  "dataset_hash": "osha-stress-test-cleaned",
+  "code_version": "SHRAMRAKSHAK-2.0-SIH26165",
+  "model_name": "intfloat/e5-small-v2",
+  "model_version": "e5-small-v2-transformers-torch",
+  "ontology_version": "1.0.0",
+  "config_hash": "d666bfd523b5260a",
+  "records_seen": 200,
+  "records_processed": 200,
+  "records_failed": 0,
+  "events_created": 200,
+  "patterns_created": 11,
+  "reviews_executed": 27,
+  "embeddings_created": 200,
+  "execution_time_seconds": 75.19,
+  "extra_metadata": {
+    "sif_potential_count": 1,
+    "review_required_count": 91,
+    "no_sif_count": 108,
+    "is_oil_data": false,
+    "disclaimer": "External industrial dataset used for prototype stress testing. OIL proprietary records were not available for development validation."
+  }
+}

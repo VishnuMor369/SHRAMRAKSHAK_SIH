@@ -85,15 +85,7 @@ class NLPSafetyAnalyzer:
         report.life_saving_rules = [item["rule"] for item in lsr_detailed]
         report.lsr_evidence = lsr_detailed
 
-        # 3. SIF Classification & Explainability
-        sif_pot, score, lvl, reason, why = self.sif_classifier.classify(report.description, context)
-        report.sif_potential = sif_pot
-        report.risk_score = score
-        report.risk_level = lvl
-        report.reason = reason
-        report.why_flagged = why
-
-        # 4. SIF Pathway Engine
+        # 3. Canonical SIF Pathway Evaluation (Rule 1: ONE Authoritative SIF Engine)
         event_dict = {
             "id": report.report_id,
             "description": report.description,
@@ -113,6 +105,11 @@ class NLPSafetyAnalyzer:
             norm = EventNormalizer.normalize_prototype_record(event_dict)
 
         pathway = self.pathway_engine.analyze_event(norm, context)
+        report.sif_potential = pathway.get("sif_potential", False)
+        report.risk_score = pathway.get("risk_score", 50)
+        report.risk_level = pathway.get("risk_level", "MEDIUM")
+        report.reason = pathway.get("sif_pathway", ["Evaluated by SIFPathwayEngine"])[0] if pathway.get("sif_pathway") else "Evaluated by SIFPathwayEngine"
+        report.why_flagged = pathway.get("sif_pathway", [])
         report.energy_source = pathway.get("energy_source")
         report.exposure = pathway.get("exposure")
         report.barrier = pathway.get("barrier")
@@ -135,37 +132,28 @@ class NLPSafetyAnalyzer:
 
     def analyze_raw_text(self, text: str, context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
-        Analyzes raw report text (demonstrating how OIL's real UA/UC or Incident reports
-        plug directly into the exact same NLP pipeline).
+        Analyzes raw report text through the canonical NLP pipeline.
+        SIF status is determined exclusively by SIFPathwayEngine.
         """
-        from nlp_engine.assertion_detector import AssertionDetector
         context = context or {}
-        safety_event = AssertionDetector.evaluate_safety_event(text, context)
-
         extracted = self.precursor_extractor.extract(text, context)
         combined_context = {**context, **extracted}
         lsrs = self.lsr_classifier.classify(text, combined_context)
-        sif_pot, score, lvl, reason, why = self.sif_classifier.classify(text, combined_context)
+
+        # Authoritative SIF Pathway Evaluation
+        safety_event = self.pathway_engine.evaluate_narrative(text, combined_context)
 
         ass_val = safety_event.assertion.value if hasattr(safety_event.assertion, "value") else str(safety_event.assertion)
         temp_val = safety_event.temporal_status.value if hasattr(safety_event.temporal_status, "value") else str(safety_event.temporal_status)
+        sif_status_val = safety_event.sif_status.value if hasattr(safety_event.sif_status, "value") else str(safety_event.sif_status)
 
-        # Override SIF potential and reasoning if negation or hypothetical is detected
-        if ass_val == "NEGATED":
-            sif_pot = False
-            score = 15
-            lvl = "LOW"
-            reason = "Exposure explicitly NEGATED in report narrative. No person was present in the hazard area; does not constitute a positive SIF precursor."
-            why = ["Exposure assertion is NEGATED", "Active barriers/controls prevented entry", "Classified as non-exposure observation"]
-        elif ass_val == "HYPOTHETICAL":
-            sif_pot = False
-            score = 35
-            lvl = "LOW"
-            reason = "Hypothetical / conditional statement. Consequence described is what could happen if a barrier failed, not an observed barrier breach."
-            why = ["Hypothetical conditional clause", "No actual barrier failure observed on site", "Evaluated as preventive risk scenario"]
-        elif ass_val == "POST_EVENT" or temp_val == "POST_EVENT":
-            reason = "Temporal / post-event action. Note: Barricade was installed following the observation, meaning barrier was absent during original event."
-            why.append("Post-event condition noted: barrier was installed after the incident")
+        is_sif = (safety_event.sif_status.value == "SIF-POTENTIAL" if hasattr(safety_event.sif_status, "value") else str(safety_event.sif_status) == "SIF-POTENTIAL")
+        is_review = (safety_event.sif_status.value == "REVIEW_REQUIRED" if hasattr(safety_event.sif_status, "value") else str(safety_event.sif_status) == "REVIEW_REQUIRED")
+
+        score = 95 if is_sif else (50 if is_review else 20)
+        lvl = "CRITICAL" if is_sif else ("MEDIUM" if is_review else "LOW")
+        reason = safety_event.sif_reasons[0] if safety_event.sif_reasons else ("SIF Potential identified" if is_sif else "No SIF potential identified")
+        why = safety_event.sif_reasons
 
         spans_serialized = [s.to_dict() if hasattr(s, "to_dict") else s for s in getattr(safety_event, "evidence", [])]
         ev_dict = safety_event.to_dict() if hasattr(safety_event, "to_dict") else {}
@@ -174,7 +162,8 @@ class NLPSafetyAnalyzer:
             "description": text,
             "extracted_entities": extracted,
             "life_saving_rules": lsrs,
-            "sif_potential": sif_pot,
+            "sif_potential": is_sif,
+            "sif_status": sif_status_val,
             "risk_score": score,
             "risk_level": lvl,
             "reason": reason,

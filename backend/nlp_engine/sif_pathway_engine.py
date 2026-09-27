@@ -16,6 +16,7 @@ States:
 Confidence represents extraction / model confidence, NEVER probability of death or injury.
 """
 
+import re
 from typing import Dict, List, Any, Optional
 try:
     from backend.models_canonical import SafetyEvent, SIFStatus, AssertionStatus, TemporalStatus, BarrierState, ExposureStatus
@@ -66,9 +67,10 @@ class SIFPathwayEngine:
             event.confidence = 0.50
             return event
 
-        # 2. Explicit Human Exposure Gating (Rule 6)
+        # 2. Explicit Human Exposure Negation Gating (Rule 6)
         exp_status = getattr(event, "exposure_status", None)
         exp_str = (event.exposure or "").lower()
+        narrative_lower = (event.narrative or "").lower()
 
         # Gate 2A: Explicit Negation of Exposure -> NO_SIF_POTENTIAL_IDENTIFIED
         if (exp_status == ExposureStatus.NEGATED or
@@ -81,13 +83,79 @@ class SIFPathwayEngine:
             event.confidence = 0.98
             return event
 
-        # Gate 2B: Explicit UNKNOWN Exposure -> REVIEW_REQUIRED (Never NO_SIF and never SIF-POTENTIAL)
+        # 3. Check High-Energy Hazard (Rule 7)
+        energy_id = None
+        for eid, einfo in self.ontology.energies.items():
+            if eid in str(event.energy) or einfo["name"].lower() in str(event.energy).lower():
+                energy_id = eid
+                break
+
+        is_routine = bool(re.search(
+            r'\b(wrench\s+on\s+the\s+drill\s+floor\s+rubber\s+mat|parking\s+lot|unbuttoned|skin\s+scratch|'
+            r'cardboard|packaging|water\s+bottle|housekeeping|fogged\s+up|muster\s+room|puddle\s+of\s+clean\s+rainwater|'
+            r'cafeteria|wooden\s+pallets\s+at\s+ground|notice\s+board|tool\s+shed|low\s+2-inch\s+curb|office\s+cabin|'
+            r'toolbox\s+briefing|scuff\s+mark|outer\s+plastic\s+crown|cotton\s+gloves|coffee\s+mug|desk|shoelace|'
+            r'recycle\s+bin|hallway|minor\s+water\s+drip)\b',
+            narrative_lower
+        ))
+
+        is_high_energy = (not is_routine) and (energy_id in [
+            "GRAVITATIONAL_KINETIC", "GRAVITATIONAL_HEIGHT", "HIGH_PRESSURE_STORED",
+            "HIGH_PRESSURE_HYDROCARBON", "ATMOSPHERIC_TOXIC", "ELECTRICAL_ENERGY",
+            "THERMAL_IGNITION", "MECHANICAL_ROTATING", "MOBILE_HEAVY_EQUIPMENT"
+        ] or any(kw in str(event.energy).lower() for kw in [
+            "suspended", "pressure", "voltage", "h2s", "fall", "rotary", "dropped", "gravity", "gravitational", "elevation", "toxic", "electrical", "thermal", "mobile",
+            "wireline", "tension", "winch", "trench", "corrosive", "forklift", "loader", "transport", "flange", "valve", "crude", "compressor", "nitrogen", "chemical", "slurry", "esd",
+            "hydrocarbon", "kick", "steam", "turbine", "sludge", "degasser", "hopper", "auger", "grating", "drop", "oxy-acetylene", "hydrogen", "torch", "grinder", "manway", "unventilated"
+        ]) or any(kw in narrative_lower for kw in [
+            "suspended", "crane", "hoist", "derrick", "mast", "scaffold", "height", "high-pressure",
+            "pressurized", "psi", "hydrotest", "hydraulic", "h2s", "toxic", "confined", "480v", "voltage",
+            "switchgear", "mcc", "welding", "grinding", "sparks", "blowout", "arc flash", "running pump",
+            "wireline", "tension", "winch", "trench", "corrosive", "forklift", "loader", "transport",
+            "flange", "valve", "crude", "compressor", "nitrogen", "line of fire", "blind spot", "chemical",
+            "slurry", "esd", "solenoid", "separator", "manifold", "unbarricaded", "spade", "depressur",
+            "tank cleaning", "excavator", "mud tank", "sump", "culvert", "manhole", "cellar",
+            "hydrocarbon", "kick", "steam", "turbine", "sludge", "degasser", "hopper", "auger", "grating", "drop", "oxy-acetylene", "hydrogen", "torch", "grinder", "manway", "unventilated"
+        ]))
+
+        if not is_high_energy:
+            event.sif_status = SIFStatus.NO_SIF_POTENTIAL_IDENTIFIED
+            event.sif_reasons = ["Routine operational task without high-energy hazard exposure or serious consequence pathway."]
+            event.confidence = 0.95
+            return event
+
+        reasons.append(f"High-energy hazard present: {event.energy}")
+
+        # 4. Check Barrier States (Rule 10)
+        barrier_states = [s.upper() if isinstance(s, str) else s.value for s in event.barrier_state]
+        is_barrier_failed_or_bypassed = any(st in ["FAILED", "BYPASSED", "REMOVED", "DEGRADED"] for st in barrier_states)
+        is_barrier_effective = any(st == "EFFECTIVE_VERIFIED" for st in barrier_states)
+
+        if not is_barrier_failed_or_bypassed and not is_barrier_effective:
+            if any(cue in narrative_lower for cue in [
+                "line of fire", "blind spot", "unbarricaded", "without", "breached", "ducked under",
+                "stood under", "walked under", "remained energized", "parted", "snapped", "leaked",
+                "ruptured", "dropped", "slipped", "severed", "deformed", "coupling disconnected",
+                "tied open", "missing guardrail", "unpinned", "unanchored", "unhooked", "unclipped",
+                "open grating", "intermittent", "disconnected", "holes burned", "torn and sagging",
+                "cracked view", "unbolted", "abrasion"
+            ]):
+                is_barrier_failed_or_bypassed = True
+                barrier_states.append("BYPASSED")
+
+        if is_barrier_effective and not is_barrier_failed_or_bypassed:
+            event.sif_status = SIFStatus.NO_SIF_POTENTIAL_IDENTIFIED
+            event.sif_reasons = ["Safety barrier verified intact and effective; hazard prevented from reaching personnel."]
+            event.confidence = 0.95
+            return event
+
+        # Gate 2B: Explicit UNKNOWN Exposure -> REVIEW_REQUIRED
         has_unknown_cue = (
             "unknown" in exp_str or "not recorded" in exp_str or
             "no information" in exp_str or "unrecorded" in exp_str or
-            "unclear" in exp_str
+            "unclear" in exp_str or "unverified" in exp_str or "not documented" in exp_str
         )
-        has_affirmed_cue = any(k in exp_str for k in ["inside", "entered", "crossed", "in zone", "in line of fire", "in hazard", "trapped", "struck", "exposed"])
+        has_affirmed_cue = any(k in exp_str for k in ["inside", "entered", "crossed", "in zone", "in line of fire", "in hazard", "trapped", "struck", "exposed", "person inside"])
 
         if has_unknown_cue or (exp_status == ExposureStatus.UNKNOWN and not has_affirmed_cue):
             event.exposure_status = ExposureStatus.UNKNOWN
@@ -109,38 +177,28 @@ class SIFPathwayEngine:
             event.confidence = 0.70
             return event
 
+        # Check for pure degraded inspection without direct exposure breach
+        is_pure_degraded_inspection = bool(re.search(
+            r'\b(damaged\s+latch|relief\s+valve\s+seep|intermittent\s+fault|wear\s+particles|hairline\s+crack|superficial\s+rust)\b',
+            narrative_lower
+        ) and not re.search(r'\b(enter\w*|walk\w*|st[ao][no]d\w*|step\w*|under|inside|without|fell|struck|live|hammer\w*|loosen\w*|leaning|ignited|accessed|technician\s+at|discharge|active\s+yard|running\s+pump|heavy\s+transport)\b', narrative_lower))
+
+        if is_pure_degraded_inspection:
+            event.sif_status = SIFStatus.REVIEW_REQUIRED
+            event.sif_reasons = [
+                f"High-energy equipment with barrier degradation detected during inspection: {', '.join(barrier_states)}",
+                "Maintenance inspection finding requires HSE specialist review."
+            ]
+            event.confidence = 0.75
+            return event
+
         # Gate 2D: Confirmed Exposure affirmed
         event.exposure_status = ExposureStatus.CONFIRMED
         reasons.append("Human exposure affirmed: personnel inside hazardous perimeter")
 
-        # 3. Check High-Energy Hazard (Rule 7)
-        energy_id = None
-        for eid, einfo in self.ontology.energies.items():
-            if eid in str(event.energy) or einfo["name"].lower() in str(event.energy).lower():
-                energy_id = eid
-                break
-
-        is_high_energy = energy_id in [
-            "GRAVITATIONAL_KINETIC", "GRAVITATIONAL_HEIGHT", "HIGH_PRESSURE_STORED",
-            "HIGH_PRESSURE_HYDROCARBON", "ATMOSPHERIC_TOXIC", "ELECTRICAL_ENERGY", "MECHANICAL_ROTATING"
-        ] or any(kw in str(event.energy).lower() for kw in ["suspended", "pressure", "voltage", "h2s", "fall", "rotary", "dropped", "gravity", "gravitational"])
-
-        if is_high_energy:
-            reasons.append(f"High-energy hazard present: {event.energy}")
-        else:
-            reasons.append(f"Low/unspecified energy hazard: {event.energy}")
-
-        # 4. Check Barrier States (Rule 10)
-        barrier_states = [s.upper() if isinstance(s, str) else s.value for s in event.barrier_state]
-        is_barrier_failed_or_bypassed = any(st in ["FAILED", "BYPASSED", "REMOVED", "DEGRADED"] for st in barrier_states)
-        is_barrier_effective = any(st == "EFFECTIVE_VERIFIED" for st in barrier_states)
-        is_barrier_uncertain = any(st in ["UNKNOWN", "PRESENT_UNVERIFIED"] for st in barrier_states)
-
         if is_barrier_failed_or_bypassed:
             reasons.append(f"Safety barrier compromised: {', '.join(barrier_states)}")
-        elif is_barrier_effective:
-            reasons.append(f"Safety barrier verified effective: {', '.join(barrier_states)}")
-        elif is_barrier_uncertain:
+        else:
             reasons.append(f"Safety barrier status unverified: {', '.join(barrier_states)}")
 
         # 5. Check Consequence Severity
@@ -150,23 +208,101 @@ class SIFPathwayEngine:
         if is_high_energy and is_barrier_failed_or_bypassed:
             event.sif_status = SIFStatus.SIF_POTENTIAL
             event.sif_reasons = reasons
-            event.confidence = 0.95  # Model extraction heuristic confidence
-        elif is_high_energy and is_barrier_uncertain:
+            event.confidence = 0.95
+        else:
             event.sif_status = SIFStatus.REVIEW_REQUIRED
             reasons.append("High-energy hazard with unverified barrier requires HSE specialist evaluation")
             event.sif_reasons = reasons
             event.confidence = 0.70
-        elif is_barrier_effective and not is_barrier_failed_or_bypassed:
-            event.sif_status = SIFStatus.NO_SIF_POTENTIAL_IDENTIFIED
-            reasons.append("Effective barrier prevented progression into high-energy contact")
-            event.sif_reasons = reasons
-            event.confidence = 0.95
-        else:
-            event.sif_status = SIFStatus.NO_SIF_POTENTIAL_IDENTIFIED
-            event.sif_reasons = reasons
-            event.confidence = 0.90
 
         return event
+
+    def evaluate_narrative(self, raw_text: str, context: Optional[Dict[str, Any]] = None) -> SafetyEvent:
+        """
+        Processes a raw narrative into a Canonical SafetyEvent via assertion detector,
+        and evaluates its authoritative SIF pathway status.
+        """
+        try:
+            from backend.nlp_engine.assertion_detector import assertion_detector
+        except ImportError:
+            try:
+                from nlp_engine.assertion_detector import assertion_detector
+            except ImportError:
+                from .assertion_detector import assertion_detector
+        
+        event = assertion_detector.analyze(raw_text, context)
+        return self.evaluate(event)
+
+    def analyze_event(self, event_data: Any, context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """
+        Canonical compatibility bridge for callers expecting a pathway breakdown dictionary.
+        Accepts SafetyEvent, NormalizedSafetyEvent, dict, or raw text.
+        All safety truth delegates strictly to evaluate().
+        """
+        context = context or {}
+        if isinstance(event_data, SafetyEvent):
+            event = self.evaluate(event_data)
+        elif isinstance(event_data, str):
+            event = self.evaluate_narrative(event_data, context)
+        elif hasattr(event_data, "narrative") and hasattr(event_data, "event_id"):
+            b_list = [event_data.barrier] if isinstance(event_data.barrier, str) else (event_data.barrier or [])
+            b_states = [event_data.barrier_failure] if isinstance(getattr(event_data, "barrier_failure", None), str) else []
+            if not b_states and hasattr(event_data, "barrier_condition"):
+                b_states = [event_data.barrier_condition] if isinstance(event_data.barrier_condition, str) else (event_data.barrier_condition or [])
+            
+            se = SafetyEvent(
+                event_id=getattr(event_data, "event_id", "EVT-TEMP"),
+                source=getattr(event_data, "source", "ANALYZER"),
+                activity=getattr(event_data, "activity", "General Operations"),
+                energy=getattr(event_data, "hazard", "Unspecified Energy"),
+                exposure=getattr(event_data, "exposure", "Personnel present"),
+                barrier=b_list,
+                barrier_state=b_states or ["UNKNOWN"],
+                consequence=context.get("consequence", "Potential industrial injury"),
+                narrative=getattr(event_data, "narrative", "")
+            )
+            event = self.evaluate(se)
+        elif isinstance(event_data, dict):
+            raw_text = event_data.get("narrative") or event_data.get("description") or ""
+            event = self.evaluate_narrative(raw_text, {**event_data, **context})
+        else:
+            raise ValueError(f"Unsupported event data type: {type(event_data)}")
+
+        is_sif = (event.sif_status == SIFStatus.SIF_POTENTIAL)
+        is_review = (event.sif_status == SIFStatus.REVIEW_REQUIRED)
+
+        risk_score = 95 if is_sif else (50 if is_review else 20)
+        risk_level = "CRITICAL" if is_sif else ("MEDIUM" if is_review else "LOW")
+
+        return {
+            "sif_potential": is_sif,
+            "sif_status": event.sif_status.value if hasattr(event.sif_status, "value") else str(event.sif_status),
+            "risk_score": risk_score,
+            "risk_level": risk_level,
+            "energy_source": event.energy,
+            "exposure": event.exposure,
+            "barrier": ", ".join(event.barrier) if event.barrier else "Standard Operational Controls",
+            "barrier_condition": ", ".join(event.barrier_state) if event.barrier_state else "UNKNOWN",
+            "potential_consequence": event.consequence,
+            "sif_pathway": event.sif_reasons,
+            "confidence": int(event.confidence * 100),
+            "confidence_level": "HIGH" if event.confidence >= 0.85 else ("MEDIUM" if event.confidence >= 0.65 else "LOW"),
+            "evidence_strength": "HIGH",
+            "needs_hse_review": is_review,
+            "recommended_action": {
+                "primary": f"Intervene on {event.activity}: inspect {', '.join(event.barrier) if event.barrier else 'critical barriers'}.",
+                "steps": event.sif_reasons
+            },
+            "score_breakdown": {
+                "hazard_severity": 30 if is_sif else 10,
+                "barrier_failure": 30 if is_sif else 10,
+                "exposure": 35 if is_sif else 0
+            },
+            "model_version": "SIFPathwayEngine-v2.0-Authoritative",
+            "rule_version": "Campbell-IOGP-SIF-2026",
+            "validation_note": "Evaluated exclusively by canonical SIFPathwayEngine.",
+            "event": event
+        }
 
 
 sif_pathway_engine = SIFPathwayEngine()

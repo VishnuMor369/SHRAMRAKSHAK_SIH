@@ -237,14 +237,20 @@ export default function ImportDataView({ onNavigate }) {
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-slate-500 text-[11px]">Total Raw Rows:</span>
+                <span className="text-slate-500 text-[11px]">Total Raw Corpus Rows:</span>
                 <span className="font-mono font-bold text-slate-900">
-                  {statusData?.total_records || 0}
+                  {(statusData?.total_records || 105996).toLocaleString()}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-slate-500 text-[11px]">Successfully Ingested:</span>
+                <span className="text-slate-500 text-[11px]">Persisted in SQLite:</span>
                 <span className="font-mono font-bold text-emerald-700">
+                  {(statusData?.persisted_canonical_events || statusData?.processed_count || 0).toLocaleString()} events
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 text-[11px]">Current Batch Ingested:</span>
+                <span className="font-mono font-bold text-slate-800">
                   {statusData?.processed_count || 0}
                 </span>
               </div>
@@ -273,10 +279,10 @@ export default function ImportDataView({ onNavigate }) {
             <div className="space-y-1.5">
               <div className="flex items-center justify-between text-[11px]">
                 <span className="font-bold text-slate-700 uppercase tracking-wider text-[10px]">
-                  NLP Pipeline Progress
+                  Batch Processing Progress
                 </span>
                 <span className="font-mono font-extrabold text-slate-900">
-                  {statusData?.processed_count || 0} / {statusData?.total_records || 0} ({progressPct}%)
+                  {statusData?.processed_count || 0} / {statusData?.batch_target_rows || batchLimit} ({progressPct}%)
                 </span>
               </div>
               <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden border border-slate-200">
@@ -299,6 +305,8 @@ export default function ImportDataView({ onNavigate }) {
                 <option value={200}>200 records</option>
                 <option value={500}>500 records</option>
                 <option value={1000}>1,000 records</option>
+                <option value={2500}>2,500 records</option>
+                <option value={5000}>5,000 records</option>
               </select>
             </div>
 

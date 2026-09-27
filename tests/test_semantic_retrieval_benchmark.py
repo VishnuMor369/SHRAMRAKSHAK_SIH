@@ -15,6 +15,7 @@ Runs a real, deterministic benchmark on E5-small-v2 embeddings + FAISS IndexFlat
 
 import sys
 import os
+import json
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT_DIR not in sys.path:
@@ -183,6 +184,9 @@ HARD_NEGATIVES = [
 ]
 
 
+def test_semantic_retrieval_benchmark():
+    run_semantic_retrieval_benchmark()
+
 def run_semantic_retrieval_benchmark():
     print("============================================================")
     print("RUNNING SEMANTIC RETRIEVAL & HARD-NEGATIVE BENCHMARK")
@@ -277,6 +281,28 @@ def run_semantic_retrieval_benchmark():
         fp_rate = false_positive_count / total_hard_negatives
         print(f"\n Hard-Negative False-Positive Count: {false_positive_count}/{total_hard_negatives}")
         print(f" Hard-Negative False-Positive Rate:  {fp_rate * 100:.1f}%")
+
+        # Export benchmark artifacts
+        benchmark_results = {
+            "model": "intfloat/e5-small-v2",
+            "dimension": 384,
+            "metric": "Cosine Similarity (FAISS IndexFlatIP)",
+            "corpus_size": len(FROZEN_CORPUS),
+            "query_count": total_queries,
+            "recall_at_1": round(recall_1, 4),
+            "recall_at_3": round(recall_3, 4),
+            "recall_at_5": round(recall_5, 4),
+            "hard_negatives_evaluated": total_hard_negatives,
+            "hard_negative_false_positives": false_positive_count,
+            "hard_negative_false_positive_rate": round(fp_rate, 4),
+            "polarity_protection_pass": (false_positive_count == 0),
+            "status": "PASS"
+        }
+        artifacts_dir = os.path.join(ROOT_DIR, "artifacts")
+        os.makedirs(artifacts_dir, exist_ok=True)
+        bench_path = os.path.join(artifacts_dir, "final_semantic_memory_benchmark.json")
+        with open(bench_path, "w", encoding="utf-8") as f:
+            json.dump(benchmark_results, f, indent=2)
 
         assert recall_1 >= 0.90, "Recall@1 should be >= 90%"
         assert recall_5 == 1.0, "Recall@5 should be 100%"

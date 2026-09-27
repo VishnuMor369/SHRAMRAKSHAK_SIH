@@ -1,0 +1,15 @@
+{
+  "model": "intfloat/e5-small-v2",
+  "dimension": 384,
+  "metric": "Cosine Similarity (FAISS IndexFlatIP)",
+  "corpus_size": 10,
+  "query_count": 10,
+  "recall_at_1": 1.0,
+  "recall_at_3": 1.0,
+  "recall_at_5": 1.0,
+  "hard_negatives_evaluated": 6,
+  "hard_negative_false_positives": 0,
+  "hard_negative_false_positive_rate": 0.0,
+  "polarity_protection_pass": true,
+  "status": "PASS"
+}

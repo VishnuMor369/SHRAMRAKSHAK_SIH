@@ -140,13 +140,19 @@ class SafetyReportPDFExporter:
         # =========================================================================
         # SECTION 1: EXECUTIVE SUMMARY
         # =========================================================================
+        density_val = s1.get('sif_density_pct')
+        if density_val is None or str(density_val).upper() == "N/A":
+            density_str = "N/A"
+        else:
+            density_str = f"{float(density_val):.1f}%" if isinstance(density_val, (int, float)) or (isinstance(density_val, str) and density_val.replace('.', '', 1).isdigit()) else str(density_val)
+
         elements.append(Paragraph("1. EXECUTIVE SUMMARY", self.page_header))
         kpi_data = [
             [
                 Paragraph(f"<b>Total Reports</b><br/><font size=13 color='#0f172a'><b>{s1.get('reports_analyzed', 0):,}</b></font>", self.cell_normal),
                 Paragraph(f"<b>SIF Precursors</b><br/><font size=13 color='#dc2626'><b>{s1.get('sif_potential_count', 0):,}</b></font>", self.cell_normal),
                 Paragraph(f"<b>Non-SIF Reports</b><br/><font size=13 color='#16a34a'><b>{s1.get('non_sif_count', 0):,}</b></font>", self.cell_normal),
-                Paragraph(f"<b>SIF Precursor Density</b><br/><font size=13 color='#b45309'><b>{s1.get('sif_density_pct', 0)}%</b></font>", self.cell_normal),
+                Paragraph(f"<b>SIF Precursor Density</b><br/><font size=13 color='#b45309'><b>{density_str}</b></font>", self.cell_normal),
             ]
         ]
         kpi_table = Table(kpi_data, colWidths=[135, 135, 135, 135])
@@ -164,12 +170,17 @@ class SafetyReportPDFExporter:
 
         summary_text = (
             f"<b>Major HSE Findings:</b> Analysis of <b>{s1.get('reports_analyzed', 0):,}</b> safety observation reports "
-            f"identified <b>{s1.get('sif_potential_count', 0):,} SIF-potential precursors</b> ({s1.get('sif_density_pct', 0)}% density). "
+            f"identified <b>{s1.get('sif_potential_count', 0):,} SIF-potential precursors</b> ({density_str} density). "
             f"The highest priority field location identified is <b>{s1.get('top_site', 'N/A')}</b>, "
             f"the highest priority activity is <b>{s1.get('top_activity', 'N/A')}</b>, "
             f"and the dominant recurring precursor pattern is <b>{s1.get('top_precursor', 'N/A')}</b>."
         )
         elements.append(Paragraph(summary_text, self.cell_normal))
+        elements.append(Spacer(1, 6))
+        elements.append(Paragraph(
+            "<b>Methodology Note:</b> Reported SIF-precursor density is a reporting-based indicator; it is not an absolute probability of harm.",
+            self.disclaimer_style
+        ))
         elements.append(Spacer(1, 12))
 
         # =========================================================================
@@ -628,8 +639,9 @@ class SafetyReportPDFExporter:
             ]
         ]
 
-        if summary and summary.recurring_patterns:
-            for p in summary.recurring_patterns:
+        patterns = getattr(summary, "recurring_patterns", None) or (summary.get("recurring_patterns", []) if isinstance(summary, dict) else [])
+        if patterns:
+            for p in patterns:
                 loc_str = getattr(p, "location", "Site Zone")
                 sif_c = getattr(p, "sif_potential_count", 0)
                 sif_display = f"{sif_c}/{p.occurrences} events" if sif_c > 0 else f"{p.occurrences} events"
@@ -856,8 +868,8 @@ class SafetyReportPDFExporter:
             [Paragraph("<b>Field</b>", self.cell_bold), Paragraph("<b>Assessment</b>", self.cell_bold)],
             [Paragraph("<b>Incident Narrative</b>", self.cell_normal), Paragraph(report.description, self.cell_normal)],
             [Paragraph("<b>IOGP Life-Saving Rule</b>", self.cell_normal), Paragraph(f"<b>{lsr_str}</b>", self.cell_normal)],
-            [Paragraph("<b>Recommended Action</b>", self.cell_normal), Paragraph(report.ai_recommendation, self.cell_normal)],
-            [Paragraph("<b>AI Reasoning</b>", self.cell_normal), Paragraph("<br/>".join([f"• {w}" for w in report.why_flagged]), self.cell_normal)],
+            [Paragraph("<b>Recommended Action</b>", self.cell_normal), Paragraph(str(report.ai_recommendation or "Review and restore barrier controls."), self.cell_normal)],
+            [Paragraph("<b>AI Reasoning</b>", self.cell_normal), Paragraph("<br/>".join([f"• {w}" for w in (report.why_flagged or ([report.reason] if report.reason else ["Evaluated by SIFPathwayEngine"]))]), self.cell_normal)],
             [Paragraph("<b>Human Review</b>", self.cell_normal), Paragraph(
                 f"Status: {report.hse_review.get('decision', 'Pending')} (Reviewer: {report.hse_review.get('reviewer_role', 'HSE Team')})" if report.hse_review else "Pending HSE Verification",
                 self.cell_normal
