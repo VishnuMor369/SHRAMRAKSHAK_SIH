@@ -1,0 +1,201 @@
+{
+  "run_id": "AR-0015",
+  "filename": "test_import.csv",
+  "file_type": "CSV",
+  "upload_time": "2026-09-28T17:07:52.801038",
+  "provenance": "Uploaded dataset intelligence file.",
+  "records_detected": 5,
+  "records_analyzed": 5,
+  "failed_count": 0,
+  "review_required_count": 2,
+  "sif_count": 3,
+  "non_sif_count": 0,
+  "sif_percentage": 60.0,
+  "status": "COMPLETED",
+  "candidate_patterns": [
+    {
+      "pattern_id": "PAT-GENERAL_ADMINISTRATIVE_CONTROL-01",
+      "title": "Recurring Control Breach: GENERAL_ADMINISTRATIVE_CONTROL during General Operations & Maintenance",
+      "occurrence_count": 2,
+      "activity": "General Operations & Maintenance",
+      "barrier": "GENERAL_ADMINISTRATIVE_CONTROL",
+      "sif_potential": "HIGH",
+      "validation_status": "CANDIDATE",
+      "source_reports": [
+        "REP-AR-0015-0003",
+        "REP-AR-0015-0005"
+      ]
+    }
+  ],
+  "high_potential_cases": [
+    {
+      "report_id": "REP-AR-0015-0001",
+      "original_text": "Worker entered crane exclusion zone during active lift",
+      "activity": "Mechanical Lifting Operations",
+      "location": "Rig 04",
+      "hazard": "Gravity / Suspended Load",
+      "exposure": "Person inside hazardous perimeter",
+      "barrier": "EXCLUSION_ZONE",
+      "barrier_state": "BYPASSED",
+      "consequence": "Potential industrial trauma",
+      "sif_potential": "HIGH",
+      "assertion": "AFFIRMED",
+      "lsr": "SAFE_MECHANICAL_LIFTING, BYPASSING_SAFETY_CONTROLS",
+      "evidence_spans": [
+        {
+          "field": "activity",
+          "value": "MECHANICAL_LIFTING",
+          "start_offset": 50,
+          "end_offset": 54,
+          "text": "lift",
+          "confidence": 1.0,
+          "source": "NLP_EXTRACTION"
+        }
+      ]
+    },
+    {
+      "report_id": "REP-AR-0015-0003",
+      "original_text": "No PPE on drill floor during operations",
+      "activity": "General Operations & Maintenance",
+      "location": "Drill Floor",
+      "hazard": "Mechanical / Kinetic Energy",
+      "exposure": "Field operational interaction (Exposure unverified)",
+      "barrier": "GENERAL_ADMINISTRATIVE_CONTROL",
+      "barrier_state": "PRESENT_UNVERIFIED",
+      "consequence": "Potential industrial trauma",
+      "sif_potential": "HIGH",
+      "assertion": "AFFIRMED",
+      "lsr": "General Industrial Safety",
+      "evidence_spans": []
+    },
+    {
+      "report_id": "REP-AR-0015-0004",
+      "original_text": "Contractor bypassed safety gate to access restricted area",
+      "activity": "General Operations & Maintenance",
+      "location": "Compressor Area",
+      "hazard": "Mechanical / Kinetic Energy",
+      "exposure": "Person inside hazardous perimeter",
+      "barrier": "EXCLUSION_ZONE",
+      "barrier_state": "BYPASSED",
+      "consequence": "Potential industrial trauma",
+      "sif_potential": "HIGH",
+      "assertion": "AFFIRMED",
+      "lsr": "SAFE_MECHANICAL_LIFTING, BYPASSING_SAFETY_CONTROLS",
+      "evidence_spans": []
+    }
+  ],
+  "hazard_distribution": {
+    "Gravity / Suspended Load": 2,
+    "Mechanical / Kinetic Energy": 3
+  },
+  "activity_distribution": {
+    "Mechanical Lifting Operations": 2,
+    "General Operations & Maintenance": 3
+  },
+  "barrier_failure_distribution": {
+    "EXCLUSION_ZONE": 2,
+    "GENERAL_ADMINISTRATIVE_CONTROL": 1
+  },
+  "iogp_distribution": {
+    "SAFE_MECHANICAL_LIFTING": 3,
+    "BYPASSING_SAFETY_CONTROLS": 3,
+    "General Industrial Safety": 1
+  },
+  "reports": [
+    {
+      "report_id": "REP-AR-0015-0001",
+      "original_text": "Worker entered crane exclusion zone during active lift",
+      "activity": "Mechanical Lifting Operations",
+      "location": "Rig 04",
+      "hazard": "Gravity / Suspended Load",
+      "exposure": "Person inside hazardous perimeter",
+      "barrier": "EXCLUSION_ZONE",
+      "barrier_state": "BYPASSED",
+      "consequence": "Potential industrial trauma",
+      "sif_potential": "HIGH",
+      "assertion": "AFFIRMED",
+      "lsr": "SAFE_MECHANICAL_LIFTING, BYPASSING_SAFETY_CONTROLS",
+      "evidence_spans": [
+        {
+          "field": "activity",
+          "value": "MECHANICAL_LIFTING",
+          "start_offset": 50,
+          "end_offset": 54,
+          "text": "lift",
+          "confidence": 1.0,
+          "source": "NLP_EXTRACTION"
+        }
+      ]
+    },
+    {
+      "report_id": "REP-AR-0015-0002",
+      "original_text": "Person under suspended load at wellhead",
+      "activity": "Mechanical Lifting Operations",
+      "location": "Well 02",
+      "hazard": "Gravity / Suspended Load",
+      "exposure": "Field operational interaction (Exposure unverified)",
+      "barrier": "GENERAL_ADMINISTRATIVE_CONTROL",
+      "barrier_state": "PRESENT_UNVERIFIED",
+      "consequence": "Potential industrial trauma",
+      "sif_potential": "REVIEW_REQUIRED",
+      "assertion": "AFFIRMED",
+      "lsr": "SAFE_MECHANICAL_LIFTING",
+      "evidence_spans": [
+        {
+          "field": "activity",
+          "value": "MECHANICAL_LIFTING",
+          "start_offset": 13,
+          "end_offset": 27,
+          "text": "suspended load",
+          "confidence": 1.0,
+          "source": "NLP_EXTRACTION"
+        }
+      ]
+    },
+    {
+      "report_id": "REP-AR-0015-0003",
+      "original_text": "No PPE on drill floor during operations",
+      "activity": "General Operations & Maintenance",
+      "location": "Drill Floor",
+      "hazard": "Mechanical / Kinetic Energy",
+      "exposure": "Field operational interaction (Exposure unverified)",
+      "barrier": "GENERAL_ADMINISTRATIVE_CONTROL",
+      "barrier_state": "PRESENT_UNVERIFIED",
+      "consequence": "Potential industrial trauma",
+      "sif_potential": "HIGH",
+      "assertion": "AFFIRMED",
+      "lsr": "General Industrial Safety",
+      "evidence_spans": []
+    },
+    {
+      "report_id": "REP-AR-0015-0004",
+      "original_text": "Contractor bypassed safety gate to access restricted area",
+      "activity": "General Operations & Maintenance",
+      "location": "Compressor Area",
+      "hazard": "Mechanical / Kinetic Energy",
+      "exposure": "Person inside hazardous perimeter",
+      "barrier": "EXCLUSION_ZONE",
+      "barrier_state": "BYPASSED",
+      "consequence": "Potential industrial trauma",
+      "sif_potential": "HIGH",
+      "assertion": "AFFIRMED",
+      "lsr": "SAFE_MECHANICAL_LIFTING, BYPASSING_SAFETY_CONTROLS",
+      "evidence_spans": []
+    },
+    {
+      "report_id": "REP-AR-0015-0005",
+      "original_text": "Fire extinguisher missing at chemical storage",
+      "activity": "General Operations & Maintenance",
+      "location": "Chemical Store",
+      "hazard": "Mechanical / Kinetic Energy",
+      "exposure": "Field operational interaction (Exposure unverified)",
+      "barrier": "GENERAL_ADMINISTRATIVE_CONTROL",
+      "barrier_state": "BYPASSED",
+      "consequence": "Potential industrial trauma",
+      "sif_potential": "REVIEW_REQUIRED",
+      "assertion": "AFFIRMED",
+      "lsr": "BYPASSING_SAFETY_CONTROLS",
+      "evidence_spans": []
+    }
+  ]
+}

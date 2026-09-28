@@ -2206,8 +2206,8 @@ class AlertStateManager:
                         try:
                             from backend.nlp_engine.semantic_memory import semantic_memory
                             semantic_memory.add_event(rebreach_ev)
-                        except Exception:
-                            pass
+                        except Exception as e:
+                            print(f"[WARN] FAISS indexing failed for re-breach event {new_ev_id}: {e}")
                         db.add_pattern_member(pat_id, new_ev_id, "INDEPENDENT_RECURRENCE", 0.95, "CCTV Re-breach during verification window")
                         cur_pat = db.get_pattern(pat_id)
                         if cur_pat:
@@ -2353,8 +2353,8 @@ class AlertStateManager:
                         try:
                             from backend.nlp_engine.semantic_memory import semantic_memory
                             semantic_memory.add_event(rebreach_ev)
-                        except Exception:
-                            pass
+                        except Exception as e:
+                            print(f"[WARN] FAISS indexing failed for re-breach event {new_ev_id}: {e}")
                         db.add_pattern_member(pat_id, new_ev_id, "INDEPENDENT_RECURRENCE", 0.95, "CCTV Re-breach during verification window")
                         cur_pat = db.get_pattern(pat_id)
                         if cur_pat:

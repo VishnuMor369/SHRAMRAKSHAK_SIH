@@ -583,34 +583,6 @@ def cctv_verify_alert(alert_id: Optional[str] = None, req: Dict[str, Any] = {}):
         details=result
     )
 
-    # 2. If VERIFICATION_FAILED (re-breach), create a new SafetyEvent entering Safety Memory
-    if not is_success:
-        now_iso = datetime.now().isoformat()
-        rebreach_event_id = f"EVT-CCTV-REBREACH-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
-        rebreach_event = RealSafetyEvent(
-            event_id=rebreach_event_id,
-            source="CCTV",
-            timestamp=now_iso,
-            site="OIL Field Duliajan",
-            location="Drilling Rig 04 - Lifting Zone",
-            activity="Mechanical Crane Hoisting",
-            energy="Gravitational / Kinetic Energy (Suspended Load)",
-            exposure="Worker re-entered lifting exclusion zone post-corrective action",
-            barrier=["EXCLUSION_ZONE"],
-            barrier_state=["BYPASSED"],
-            consequence="Crush trauma / struck-by suspended load",
-            sif_status=CanonicalSIFStatus.SIF_POTENTIAL,
-            sif_reasons=["CCTV Verification Failed: Re-breach detected in active zone while load active."],
-            lsr=["SAFE_MECHANICAL_LIFTING", "LINE_OF_FIRE"],
-            machine_observation=True,
-            narrative="CCTV automated verification detected worker re-entry into restricted zone following corrective action sign-off."
-        )
-        db.save_event(rebreach_event)
-        try:
-            real_recurrence_engine.process_event(rebreach_event)
-        except Exception:
-            pass
-
     return result
 
 # ==========================================

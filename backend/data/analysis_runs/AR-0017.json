@@ -1,0 +1,227 @@
+{
+  "run_id": "AR-0017",
+  "filename": "oil_acceptance_sample.csv",
+  "file_type": "CSV",
+  "upload_time": "2026-09-28T19:24:31.046188",
+  "provenance": "Uploaded dataset intelligence file.",
+  "records_detected": 3,
+  "records_analyzed": 3,
+  "failed_count": 0,
+  "review_required_count": 1,
+  "sif_count": 2,
+  "non_sif_count": 0,
+  "sif_percentage": 66.67,
+  "status": "COMPLETED",
+  "candidate_patterns": [],
+  "high_potential_cases": [
+    {
+      "report_id": "REP-AR-0017-0001",
+      "original_text": "Contractor entered the lifting exclusion zone while a suspended load was being moved.",
+      "activity": "Mechanical Lifting",
+      "location": "Rig Floor",
+      "hazard": "Gravitational / Kinetic Energy (Suspended Load)",
+      "exposure": "Person inside lifting exclusion zone",
+      "barrier": "EXCLUSION_ZONE",
+      "barrier_state": "BYPASSED",
+      "consequence": "Crush trauma / blunt force impact",
+      "sif_potential": "HIGH",
+      "assertion": "AFFIRMED",
+      "lsr": "SAFE_MECHANICAL_LIFTING, BYPASSING_SAFETY_CONTROLS",
+      "evidence_spans": [
+        {
+          "field": "exposure",
+          "value": "INSIDE_EXCLUSION_ZONE",
+          "start_offset": 11,
+          "end_offset": 45,
+          "text": "entered the lifting exclusion zone",
+          "confidence": 1.0,
+          "source": "NLP_EXTRACTION"
+        },
+        {
+          "field": "barrier",
+          "value": "EXCLUSION_ZONE",
+          "start_offset": 31,
+          "end_offset": 45,
+          "text": "exclusion zone",
+          "confidence": 1.0,
+          "source": "NLP_EXTRACTION"
+        },
+        {
+          "field": "barrier_state",
+          "value": "BYPASSED",
+          "start_offset": 11,
+          "end_offset": 45,
+          "text": "entered the lifting exclusion zone",
+          "confidence": 1.0,
+          "source": "NLP_EXTRACTION"
+        },
+        {
+          "field": "energy",
+          "value": "GRAVITATIONAL_KINETIC",
+          "start_offset": 54,
+          "end_offset": 68,
+          "text": "suspended load",
+          "confidence": 1.0,
+          "source": "NLP_EXTRACTION"
+        },
+        {
+          "field": "activity",
+          "value": "MECHANICAL_LIFTING",
+          "start_offset": 54,
+          "end_offset": 68,
+          "text": "suspended load",
+          "confidence": 1.0,
+          "source": "NLP_EXTRACTION"
+        }
+      ]
+    },
+    {
+      "report_id": "REP-AR-0017-0002",
+      "original_text": "Worker found without fall arrest harness on elevated derrick platform.",
+      "activity": "Mechanical Lifting Operations",
+      "location": "Derrick",
+      "hazard": "Elevation / Fall Potential",
+      "exposure": "Person inside hazardous perimeter",
+      "barrier": "FALL_PROTECTION",
+      "barrier_state": "BYPASSED",
+      "consequence": "Potential industrial trauma",
+      "sif_potential": "HIGH",
+      "assertion": "AFFIRMED",
+      "lsr": "SAFE_MECHANICAL_LIFTING, BYPASSING_SAFETY_CONTROLS, WORKING_AT_HEIGHT",
+      "evidence_spans": [
+        {
+          "field": "activity",
+          "value": "MECHANICAL_LIFTING",
+          "start_offset": 53,
+          "end_offset": 60,
+          "text": "derrick",
+          "confidence": 1.0,
+          "source": "NLP_EXTRACTION"
+        }
+      ]
+    }
+  ],
+  "hazard_distribution": {
+    "Gravitational / Kinetic Energy (Suspended Load)": 1,
+    "Elevation / Fall Potential": 1,
+    "High Pressure / Stored Pneumatic or Hydraulic": 1
+  },
+  "activity_distribution": {
+    "Mechanical Lifting": 1,
+    "Mechanical Lifting Operations": 1,
+    "General Operations & Maintenance": 1
+  },
+  "barrier_failure_distribution": {
+    "EXCLUSION_ZONE": 1,
+    "FALL_PROTECTION": 1
+  },
+  "iogp_distribution": {
+    "SAFE_MECHANICAL_LIFTING": 2,
+    "BYPASSING_SAFETY_CONTROLS": 2,
+    "WORKING_AT_HEIGHT": 1,
+    "General Industrial Safety": 1
+  },
+  "reports": [
+    {
+      "report_id": "REP-AR-0017-0001",
+      "original_text": "Contractor entered the lifting exclusion zone while a suspended load was being moved.",
+      "activity": "Mechanical Lifting",
+      "location": "Rig Floor",
+      "hazard": "Gravitational / Kinetic Energy (Suspended Load)",
+      "exposure": "Person inside lifting exclusion zone",
+      "barrier": "EXCLUSION_ZONE",
+      "barrier_state": "BYPASSED",
+      "consequence": "Crush trauma / blunt force impact",
+      "sif_potential": "HIGH",
+      "assertion": "AFFIRMED",
+      "lsr": "SAFE_MECHANICAL_LIFTING, BYPASSING_SAFETY_CONTROLS",
+      "evidence_spans": [
+        {
+          "field": "exposure",
+          "value": "INSIDE_EXCLUSION_ZONE",
+          "start_offset": 11,
+          "end_offset": 45,
+          "text": "entered the lifting exclusion zone",
+          "confidence": 1.0,
+          "source": "NLP_EXTRACTION"
+        },
+        {
+          "field": "barrier",
+          "value": "EXCLUSION_ZONE",
+          "start_offset": 31,
+          "end_offset": 45,
+          "text": "exclusion zone",
+          "confidence": 1.0,
+          "source": "NLP_EXTRACTION"
+        },
+        {
+          "field": "barrier_state",
+          "value": "BYPASSED",
+          "start_offset": 11,
+          "end_offset": 45,
+          "text": "entered the lifting exclusion zone",
+          "confidence": 1.0,
+          "source": "NLP_EXTRACTION"
+        },
+        {
+          "field": "energy",
+          "value": "GRAVITATIONAL_KINETIC",
+          "start_offset": 54,
+          "end_offset": 68,
+          "text": "suspended load",
+          "confidence": 1.0,
+          "source": "NLP_EXTRACTION"
+        },
+        {
+          "field": "activity",
+          "value": "MECHANICAL_LIFTING",
+          "start_offset": 54,
+          "end_offset": 68,
+          "text": "suspended load",
+          "confidence": 1.0,
+          "source": "NLP_EXTRACTION"
+        }
+      ]
+    },
+    {
+      "report_id": "REP-AR-0017-0002",
+      "original_text": "Worker found without fall arrest harness on elevated derrick platform.",
+      "activity": "Mechanical Lifting Operations",
+      "location": "Derrick",
+      "hazard": "Elevation / Fall Potential",
+      "exposure": "Person inside hazardous perimeter",
+      "barrier": "FALL_PROTECTION",
+      "barrier_state": "BYPASSED",
+      "consequence": "Potential industrial trauma",
+      "sif_potential": "HIGH",
+      "assertion": "AFFIRMED",
+      "lsr": "SAFE_MECHANICAL_LIFTING, BYPASSING_SAFETY_CONTROLS, WORKING_AT_HEIGHT",
+      "evidence_spans": [
+        {
+          "field": "activity",
+          "value": "MECHANICAL_LIFTING",
+          "start_offset": 53,
+          "end_offset": 60,
+          "text": "derrick",
+          "confidence": 1.0,
+          "source": "NLP_EXTRACTION"
+        }
+      ]
+    },
+    {
+      "report_id": "REP-AR-0017-0003",
+      "original_text": "Methane gas detector sounded alert in compressor station enclosure.",
+      "activity": "General Operations & Maintenance",
+      "location": "Compressor Area",
+      "hazard": "High Pressure / Stored Pneumatic or Hydraulic",
+      "exposure": "Field operational interaction (Exposure unverified)",
+      "barrier": "ATMOSPHERIC_MONITORING",
+      "barrier_state": "PRESENT_UNVERIFIED",
+      "consequence": "Potential industrial trauma",
+      "sif_potential": "REVIEW_REQUIRED",
+      "assertion": "AFFIRMED",
+      "lsr": "General Industrial Safety",
+      "evidence_spans": []
+    }
+  ]
+}

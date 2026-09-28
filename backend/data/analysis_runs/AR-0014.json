@@ -1,0 +1,519 @@
+{
+  "run_id": "AR-0014",
+  "filename": "audit_test.csv",
+  "file_type": "CSV",
+  "upload_time": "2026-09-27T23:12:14.030075",
+  "provenance": "Uploaded dataset intelligence file.",
+  "records_detected": 10,
+  "records_analyzed": 10,
+  "failed_count": 0,
+  "review_required_count": 1,
+  "sif_count": 9,
+  "non_sif_count": 0,
+  "sif_percentage": 90.0,
+  "status": "COMPLETED",
+  "candidate_patterns": [
+    {
+      "pattern_id": "PAT-EXCLUSION_ZONE-01",
+      "title": "Recurring Control Breach: EXCLUSION_ZONE during Mechanical Lifting Operations",
+      "occurrence_count": 2,
+      "activity": "Mechanical Lifting Operations",
+      "barrier": "EXCLUSION_ZONE",
+      "sif_potential": "HIGH",
+      "validation_status": "CANDIDATE",
+      "source_reports": [
+        "REP-AR-0014-0001",
+        "REP-AR-0014-0008"
+      ]
+    },
+    {
+      "pattern_id": "PAT-GENERAL_ADMINISTRATIVE_CONTROL-02",
+      "title": "Recurring Control Breach: GENERAL_ADMINISTRATIVE_CONTROL during General Operations & Maintenance",
+      "occurrence_count": 2,
+      "activity": "General Operations & Maintenance",
+      "barrier": "GENERAL_ADMINISTRATIVE_CONTROL",
+      "sif_potential": "HIGH",
+      "validation_status": "CANDIDATE",
+      "source_reports": [
+        "REP-AR-0014-0003",
+        "REP-AR-0014-0010"
+      ]
+    }
+  ],
+  "high_potential_cases": [
+    {
+      "report_id": "REP-AR-0014-0001",
+      "original_text": "Worker walked under suspended load during lifting at wellhead",
+      "activity": "Mechanical Lifting Operations",
+      "location": "Rig 01",
+      "hazard": "Gravity / Suspended Load",
+      "exposure": "Person inside hazardous perimeter",
+      "barrier": "EXCLUSION_ZONE",
+      "barrier_state": "BYPASSED",
+      "consequence": "Potential industrial trauma",
+      "sif_potential": "HIGH",
+      "assertion": "AFFIRMED",
+      "lsr": "SAFE_MECHANICAL_LIFTING, BYPASSING_SAFETY_CONTROLS",
+      "evidence_spans": [
+        {
+          "field": "activity",
+          "value": "MECHANICAL_LIFTING",
+          "start_offset": 42,
+          "end_offset": 49,
+          "text": "lifting",
+          "confidence": 1.0,
+          "source": "NLP_EXTRACTION"
+        }
+      ]
+    },
+    {
+      "report_id": "REP-AR-0014-0002",
+      "original_text": "Personnel entered LOTO zone without proper lockout procedure",
+      "activity": "Energy Isolation / Lockout Tagout",
+      "location": "Wellpad B",
+      "hazard": "Mechanical / Kinetic Energy",
+      "exposure": "Person inside hazardous perimeter",
+      "barrier": "EXCLUSION_ZONE",
+      "barrier_state": "BYPASSED",
+      "consequence": "Potential industrial trauma",
+      "sif_potential": "HIGH",
+      "assertion": "AFFIRMED",
+      "lsr": "SAFE_MECHANICAL_LIFTING, BYPASSING_SAFETY_CONTROLS, ENERGY_ISOLATION",
+      "evidence_spans": [
+        {
+          "field": "activity",
+          "value": "ENERGY_ISOLATION_LOTO",
+          "start_offset": 43,
+          "end_offset": 50,
+          "text": "lockout",
+          "confidence": 1.0,
+          "source": "NLP_EXTRACTION"
+        }
+      ]
+    },
+    {
+      "report_id": "REP-AR-0014-0003",
+      "original_text": "Operator found inside compressor area without entry permit",
+      "activity": "General Operations & Maintenance",
+      "location": "Station 3",
+      "hazard": "High Pressure / Stored Pneumatic or Hydraulic",
+      "exposure": "Person inside hazardous perimeter",
+      "barrier": "GENERAL_ADMINISTRATIVE_CONTROL",
+      "barrier_state": "BYPASSED",
+      "consequence": "Potential industrial trauma",
+      "sif_potential": "HIGH",
+      "assertion": "AFFIRMED",
+      "lsr": "BYPASSING_SAFETY_CONTROLS",
+      "evidence_spans": []
+    },
+    {
+      "report_id": "REP-AR-0014-0004",
+      "original_text": "Contractor bypassed safety barrier to reach tool near crane",
+      "activity": "Mechanical Lifting Operations",
+      "location": "Rig 02",
+      "hazard": "Gravity / Suspended Load",
+      "exposure": "Person inside hazardous perimeter",
+      "barrier": "GENERAL_ADMINISTRATIVE_CONTROL",
+      "barrier_state": "BYPASSED",
+      "consequence": "Potential industrial trauma",
+      "sif_potential": "HIGH",
+      "assertion": "AFFIRMED",
+      "lsr": "SAFE_MECHANICAL_LIFTING, BYPASSING_SAFETY_CONTROLS",
+      "evidence_spans": [
+        {
+          "field": "activity",
+          "value": "MECHANICAL_LIFTING",
+          "start_offset": 54,
+          "end_offset": 59,
+          "text": "crane",
+          "confidence": 1.0,
+          "source": "NLP_EXTRACTION"
+        }
+      ]
+    },
+    {
+      "report_id": "REP-AR-0014-0005",
+      "original_text": "Worker touched energized equipment without isolation",
+      "activity": "Energy Isolation / Lockout Tagout",
+      "location": "Wellpad A",
+      "hazard": "Live Electrical Conductors",
+      "exposure": "Person inside hazardous perimeter",
+      "barrier": "ENERGY_ISOLATION_LOTO",
+      "barrier_state": "BYPASSED",
+      "consequence": "Potential industrial trauma",
+      "sif_potential": "HIGH",
+      "assertion": "AFFIRMED",
+      "lsr": "BYPASSING_SAFETY_CONTROLS, ENERGY_ISOLATION",
+      "evidence_spans": [
+        {
+          "field": "activity",
+          "value": "ENERGY_ISOLATION_LOTO",
+          "start_offset": 43,
+          "end_offset": 52,
+          "text": "isolation",
+          "confidence": 1.0,
+          "source": "NLP_EXTRACTION"
+        }
+      ]
+    },
+    {
+      "report_id": "REP-AR-0014-0006",
+      "original_text": "Safety belt not worn by worker on elevated platform",
+      "activity": "Working at Height / Mast & Derrick",
+      "location": "Rig 04",
+      "hazard": "Elevation / Fall Potential",
+      "exposure": "Person inside hazardous perimeter",
+      "barrier": "GENERAL_ADMINISTRATIVE_CONTROL",
+      "barrier_state": "DEGRADED",
+      "consequence": "Potential industrial trauma",
+      "sif_potential": "HIGH",
+      "assertion": "AFFIRMED",
+      "lsr": "WORKING_AT_HEIGHT",
+      "evidence_spans": [
+        {
+          "field": "activity",
+          "value": "WORKING_AT_HEIGHT",
+          "start_offset": 34,
+          "end_offset": 51,
+          "text": "elevated platform",
+          "confidence": 1.0,
+          "source": "NLP_EXTRACTION"
+        }
+      ]
+    },
+    {
+      "report_id": "REP-AR-0014-0007",
+      "original_text": "No hard hat observed on worker entering active drilling zone",
+      "activity": "Well Drilling & Tripping Operations",
+      "location": "Rig 03",
+      "hazard": "Mechanical / Kinetic Energy",
+      "exposure": "Person inside hazardous perimeter",
+      "barrier": "EXCLUSION_ZONE",
+      "barrier_state": "BYPASSED",
+      "consequence": "Potential industrial trauma",
+      "sif_potential": "HIGH",
+      "assertion": "AFFIRMED",
+      "lsr": "SAFE_MECHANICAL_LIFTING, BYPASSING_SAFETY_CONTROLS",
+      "evidence_spans": [
+        {
+          "field": "activity",
+          "value": "WELL_INTERVENTION_DRILLING",
+          "start_offset": 47,
+          "end_offset": 55,
+          "text": "drilling",
+          "confidence": 1.0,
+          "source": "NLP_EXTRACTION"
+        }
+      ]
+    },
+    {
+      "report_id": "REP-AR-0014-0008",
+      "original_text": "Unauthorized personnel inside lifting exclusion zone during crane operation",
+      "activity": "Mechanical Lifting Operations",
+      "location": "Lifting Zone 03",
+      "hazard": "Gravity / Suspended Load",
+      "exposure": "Person inside hazardous perimeter",
+      "barrier": "EXCLUSION_ZONE",
+      "barrier_state": "BYPASSED",
+      "consequence": "Potential industrial trauma",
+      "sif_potential": "HIGH",
+      "assertion": "AFFIRMED",
+      "lsr": "SAFE_MECHANICAL_LIFTING, BYPASSING_SAFETY_CONTROLS",
+      "evidence_spans": [
+        {
+          "field": "activity",
+          "value": "MECHANICAL_LIFTING",
+          "start_offset": 30,
+          "end_offset": 37,
+          "text": "lifting",
+          "confidence": 1.0,
+          "source": "NLP_EXTRACTION"
+        }
+      ]
+    },
+    {
+      "report_id": "REP-AR-0014-0009",
+      "original_text": "Worker reported entering confined space without gas test",
+      "activity": "Confined Space Entry",
+      "location": "Storage Tank",
+      "hazard": "Hazardous Gas / H2S / Toxic Vapor",
+      "exposure": "Person inside hazardous perimeter",
+      "barrier": "GENERAL_ADMINISTRATIVE_CONTROL",
+      "barrier_state": "BYPASSED",
+      "consequence": "Potential industrial trauma",
+      "sif_potential": "HIGH",
+      "assertion": "AFFIRMED",
+      "lsr": "BYPASSING_SAFETY_CONTROLS",
+      "evidence_spans": [
+        {
+          "field": "activity",
+          "value": "CONFINED_SPACE_ENTRY",
+          "start_offset": 25,
+          "end_offset": 39,
+          "text": "confined space",
+          "confidence": 1.0,
+          "source": "NLP_EXTRACTION"
+        }
+      ]
+    }
+  ],
+  "hazard_distribution": {
+    "Gravity / Suspended Load": 3,
+    "Mechanical / Kinetic Energy": 2,
+    "High Pressure / Stored Pneumatic or Hydraulic": 1,
+    "Live Electrical Conductors": 2,
+    "Elevation / Fall Potential": 1,
+    "Hazardous Gas / H2S / Toxic Vapor": 1
+  },
+  "activity_distribution": {
+    "Mechanical Lifting Operations": 3,
+    "Energy Isolation / Lockout Tagout": 2,
+    "General Operations & Maintenance": 2,
+    "Working at Height / Mast & Derrick": 1,
+    "Well Drilling & Tripping Operations": 1,
+    "Confined Space Entry": 1
+  },
+  "barrier_failure_distribution": {
+    "EXCLUSION_ZONE": 4,
+    "GENERAL_ADMINISTRATIVE_CONTROL": 4,
+    "ENERGY_ISOLATION_LOTO": 1
+  },
+  "iogp_distribution": {
+    "SAFE_MECHANICAL_LIFTING": 5,
+    "BYPASSING_SAFETY_CONTROLS": 9,
+    "ENERGY_ISOLATION": 3,
+    "WORKING_AT_HEIGHT": 1
+  },
+  "reports": [
+    {
+      "report_id": "REP-AR-0014-0001",
+      "original_text": "Worker walked under suspended load during lifting at wellhead",
+      "activity": "Mechanical Lifting Operations",
+      "location": "Rig 01",
+      "hazard": "Gravity / Suspended Load",
+      "exposure": "Person inside hazardous perimeter",
+      "barrier": "EXCLUSION_ZONE",
+      "barrier_state": "BYPASSED",
+      "consequence": "Potential industrial trauma",
+      "sif_potential": "HIGH",
+      "assertion": "AFFIRMED",
+      "lsr": "SAFE_MECHANICAL_LIFTING, BYPASSING_SAFETY_CONTROLS",
+      "evidence_spans": [
+        {
+          "field": "activity",
+          "value": "MECHANICAL_LIFTING",
+          "start_offset": 42,
+          "end_offset": 49,
+          "text": "lifting",
+          "confidence": 1.0,
+          "source": "NLP_EXTRACTION"
+        }
+      ]
+    },
+    {
+      "report_id": "REP-AR-0014-0002",
+      "original_text": "Personnel entered LOTO zone without proper lockout procedure",
+      "activity": "Energy Isolation / Lockout Tagout",
+      "location": "Wellpad B",
+      "hazard": "Mechanical / Kinetic Energy",
+      "exposure": "Person inside hazardous perimeter",
+      "barrier": "EXCLUSION_ZONE",
+      "barrier_state": "BYPASSED",
+      "consequence": "Potential industrial trauma",
+      "sif_potential": "HIGH",
+      "assertion": "AFFIRMED",
+      "lsr": "SAFE_MECHANICAL_LIFTING, BYPASSING_SAFETY_CONTROLS, ENERGY_ISOLATION",
+      "evidence_spans": [
+        {
+          "field": "activity",
+          "value": "ENERGY_ISOLATION_LOTO",
+          "start_offset": 43,
+          "end_offset": 50,
+          "text": "lockout",
+          "confidence": 1.0,
+          "source": "NLP_EXTRACTION"
+        }
+      ]
+    },
+    {
+      "report_id": "REP-AR-0014-0003",
+      "original_text": "Operator found inside compressor area without entry permit",
+      "activity": "General Operations & Maintenance",
+      "location": "Station 3",
+      "hazard": "High Pressure / Stored Pneumatic or Hydraulic",
+      "exposure": "Person inside hazardous perimeter",
+      "barrier": "GENERAL_ADMINISTRATIVE_CONTROL",
+      "barrier_state": "BYPASSED",
+      "consequence": "Potential industrial trauma",
+      "sif_potential": "HIGH",
+      "assertion": "AFFIRMED",
+      "lsr": "BYPASSING_SAFETY_CONTROLS",
+      "evidence_spans": []
+    },
+    {
+      "report_id": "REP-AR-0014-0004",
+      "original_text": "Contractor bypassed safety barrier to reach tool near crane",
+      "activity": "Mechanical Lifting Operations",
+      "location": "Rig 02",
+      "hazard": "Gravity / Suspended Load",
+      "exposure": "Person inside hazardous perimeter",
+      "barrier": "GENERAL_ADMINISTRATIVE_CONTROL",
+      "barrier_state": "BYPASSED",
+      "consequence": "Potential industrial trauma",
+      "sif_potential": "HIGH",
+      "assertion": "AFFIRMED",
+      "lsr": "SAFE_MECHANICAL_LIFTING, BYPASSING_SAFETY_CONTROLS",
+      "evidence_spans": [
+        {
+          "field": "activity",
+          "value": "MECHANICAL_LIFTING",
+          "start_offset": 54,
+          "end_offset": 59,
+          "text": "crane",
+          "confidence": 1.0,
+          "source": "NLP_EXTRACTION"
+        }
+      ]
+    },
+    {
+      "report_id": "REP-AR-0014-0005",
+      "original_text": "Worker touched energized equipment without isolation",
+      "activity": "Energy Isolation / Lockout Tagout",
+      "location": "Wellpad A",
+      "hazard": "Live Electrical Conductors",
+      "exposure": "Person inside hazardous perimeter",
+      "barrier": "ENERGY_ISOLATION_LOTO",
+      "barrier_state": "BYPASSED",
+      "consequence": "Potential industrial trauma",
+      "sif_potential": "HIGH",
+      "assertion": "AFFIRMED",
+      "lsr": "BYPASSING_SAFETY_CONTROLS, ENERGY_ISOLATION",
+      "evidence_spans": [
+        {
+          "field": "activity",
+          "value": "ENERGY_ISOLATION_LOTO",
+          "start_offset": 43,
+          "end_offset": 52,
+          "text": "isolation",
+          "confidence": 1.0,
+          "source": "NLP_EXTRACTION"
+        }
+      ]
+    },
+    {
+      "report_id": "REP-AR-0014-0006",
+      "original_text": "Safety belt not worn by worker on elevated platform",
+      "activity": "Working at Height / Mast & Derrick",
+      "location": "Rig 04",
+      "hazard": "Elevation / Fall Potential",
+      "exposure": "Person inside hazardous perimeter",
+      "barrier": "GENERAL_ADMINISTRATIVE_CONTROL",
+      "barrier_state": "DEGRADED",
+      "consequence": "Potential industrial trauma",
+      "sif_potential": "HIGH",
+      "assertion": "AFFIRMED",
+      "lsr": "WORKING_AT_HEIGHT",
+      "evidence_spans": [
+        {
+          "field": "activity",
+          "value": "WORKING_AT_HEIGHT",
+          "start_offset": 34,
+          "end_offset": 51,
+          "text": "elevated platform",
+          "confidence": 1.0,
+          "source": "NLP_EXTRACTION"
+        }
+      ]
+    },
+    {
+      "report_id": "REP-AR-0014-0007",
+      "original_text": "No hard hat observed on worker entering active drilling zone",
+      "activity": "Well Drilling & Tripping Operations",
+      "location": "Rig 03",
+      "hazard": "Mechanical / Kinetic Energy",
+      "exposure": "Person inside hazardous perimeter",
+      "barrier": "EXCLUSION_ZONE",
+      "barrier_state": "BYPASSED",
+      "consequence": "Potential industrial trauma",
+      "sif_potential": "HIGH",
+      "assertion": "AFFIRMED",
+      "lsr": "SAFE_MECHANICAL_LIFTING, BYPASSING_SAFETY_CONTROLS",
+      "evidence_spans": [
+        {
+          "field": "activity",
+          "value": "WELL_INTERVENTION_DRILLING",
+          "start_offset": 47,
+          "end_offset": 55,
+          "text": "drilling",
+          "confidence": 1.0,
+          "source": "NLP_EXTRACTION"
+        }
+      ]
+    },
+    {
+      "report_id": "REP-AR-0014-0008",
+      "original_text": "Unauthorized personnel inside lifting exclusion zone during crane operation",
+      "activity": "Mechanical Lifting Operations",
+      "location": "Lifting Zone 03",
+      "hazard": "Gravity / Suspended Load",
+      "exposure": "Person inside hazardous perimeter",
+      "barrier": "EXCLUSION_ZONE",
+      "barrier_state": "BYPASSED",
+      "consequence": "Potential industrial trauma",
+      "sif_potential": "HIGH",
+      "assertion": "AFFIRMED",
+      "lsr": "SAFE_MECHANICAL_LIFTING, BYPASSING_SAFETY_CONTROLS",
+      "evidence_spans": [
+        {
+          "field": "activity",
+          "value": "MECHANICAL_LIFTING",
+          "start_offset": 30,
+          "end_offset": 37,
+          "text": "lifting",
+          "confidence": 1.0,
+          "source": "NLP_EXTRACTION"
+        }
+      ]
+    },
+    {
+      "report_id": "REP-AR-0014-0009",
+      "original_text": "Worker reported entering confined space without gas test",
+      "activity": "Confined Space Entry",
+      "location": "Storage Tank",
+      "hazard": "Hazardous Gas / H2S / Toxic Vapor",
+      "exposure": "Person inside hazardous perimeter",
+      "barrier": "GENERAL_ADMINISTRATIVE_CONTROL",
+      "barrier_state": "BYPASSED",
+      "consequence": "Potential industrial trauma",
+      "sif_potential": "HIGH",
+      "assertion": "AFFIRMED",
+      "lsr": "BYPASSING_SAFETY_CONTROLS",
+      "evidence_spans": [
+        {
+          "field": "activity",
+          "value": "CONFINED_SPACE_ENTRY",
+          "start_offset": 25,
+          "end_offset": 39,
+          "text": "confined space",
+          "confidence": 1.0,
+          "source": "NLP_EXTRACTION"
+        }
+      ]
+    },
+    {
+      "report_id": "REP-AR-0014-0010",
+      "original_text": "Electrical fault observed due to missing earthing",
+      "activity": "General Operations & Maintenance",
+      "location": "Pump Station",
+      "hazard": "Live Electrical Conductors",
+      "exposure": "Field operational interaction (Exposure unverified)",
+      "barrier": "GENERAL_ADMINISTRATIVE_CONTROL",
+      "barrier_state": "BYPASSED",
+      "consequence": "Potential industrial trauma",
+      "sif_potential": "REVIEW_REQUIRED",
+      "assertion": "AFFIRMED",
+      "lsr": "BYPASSING_SAFETY_CONTROLS, ENERGY_ISOLATION",
+      "evidence_spans": []
+    }
+  ]
+}
