@@ -176,10 +176,11 @@ export default function ActionsVerificationView({ status, onSelectAlert }) {
         ) : (
           <div className="space-y-4">
             {activeAlerts.map(alert => {
-              const isWaiting = alert.status === 'WAITING_FOR_RESPONSE';
-              const isResponding = alert.status === 'RESPONDING' || alert.action_status === 'IN_PROGRESS';
-              const isAwaitingVerification = alert.verification_status === 'AWAITING_VERIFICATION' || alert.lifecycle_state === 'AWAITING_VERIFICATION';
-              const isResolved = alert.status === 'RESOLVED' || alert.verification_status === 'VERIFIED';
+              const isWaiting = alert.status === 'WAITING_FOR_RESPONSE' || alert.status === 'ESCALATED' || alert.action_status === 'ASSIGNED';
+              const isResponding = alert.status === 'RESPONDING' || alert.action_status === 'IN_PROGRESS' || alert.status === 'ACTION_IN_PROGRESS';
+              const isAwaitingVerification = alert.verification_status === 'AWAITING_VERIFICATION' || alert.lifecycle_state === 'AWAITING_VERIFICATION' || alert.action_status === 'AWAITING_VERIFICATION' || alert.status === 'AWAITING_VERIFICATION';
+              const isResolved = alert.status === 'RESOLVED' || alert.verification_status === 'VERIFIED' || alert.action_status === 'VERIFIED';
+              const isReopened = alert.status === 'REOPENED' || alert.action_status === 'REOPENED' || alert.verification_status === 'FAILED';
 
               return (
                 <div 
@@ -195,7 +196,22 @@ export default function ActionsVerificationView({ status, onSelectAlert }) {
                         <span className="font-mono text-xs font-bold text-slate-700">
                           {alert.event_id || alert.id}
                         </span>
-                        <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-100 text-amber-900 border border-amber-200">
+                        {alert.pattern_id && (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-purple-100 text-purple-900 border border-purple-200">
+                            PATTERN: {alert.pattern_id}
+                          </span>
+                        )}
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${
+                          isReopened
+                            ? 'bg-rose-100 text-rose-900 border-rose-300'
+                            : isResolved
+                            ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                            : isAwaitingVerification
+                            ? 'bg-yellow-100 text-yellow-900 border-yellow-300'
+                            : isResponding
+                            ? 'bg-blue-100 text-blue-900 border-blue-300'
+                            : 'bg-amber-100 text-amber-900 border-amber-200'
+                        }`}>
                           STATE: {alert.lifecycle_state || alert.status}
                         </span>
                       </div>
@@ -203,7 +219,7 @@ export default function ActionsVerificationView({ status, onSelectAlert }) {
                         {alert.title || alert.type}
                       </h3>
                       <p className="text-xs text-slate-600">
-                        Location: <b className="text-slate-800">{alert.location}</b> • Required Action: <b className="text-red-700">{alert.immediate_action}</b>
+                        Location: <b className="text-slate-800">{alert.location}</b> • Required Action: <b className="text-red-700">{alert.immediate_action || alert.message || alert.required_action}</b>
                       </p>
                     </div>
 
@@ -222,9 +238,10 @@ export default function ActionsVerificationView({ status, onSelectAlert }) {
                     </span>
 
                     {/* Stage 1: Action Required */}
-                    {isWaiting && (
+                    {isWaiting && !isResponding && !isAwaitingVerification && !isResolved && !isReopened && (
                       <div className="flex flex-wrap items-center gap-3">
                         <button
+                          id={`btn-ack-${alert.id}`}
                           onClick={() => handleRespond(alert.id)}
                           disabled={submittingId === alert.id}
                           className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-black text-xs rounded-lg shadow transition-colors flex items-center space-x-1.5"
@@ -239,9 +256,10 @@ export default function ActionsVerificationView({ status, onSelectAlert }) {
                     )}
 
                     {/* Stage 2: In Progress */}
-                    {isResponding && !isAwaitingVerification && (
+                    {isResponding && !isAwaitingVerification && !isResolved && (
                       <div className="flex flex-wrap items-center gap-3">
                         <button
+                          id={`btn-action-taken-${alert.id}`}
                           onClick={() => handleActionTaken(alert.id)}
                           disabled={submittingId === alert.id}
                           className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-lg shadow transition-colors flex items-center space-x-1.5"
@@ -251,6 +269,24 @@ export default function ActionsVerificationView({ status, onSelectAlert }) {
                         </button>
                         <span className="text-xs text-amber-900 font-semibold">
                           Transitions to AWAITING VERIFICATION ("Completion is not proof").
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Reopened State: allow re-clearing and marking action taken */}
+                    {isReopened && !isAwaitingVerification && !isResolved && (
+                      <div className="flex flex-wrap items-center gap-3">
+                        <button
+                          id={`btn-action-taken-${alert.id}`}
+                          onClick={() => handleActionTaken(alert.id)}
+                          disabled={submittingId === alert.id}
+                          className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-lg shadow transition-colors flex items-center space-x-1.5"
+                        >
+                          <Check className="w-4 h-4" />
+                          <span>MARK ACTION TAKEN (ZONE RE-CLEARED)</span>
+                        </button>
+                        <span className="text-xs text-rose-800 font-semibold">
+                          Hazard re-breach occurred. Clear restricted zone to re-trigger verification.
                         </span>
                       </div>
                     )}
@@ -266,6 +302,7 @@ export default function ActionsVerificationView({ status, onSelectAlert }) {
                         <div className="flex flex-wrap gap-2.5 pt-1">
                           {/* CCTV Check: Clean Condition -> Verified */}
                           <button
+                            id={`btn-cctv-verify-${alert.id}`}
                             onClick={() => handleCctvVerify(alert.id, false)}
                             disabled={submittingId === alert.id}
                             className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-lg shadow transition-colors flex items-center space-x-1.5"
@@ -276,6 +313,7 @@ export default function ActionsVerificationView({ status, onSelectAlert }) {
 
                           {/* CCTV Check: Re-Breach -> Failed & Reopened */}
                           <button
+                            id={`btn-cctv-rebreach-${alert.id}`}
                             onClick={() => handleCctvVerify(alert.id, true)}
                             disabled={submittingId === alert.id}
                             className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-black text-xs rounded-lg shadow transition-colors flex items-center space-x-1.5"

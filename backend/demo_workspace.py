@@ -106,6 +106,14 @@ class DemoWorkspaceManager:
             "candidate_patterns_count": cand_patterns,
             "validated_patterns_count": val_count if (val_count := val_patterns) else 0,
             "active_preconditions_count": len(self.future_requirements),
+            "source_breakdown": {
+                "HUMAN": (sb := self.get_source_breakdown())["HUMAN"],
+                "CCTV": sb["CCTV"],
+                "IMPORTED": sb["IMPORTED"],
+                "Human": sb["HUMAN"],
+                "CCTV": sb["CCTV"],
+                "Imported": sb["IMPORTED"]
+            },
             "patterns": self.patterns,
             "recurring_patterns": self.patterns,
             "workspace": "DEMO_SESSION",
@@ -185,7 +193,21 @@ class DemoWorkspaceManager:
             "assertion_status": "AFFIRMED",
             "camera_id": camera_id,
             "machine_observation": True,
-            "evidence_spans": [{"text": f"entered active {zone_name}", "field": "exposure", "start": 32, "end": 64}],
+            "evidence_spans": [{
+                "text": f"entered active {zone_name}",
+                "span_text": f"entered active {zone_name}",
+                "field": "exposure",
+                "category": "EXPOSURE",
+                "value": "ZONE_ENTRY",
+                "start": 32,
+                "end": 64,
+                "start_offset": 32,
+                "end_offset": 64,
+                "start_char": 32,
+                "end_char": 64,
+                "confidence": 0.98,
+                "source": "CCTV_DETECTION"
+            }],
             "evidence_sources": ["CCTV"],
             "provenance": "Observable CCTV detection — Prototype connected to site camera input."
         }
@@ -222,12 +244,17 @@ class DemoWorkspaceManager:
             human_sources = sum(1 for e in matching_events if e.get("source") == "HUMAN")
             cctv_sources = sum(1 for e in matching_events if e.get("source") == "CCTV")
 
+            source_dict = {
+                "Human": human_sources, "CCTV": cctv_sources, "Imported": 0,
+                "HUMAN": human_sources, "CCTV": cctv_sources, "IMPORTED": 0
+            }
+
             if existing_pat:
                 existing_pat["occurrence_count"] = len(matching_events)
                 existing_pat["independent_occurrences"] = len(matching_events)
                 existing_pat["human_occurrences"] = human_sources
                 existing_pat["cctv_occurrences"] = cctv_sources
-                existing_pat["source_breakdown"] = f"{human_sources} Human Reports, {cctv_sources} CCTV Event" if cctv_sources else f"{human_sources} Human Reports"
+                existing_pat["source_breakdown"] = source_dict
                 existing_pat["event_members"] = [e["event_id"] for e in matching_events]
                 existing_pat["updated_at"] = datetime.now().isoformat()
             else:
@@ -239,7 +266,7 @@ class DemoWorkspaceManager:
                     "independent_occurrences": len(matching_events),
                     "human_occurrences": human_sources,
                     "cctv_occurrences": cctv_sources,
-                    "source_breakdown": f"{human_sources} Human Reports, {cctv_sources} CCTV Event" if cctv_sources else f"{human_sources} Human Reports",
+                    "source_breakdown": source_dict,
                     "activity": activity,
                     "critical_barrier": barrier,
                     "hazard": new_event.get("hazard", "Suspended Load"),

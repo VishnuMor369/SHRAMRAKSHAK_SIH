@@ -58,11 +58,11 @@ export default function Header({ status, onOpenQr, onToggleSidebar, onOpenPasspo
         </div>
 
         {/* Right: Operational Status, Safety Passport & Mobile Access */}
-        <div className="flex items-center space-x-2 shrink-0">
+        <div className="flex items-center space-x-1.5 sm:space-x-2 shrink-0">
           {/* Safety Passport Quick Access */}
           <button
             onClick={onOpenPassport}
-            className={`flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+            className={`flex items-center space-x-1 sm:space-x-1.5 px-2 py-1.5 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-bold border transition-all ${
               status?.active_passport?.status === 'PAUSED'
                 ? 'bg-red-50 hover:bg-red-100 text-red-800 border-red-300 animate-pulse shadow-sm'
                 : status?.active_passport?.status === 'ACTIVE'
@@ -79,9 +79,9 @@ export default function Header({ status, onOpenQr, onToggleSidebar, onOpenPasspo
                 : 'text-amber-500'
             }`} />
             <span className="hidden sm:inline">SAFETY PASSPORT</span>
-            <span className="sm:hidden">PASSPORT</span>
+            <span className="sm:hidden text-[10px]">PASSPORT</span>
             {status?.active_passport && (
-              <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase ${
+              <span className={`px-1 py-0.2 sm:px-1.5 sm:py-0.5 rounded text-[8px] sm:text-[9px] font-black uppercase ${
                 status?.active_passport?.status === 'PAUSED'
                   ? 'bg-red-600 text-white'
                   : status?.active_passport?.status === 'ACTIVE'
@@ -93,10 +93,10 @@ export default function Header({ status, onOpenQr, onToggleSidebar, onOpenPasspo
             )}
           </button>
 
-          {/* AI Intelligence Quick Access Button */}
+          {/* AI Intelligence Quick Access Button (hidden on mobile, present in sidebar) */}
           <button
             onClick={onOpenSafetyAnalysis}
-            className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold border transition-all bg-amber-50 hover:bg-amber-100 text-amber-900 border-amber-200 shadow-sm"
+            className="hidden md:flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold border transition-all bg-amber-50 hover:bg-amber-100 text-amber-900 border-amber-200 shadow-sm"
             title="AI Risk Intelligence & Explainable SIF Precursor Pathways"
           >
             <BrainCircuit className="w-3.5 h-3.5 text-amber-600" />
@@ -107,19 +107,19 @@ export default function Header({ status, onOpenQr, onToggleSidebar, onOpenPasspo
           </button>
 
           {/* System Online Indicator */}
-          <div className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold">
+          <div className="flex items-center space-x-1 sm:space-x-1.5 px-2 py-1.5 sm:px-2.5 sm:py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
             </span>
-            <span className="hidden sm:inline">NODE ONLINE</span>
-            <span className="sm:hidden">LIVE</span>
+            <span className="hidden sm:inline text-xs">NODE ONLINE</span>
+            <span className="sm:hidden text-[10px]">LIVE</span>
           </div>
 
-          {/* Mobile Supervisor Access */}
+          {/* Mobile Supervisor Access (hidden on mobile phone screens) */}
           <button
             onClick={onOpenQr}
-            className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium border border-slate-300 transition-colors shadow-sm"
+            className="hidden sm:flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium border border-slate-300 transition-colors shadow-sm"
             title="Open supervisor dashboard on mobile phone"
           >
             <Smartphone className="w-3.5 h-3.5 text-slate-600" />

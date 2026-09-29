@@ -101,28 +101,51 @@ export default function EvidenceDetailDrawer({ event, isOpen, onClose }) {
               "{event.narrative || event.raw_text || event.title || event.observed_event || 'No raw narrative provided.'}"
             </div>
 
-            {event.evidence_spans && event.evidence_spans.length > 0 && (
-              <div className="space-y-1.5 pt-2">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
-                  Ground-Truth Spans Bound to SIF Conclusions:
-                </span>
-                <div className="space-y-1">
-                  {event.evidence_spans.map((span, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-2 rounded bg-white border border-slate-200 text-[11px]">
-                      <div className="flex items-center space-x-2">
-                        <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold uppercase bg-slate-100 text-slate-700 border">
-                          {span.category || 'FACT'}
-                        </span>
-                        <span className="font-semibold text-slate-900">"{span.span_text}"</span>
-                      </div>
-                      <span className="text-slate-400 font-mono text-[10px]">
-                        [{span.start_char}:{span.end_char}]
-                      </span>
+            {(() => {
+              const allSpans = event.evidence_spans || event.evidence || [];
+              const validSpans = allSpans.filter((s) => {
+                const text = (s.text || s.span_text || s.value || '').trim();
+                return text.length > 0;
+              });
+
+              return (
+                <div className="space-y-1.5 pt-2">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                    Ground-Truth Spans Bound to SIF Conclusions:
+                  </span>
+                  {validSpans.length > 0 ? (
+                    <div className="space-y-1.5">
+                      {validSpans.map((span, idx) => {
+                        const spanText = (span.text || span.span_text || span.value || '').trim();
+                        const category = (span.field || span.category || 'FACT').toUpperCase();
+                        const start = span.start_offset ?? span.start_char;
+                        const end = span.end_offset ?? span.end_char;
+
+                        return (
+                          <div key={idx} className="flex items-center justify-between p-2 rounded-lg bg-white border border-slate-200 text-[11px] shadow-2xs">
+                            <div className="flex items-center space-x-2 min-w-0 mr-2">
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold uppercase bg-slate-100 text-slate-700 border shrink-0">
+                                {category}
+                              </span>
+                              <span className="font-semibold text-slate-900 truncate">"{spanText}"</span>
+                            </div>
+                            {(start !== undefined && end !== undefined && start !== null && end !== null) && (
+                              <span className="text-slate-400 font-mono text-[10px] shrink-0">
+                                [{start}:{end}]
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
-                  ))}
+                  ) : (
+                    <div className="p-3 bg-white rounded-lg border border-slate-200 text-slate-500 italic text-xs">
+                      No evidence span available for this conclusion.
+                    </div>
+                  )}
                 </div>
-              </div>
-            )}
+              );
+            })()}
           </div>
 
           {/* Core Safety Ontology Attributes */}

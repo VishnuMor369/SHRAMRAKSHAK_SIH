@@ -1,5 +1,131 @@
 [
   {
+    "event_id": "EVT-20260929-0046",
+    "source": "CCTV",
+    "timestamp": "2026-09-29T17:22:18.594684",
+    "location": "Drilling Rig 04 - Drill Floor",
+    "activity": "Mechanical Lifting Operations",
+    "narrative": "Machine-Generated Safety Observation: 1 person(s) detected inside restricted Drilling Rig 04 - Drill Floor on camera C-01.",
+    "hazard": "Gravitational / Kinetic Energy (Suspended Load)",
+    "exposure": "1 worker(s) inside active lifting swing radius (Compressor Restricted Area)",
+    "critical_barrier": "Exclusion zone physical barricade & warning signage",
+    "barrier_condition": "VIOLATED",
+    "consequence": "Struck-by / line-of-fire from suspended/moving load",
+    "sif_potential": "HIGH",
+    "lsr": "Line of Fire",
+    "assertion_status": "ASSERTED",
+    "temporal_status": "CURRENT",
+    "evidence_spans": [],
+    "evidence_sources": [
+      "CCTV"
+    ],
+    "recurrence_classification": "INDEPENDENT_RECURRENCE",
+    "corroboration_status": "CCTV_ONLY",
+    "lifecycle_state": "ACTION_REQUIRED",
+    "machine_observation": true,
+    "camera_id": "C-01",
+    "created_at": "2026-09-29T17:22:18.794843",
+    "updated_at": "2026-09-29T17:22:18.794843",
+    "metadata": {}
+  },
+  {
+    "event_id": "EVT-HUMAN-20260929-172217-7A1B",
+    "source": "HUMAN",
+    "timestamp": "2026-09-29T17:22:17.110720",
+    "location": "Drilling Rig 04 - Drill Floor",
+    "activity": "Mechanical Lifting",
+    "narrative": "Contractor entered the lifting exclusion zone while a suspended load was being moved",
+    "hazard": "Gravitational / Kinetic Energy (Suspended Load)",
+    "exposure": "Person inside lifting exclusion zone",
+    "critical_barrier": "EXCLUSION_ZONE",
+    "barrier_condition": "BYPASSED",
+    "consequence": "Crush trauma / blunt force impact",
+    "sif_potential": "HIGH",
+    "lsr": "SAFE_MECHANICAL_LIFTING, BYPASSING_SAFETY_CONTROLS",
+    "assertion_status": "AFFIRMED",
+    "temporal_status": "DURING_EVENT",
+    "evidence_spans": [
+      {
+        "field": "exposure",
+        "value": "INSIDE_EXCLUSION_ZONE",
+        "start_offset": 11,
+        "end_offset": 45,
+        "text": "entered the lifting exclusion zone",
+        "confidence": 1.0,
+        "source": "NLP_EXTRACTION",
+        "span_text": "entered the lifting exclusion zone",
+        "category": "EXPOSURE",
+        "start_char": 11,
+        "end_char": 45
+      },
+      {
+        "field": "barrier",
+        "value": "EXCLUSION_ZONE",
+        "start_offset": 31,
+        "end_offset": 45,
+        "text": "exclusion zone",
+        "confidence": 1.0,
+        "source": "NLP_EXTRACTION",
+        "span_text": "exclusion zone",
+        "category": "BARRIER",
+        "start_char": 31,
+        "end_char": 45
+      },
+      {
+        "field": "barrier_state",
+        "value": "BYPASSED",
+        "start_offset": 11,
+        "end_offset": 45,
+        "text": "entered the lifting exclusion zone",
+        "confidence": 1.0,
+        "source": "NLP_EXTRACTION",
+        "span_text": "entered the lifting exclusion zone",
+        "category": "BARRIER_STATE",
+        "start_char": 11,
+        "end_char": 45
+      },
+      {
+        "field": "energy",
+        "value": "GRAVITATIONAL_KINETIC",
+        "start_offset": 54,
+        "end_offset": 68,
+        "text": "suspended load",
+        "confidence": 1.0,
+        "source": "NLP_EXTRACTION",
+        "span_text": "suspended load",
+        "category": "ENERGY",
+        "start_char": 54,
+        "end_char": 68
+      },
+      {
+        "field": "activity",
+        "value": "MECHANICAL_LIFTING",
+        "start_offset": 54,
+        "end_offset": 68,
+        "text": "suspended load",
+        "confidence": 1.0,
+        "source": "NLP_EXTRACTION",
+        "span_text": "suspended load",
+        "category": "ACTIVITY",
+        "start_char": 54,
+        "end_char": 68
+      }
+    ],
+    "evidence_sources": [
+      "HUMAN_REPORT"
+    ],
+    "recurrence_classification": "DUPLICATE",
+    "corroboration_status": null,
+    "lifecycle_state": "ACTION_REQUIRED",
+    "machine_observation": false,
+    "camera_id": null,
+    "created_at": "2026-09-29T17:22:18.590654",
+    "updated_at": "2026-09-29T17:22:18.590654",
+    "metadata": {
+      "reporter": "Field HSE Supervisor (OIL)"
+    }
+  },
+  {
     "event_id": "EVT-OIL-2026-001",
     "source": "HUMAN",
     "timestamp": "2026-09-24T10:14:00",
@@ -43,8 +169,8 @@
     "lifecycle_state": "RESOLVED",
     "machine_observation": false,
     "camera_id": null,
-    "created_at": "2026-09-28T19:25:44.989319",
-    "updated_at": "2026-09-28T19:25:44.989319",
+    "created_at": "2026-09-29T17:20:33.608422",
+    "updated_at": "2026-09-29T17:20:33.608422",
     "metadata": {}
   },
   {
@@ -85,8 +211,8 @@
     "lifecycle_state": "RESOLVED",
     "machine_observation": false,
     "camera_id": null,
-    "created_at": "2026-09-28T19:25:44.989319",
-    "updated_at": "2026-09-28T19:25:44.989319",
+    "created_at": "2026-09-29T17:20:33.608422",
+    "updated_at": "2026-09-29T17:20:33.608422",
     "metadata": {}
   },
   {
@@ -127,8 +253,8 @@
     "lifecycle_state": "RESOLVED",
     "machine_observation": false,
     "camera_id": null,
-    "created_at": "2026-09-28T19:25:44.989319",
-    "updated_at": "2026-09-28T19:25:44.989319",
+    "created_at": "2026-09-29T17:20:33.608422",
+    "updated_at": "2026-09-29T17:20:33.608422",
     "metadata": {}
   },
   {
@@ -169,8 +295,8 @@
     "lifecycle_state": "RESOLVED",
     "machine_observation": false,
     "camera_id": null,
-    "created_at": "2026-09-28T19:25:44.989319",
-    "updated_at": "2026-09-28T19:25:44.989319",
+    "created_at": "2026-09-29T17:20:33.608422",
+    "updated_at": "2026-09-29T17:20:33.608422",
     "metadata": {}
   },
   {
@@ -211,8 +337,8 @@
     "lifecycle_state": "RESOLVED",
     "machine_observation": false,
     "camera_id": null,
-    "created_at": "2026-09-28T19:25:44.989319",
-    "updated_at": "2026-09-28T19:25:44.989319",
+    "created_at": "2026-09-29T17:20:33.608422",
+    "updated_at": "2026-09-29T17:20:33.608422",
     "metadata": {}
   },
   {
@@ -253,8 +379,8 @@
     "lifecycle_state": "ACTION_REQUIRED",
     "machine_observation": true,
     "camera_id": "C-01",
-    "created_at": "2026-09-28T19:25:44.989319",
-    "updated_at": "2026-09-28T19:25:44.989319",
+    "created_at": "2026-09-29T17:20:33.608422",
+    "updated_at": "2026-09-29T17:20:33.608422",
     "metadata": {}
   }
 ]

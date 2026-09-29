@@ -169,6 +169,8 @@ export default function Sidebar({ isOpen, onClose, activeTab = 'HOME', onTabChan
                 return (
                   <button
                     key={item.id}
+                    id={`nav-tab-${item.id.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}
+                    data-tab-id={item.id}
                     onClick={() => {
                       if (onTabChange) onTabChange(item.id);
                       if (onClose) onClose();

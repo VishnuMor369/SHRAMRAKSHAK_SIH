@@ -264,6 +264,7 @@ export default function SettingsDemoView({ onNavigate }) {
             {demoStepLoading ? 'Loading...' : 'LOAD DEMO DATA'}
           </button>
           <button
+            id="btn-reset-demo"
             onClick={handleResetDemoSession}
             disabled={resetting}
             className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-lg shadow-sm transition-all flex items-center space-x-1"
@@ -344,6 +345,7 @@ export default function SettingsDemoView({ onNavigate }) {
             ].map(p => (
               <button
                 key={p.id}
+                id={`btn-demo-report-${p.id}`}
                 onClick={() => {
                   setDemoReportText(p.text);
                   handleSubmitHumanReport(p.text);
@@ -361,6 +363,7 @@ export default function SettingsDemoView({ onNavigate }) {
         <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-xs">
           <div className="flex items-center space-x-2">
             <button
+              id="btn-demo-step-cctv"
               onClick={handleTriggerCctv}
               disabled={demoStepLoading}
               className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-lg shadow-sm flex items-center space-x-1.5 transition-all"
@@ -370,6 +373,7 @@ export default function SettingsDemoView({ onNavigate }) {
             </button>
 
             <button
+              id="btn-demo-step-validate"
               onClick={() => handleValidateTopPattern('CONFIRM')}
               disabled={demoStepLoading || (demoStatus?.pattern_count || 0) === 0}
               className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg shadow-sm flex items-center space-x-1.5 transition-all disabled:opacity-40"

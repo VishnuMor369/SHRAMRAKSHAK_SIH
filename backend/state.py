@@ -1962,6 +1962,23 @@ class AlertStateManager:
                 "details": f"Supervisor acknowledged incident. Action SLA timer initialized ({target.action_duration_sec}s)."
             })
 
+            if getattr(target, "pattern_id", None):
+                pat_id = target.pattern_id
+                if pat_id in self.pattern_actions:
+                    self.pattern_actions[pat_id]["operational_status"] = "ACTION_IN_PROGRESS"
+                try:
+                    from backend.demo_workspace import demo_workspace
+                except ImportError:
+                    from demo_workspace import demo_workspace
+                if getattr(demo_workspace, "is_active", False) and pat_id:
+                    d_pat = demo_workspace.get_pattern(pat_id)
+                    if d_pat:
+                        d_pat["operational_status"] = "ACTION_IN_PROGRESS"
+                    for d_act in demo_workspace.actions:
+                        if d_act.get("pattern_id") == pat_id:
+                            d_act["lifecycle_state"] = "ACTION_IN_PROGRESS"
+                            d_act["status"] = "ACTION_IN_PROGRESS"
+
         self.notify_clients()
         return target
 
@@ -2003,11 +2020,27 @@ class AlertStateManager:
                 "details": target.action_taken_notes
             })
 
-            if getattr(target, "pattern_id", None) and target.pattern_id in self.pattern_actions:
-                self.pattern_actions[target.pattern_id]["operational_status"] = "AWAITING_VERIFICATION"
-                self.pattern_actions[target.pattern_id]["action_completed_at"] = now.isoformat()
-                self.pattern_actions[target.pattern_id]["action_taken_by"] = supervisor_id
-                self.pattern_actions[target.pattern_id]["action_notes"] = target.action_taken_notes
+            if getattr(target, "pattern_id", None):
+                pat_id = target.pattern_id
+                if pat_id in self.pattern_actions:
+                    self.pattern_actions[pat_id]["operational_status"] = "AWAITING_VERIFICATION"
+                    self.pattern_actions[pat_id]["action_completed_at"] = now.isoformat()
+                    self.pattern_actions[pat_id]["action_taken_by"] = supervisor_id
+                    self.pattern_actions[pat_id]["action_notes"] = target.action_taken_notes
+                try:
+                    from backend.demo_workspace import demo_workspace
+                except ImportError:
+                    from demo_workspace import demo_workspace
+                if getattr(demo_workspace, "is_active", False) and pat_id:
+                    d_pat = demo_workspace.get_pattern(pat_id)
+                    if d_pat:
+                        d_pat["operational_status"] = "AWAITING_VERIFICATION"
+                    for d_act in demo_workspace.actions:
+                        if d_act.get("pattern_id") == pat_id:
+                            d_act["lifecycle_state"] = "AWAITING_VERIFICATION"
+                            d_act["status"] = "AWAITING_VERIFICATION"
+                            d_act["completion_notes"] = target.action_taken_notes
+                            d_act["completed_at"] = now.isoformat()
 
         self.notify_clients()
         return target
@@ -2306,6 +2339,32 @@ class AlertStateManager:
                         self.pattern_actions[pat_id]["verification_status"] = "FAILED"
                         self.pattern_actions[pat_id]["last_rebreach_at"] = now.isoformat()
                     try:
+                        from backend.demo_workspace import demo_workspace
+                    except ImportError:
+                        from demo_workspace import demo_workspace
+                    if getattr(demo_workspace, "is_active", False) and pat_id:
+                        d_pat = demo_workspace.get_pattern(pat_id)
+                        if d_pat:
+                            d_pat["operational_status"] = "REOPENED"
+                            d_pat["occurrence_count"] = (d_pat.get("occurrence_count", 0) + 1)
+                            d_pat["independent_occurrences"] = (d_pat.get("independent_occurrences", 0) + 1)
+                            d_pat["cctv_occurrences"] = (d_pat.get("cctv_occurrences", 0) + 1)
+                        for d_act in demo_workspace.actions:
+                            if d_act.get("pattern_id") == pat_id:
+                                d_act["lifecycle_state"] = "REOPENED"
+                                d_act["status"] = "VERIFICATION_FAILED"
+                        demo_workspace.verifications.append({
+                            "verification_id": f"VERIF-DEMO-{uuid.uuid4().hex[:6].upper()}",
+                            "pattern_id": pat_id,
+                            "status": "RE_BREACH_DETECTED",
+                            "result": "VERIFICATION FAILED — RE-BREACH DETECTED",
+                            "timestamp": now.strftime("%d %b %H:%M"),
+                            "details": {
+                                "message": "Personnel observed inside restricted zone during verification window",
+                                "supervisor": supervisor_id
+                            }
+                        })
+                    try:
                         try:
                             from backend.database import db
                         except ImportError:
@@ -2404,6 +2463,29 @@ class AlertStateManager:
                         self.pattern_actions[pat_id]["verified_at"] = now.isoformat()
                         self.pattern_actions[pat_id]["verified_by"] = supervisor_id
                     try:
+                        from backend.demo_workspace import demo_workspace
+                    except ImportError:
+                        from demo_workspace import demo_workspace
+                    if getattr(demo_workspace, "is_active", False) and pat_id:
+                        d_pat = demo_workspace.get_pattern(pat_id)
+                        if d_pat:
+                            d_pat["operational_status"] = "VERIFIED"
+                        for d_act in demo_workspace.actions:
+                            if d_act.get("pattern_id") == pat_id:
+                                d_act["lifecycle_state"] = "VERIFIED"
+                                d_act["status"] = "VERIFIED"
+                        demo_workspace.verifications.append({
+                            "verification_id": f"VERIF-DEMO-{uuid.uuid4().hex[:6].upper()}",
+                            "pattern_id": pat_id,
+                            "status": "VERIFIED",
+                            "result": "VERIFIED — OBSERVABLE CONDITION RESTORED",
+                            "timestamp": now.strftime("%d %b %H:%M"),
+                            "details": {
+                                "message": "CCTV stream confirms continuous zero-person presence in active lifting perimeter.",
+                                "supervisor": supervisor_id
+                            }
+                        })
+                    try:
                         try:
                             from backend.database import db
                         except ImportError:
@@ -2454,12 +2536,29 @@ class AlertStateManager:
                 from backend.database import db
             except ImportError:
                 from database import db
-            pat = db.get_pattern(pattern_id)
-            pat_title = pat.title if pat else f"Recurring Pattern {pattern_id}"
-            pat_occ = pat.occurrence_count if pat else 1
-            pat_act = pat.activity if pat else "General Site Operations"
-            pat_bar = pat.barrier if pat else "Critical Safety Barrier"
-            pat_energy = pat.energy if pat else "Gravitational / Kinetic Energy"
+
+            pat = None
+            if pattern_id.startswith("PAT-DEMO-"):
+                try:
+                    from backend.demo_workspace import demo_workspace
+                except ImportError:
+                    from demo_workspace import demo_workspace
+                pat = demo_workspace.get_pattern(pattern_id)
+            if not pat:
+                pat = db.get_pattern(pattern_id)
+
+            if isinstance(pat, dict):
+                pat_title = pat.get("title", f"Recurring Pattern {pattern_id}")
+                pat_occ = pat.get("occurrence_count", 1)
+                pat_act = pat.get("activity", "Mechanical Lifting Operations")
+                pat_bar = pat.get("critical_barrier", "Critical Safety Barrier")
+                pat_energy = pat.get("hazard", "Gravitational / Kinetic Energy")
+            else:
+                pat_title = pat.title if pat else f"Recurring Pattern {pattern_id}"
+                pat_occ = pat.occurrence_count if pat else 1
+                pat_act = pat.activity if pat else "General Site Operations"
+                pat_bar = pat.barrier if pat else "Critical Safety Barrier"
+                pat_energy = pat.energy if pat else "Gravitational / Kinetic Energy"
 
             alert_id = f"ACT-PAT-{uuid.uuid4().hex[:6].upper()}"
             action_alert = Alert(
@@ -2538,7 +2637,9 @@ class AlertStateManager:
                     reason=f"Action assigned to {supervisor_name}: {required_action}"
                 )
             except Exception as e:
-                logger.warning(f"Failed to persist pattern action review: {e}")
+                print(f"[State] Warning: Failed to persist pattern action review: {e}")
+
+            self.notify_clients()
 
             return {
                 "success": True,
@@ -2676,6 +2777,7 @@ class AlertStateManager:
             self._active_alerts.clear()
             self._last_resolved_alert = None
             self.history.clear()
+            self.pattern_actions.clear()
             self.violation_start_time = None
             self.safe_start_time = None
             self.simulated_mode = False

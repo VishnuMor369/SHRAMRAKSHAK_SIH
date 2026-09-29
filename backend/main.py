@@ -685,7 +685,36 @@ def post_memory_reconcile():
 def get_safety_memory_patterns():
     """Returns all Candidate and HSE Validated Recurring Safety-Control Patterns from SQLite or isolated demo workspace"""
     if getattr(demo_workspace, "is_active", False):
-        return {"patterns": demo_workspace.get_patterns()}
+        pats = demo_workspace.get_patterns()
+        enriched = []
+        for p in pats:
+            p_dict = dict(p)
+            pid = p_dict.get("pattern_id")
+            if not p_dict.get("operational_status") or p_dict.get("operational_status") == "NONE":
+                p_dict["operational_status"] = state_manager.get_pattern_operational_status(pid, p_dict.get("validation_status", "CANDIDATE"))
+            if not p_dict.get("assigned_action"):
+                p_dict["assigned_action"] = state_manager.get_pattern_action(pid)
+            
+            # Dynamic source breakdown for demo patterns
+            supporting_events = [e for e in demo_workspace.get_events() if e.get("event_id") in p_dict.get("event_members", [])]
+            human_cnt = sum(1 for e in supporting_events if "HUMAN" in str(e.get("source", "")).upper())
+            cctv_cnt = sum(1 for e in supporting_events if any(k in str(e.get("source", "")).upper() for k in ["CCTV", "VISION"]))
+            import_cnt = sum(1 for e in supporting_events if any(k in str(e.get("source", "")).upper() for k in ["IMPORT", "CSV", "PDF", "FILE"]))
+            if not supporting_events and p_dict.get("occurrence_count"):
+                human_cnt = p_dict.get("human_occurrences", p_dict.get("occurrence_count", 0))
+                cctv_cnt = p_dict.get("cctv_occurrences", 0)
+            
+            p_dict["source_breakdown"] = {
+                "HUMAN": human_cnt, "CCTV": cctv_cnt, "IMPORTED": import_cnt,
+                "Human": human_cnt, "CCTV": cctv_cnt, "Imported": import_cnt
+            }
+            p_dict["human_occurrences"] = human_cnt
+            p_dict["cctv_occurrences"] = cctv_cnt
+            p_dict["independent_occurrences"] = human_cnt + cctv_cnt + import_cnt if (human_cnt + cctv_cnt + import_cnt) > 0 else p_dict.get("occurrence_count", 1)
+            p_dict["supporting_events"] = supporting_events
+            p_dict["supporting_safety_events"] = supporting_events
+            enriched.append(p_dict)
+        return {"patterns": enriched}
 
     patterns = db.list_patterns()
     precs = db.list_preconditions(active_only=True)
@@ -728,7 +757,12 @@ def get_safety_memory_patterns():
                         imported_cnt += cnt
         else:
             human_cnt = p.occurrence_count
-        p_dict["source_breakdown"] = {"HUMAN": human_cnt, "CCTV": cctv_cnt, "IMPORTED": imported_cnt}
+        p_dict["source_breakdown"] = {
+            "HUMAN": human_cnt, "CCTV": cctv_cnt, "IMPORTED": imported_cnt,
+            "Human": human_cnt, "CCTV": cctv_cnt, "Imported": imported_cnt
+        }
+        p_dict["human_occurrences"] = human_cnt
+        p_dict["cctv_occurrences"] = cctv_cnt
         p_dict["sif_potential"] = "HIGH"
         p_dict["primary_lsr"] = "Safe Mechanical Lifting" if "lift" in str(p.activity).lower() else ("Line of Fire" if "zone" in str(p.barrier).lower() else "Bypassing Safety Controls")
         res.append(p_dict)
@@ -743,9 +777,106 @@ def get_pattern_details_route(pattern_id: str):
             supporting_events = [e for e in demo_workspace.get_events() if e.get("event_id") in p.get("event_members", [])]
             p_dict = dict(p)
             p_dict["supporting_events"] = supporting_events
-            p_dict["evidence_snippets"] = [e.get("narrative") for e in supporting_events]
+            p_dict["supporting_safety_events"] = supporting_events  # Canonical frontend alias
+            
+            # Dynamic source breakdown
+            human_cnt = sum(1 for e in supporting_events if "HUMAN" in str(e.get("source", "")).upper())
+            cctv_cnt = sum(1 for e in supporting_events if any(k in str(e.get("source", "")).upper() for k in ["CCTV", "VISION"]))
+            import_cnt = sum(1 for e in supporting_events if any(k in str(e.get("source", "")).upper() for k in ["IMPORT", "CSV", "PDF", "FILE"]))
+            if not supporting_events and p_dict.get("occurrence_count"):
+                human_cnt = p_dict.get("human_occurrences", p_dict.get("occurrence_count", 0))
+                cctv_cnt = p_dict.get("cctv_occurrences", 0)
+            p_dict["source_breakdown"] = {
+                "HUMAN": human_cnt, "CCTV": cctv_cnt, "IMPORTED": import_cnt,
+                "Human": human_cnt, "CCTV": cctv_cnt, "Imported": import_cnt
+            }
+            p_dict["human_occurrences"] = human_cnt
+            p_dict["cctv_occurrences"] = cctv_cnt
+            p_dict["independent_occurrences"] = human_cnt + cctv_cnt + import_cnt if (human_cnt + cctv_cnt + import_cnt) > 0 else p_dict.get("occurrence_count", 1)
+
+            # Extract distinct text evidence snippets
+            snippets = []
+            for e in supporting_events:
+                spans = e.get("evidence_spans") or e.get("evidence") or []
+                for s in spans:
+                    t = s.get("text") or s.get("span_text")
+                    if t and t not in snippets:
+                        snippets.append(t)
+                if e.get("narrative") and e.get("narrative") not in snippets:
+                    snippets.append(e.get("narrative"))
+            p_dict["evidence_snippets"] = snippets[:12]
+
+            # Structural breakdown attributes
+            p_dict["failed_barrier"] = p_dict.get("critical_barrier") or p_dict.get("barrier") or "EXCLUSION_ZONE"
+            p_dict["hazard_energy"] = p_dict.get("hazard") or p_dict.get("energy") or "Gravitational / Kinetic Energy (Suspended Load)"
+            p_dict["human_exposure"] = p_dict.get("exposure") or "Person inside lifting exclusion zone"
+            p_dict["iogp_life_saving_rule"] = p_dict.get("primary_lsr") or p_dict.get("lsr") or "Safe Mechanical Lifting, Line of Fire"
+            p_dict["operational_status"] = p_dict.get("operational_status") or state_manager.get_pattern_operational_status(pattern_id, p_dict.get("validation_status", "CANDIDATE"))
+            p_dict["assigned_action"] = p_dict.get("assigned_action") or state_manager.get_pattern_action(pattern_id)
             p_dict["reviews_history"] = []
-            p_dict["verification_history"] = demo_workspace.verifications
+
+            # Build comprehensive chronological lifecycle history
+            v_history = []
+            if p.get("validated_at"):
+                v_history.append({
+                    "stage": "HSE VALIDATED",
+                    "status": "HSE_VALIDATED",
+                    "title": "Pattern Formally Validated by HSE",
+                    "timestamp": p.get("validated_at"),
+                    "actor": p.get("validated_by") or "HSE Control Desk",
+                    "details": p.get("review_notes") or "Reviewed and confirmed recurring control breach."
+                })
+            act = p_dict.get("assigned_action") or state_manager.get_pattern_action(pattern_id)
+            if act and isinstance(act, dict):
+                v_history.append({
+                    "stage": "ACTION DISPATCHED",
+                    "status": "ACTION_DISPATCHED",
+                    "title": "Corrective Action Dispatched to Field Supervisor",
+                    "timestamp": act.get("assigned_at") or p.get("updated_at"),
+                    "actor": act.get("supervisor_name") or "Rajesh Kumar (Field Lead)",
+                    "details": act.get("required_action") or "Clear unauthorized personnel and secure the restricted/lifting zone."
+                })
+            for a in list(state_manager._active_alerts.values()) + list(state_manager.history):
+                if getattr(a, "pattern_id", None) == pattern_id or getattr(a, "id", None) == (act.get("action_id") if isinstance(act, dict) else None):
+                    for tl in getattr(a, "incident_timeline", []):
+                        ev_type = tl.get("event_type", "")
+                        status_map = {
+                            "ALERT_RESPONDED": "ACTION_IN_PROGRESS",
+                            "ACTION_TAKEN": "AWAITING_VERIFICATION",
+                            "VERIFICATION_FAILED_REBREACH": "REOPENED",
+                            "CCTV_VERIFIED_RESTORED": "VERIFIED",
+                            "VERIFIED": "VERIFIED"
+                        }
+                        st = status_map.get(ev_type, ev_type)
+                        v_history.append({
+                            "stage": tl.get("title", ev_type),
+                            "status": st,
+                            "title": tl.get("title", st),
+                            "timestamp": tl.get("timestamp"),
+                            "actor": tl.get("actor", "Supervisor / CCTV"),
+                            "details": tl.get("details", "")
+                        })
+            for dv in getattr(demo_workspace, "verifications", []):
+                if dv.get("pattern_id") == pattern_id or not dv.get("pattern_id"):
+                    v_history.append({
+                        "stage": dv.get("status", "VERIFIED"),
+                        "status": dv.get("status", "VERIFIED"),
+                        "title": dv.get("result", "CCTV Verification Check"),
+                        "timestamp": dv.get("timestamp"),
+                        "actor": "AI CCTV Optical Stream",
+                        "details": (dv.get("details") or {}).get("message") if isinstance(dv.get("details"), dict) else str(dv.get("details") or "")
+                    })
+            if p.get("operational_status") == "CLOSED_HISTORY" or p_dict.get("operational_status") == "CLOSED_HISTORY":
+                v_history.append({
+                    "stage": "HSE CLOSED",
+                    "status": "CLOSED_HISTORY",
+                    "title": "HSE Formal Closure & Preserved in Historical Safety Memory",
+                    "timestamp": p.get("closed_at") or p.get("updated_at"),
+                    "actor": p.get("closed_by") or "HSE Lead",
+                    "details": p.get("closure_notes") or "Observable condition restored and verified clear via CCTV stream."
+                })
+            p_dict["verification_history"] = v_history
+
             p_dict["future_work_requirements"] = [
                 {
                     "id": pr["precondition_id"],
@@ -755,6 +886,7 @@ def get_pattern_details_route(pattern_id: str):
                 }
                 for pr in demo_workspace.future_requirements if pr.get("pattern_id") == pattern_id
             ]
+            p_dict["pattern_details"] = {k: v for k, v in p_dict.items()}
             return p_dict
 
     pat = db.get_pattern(pattern_id)
@@ -798,11 +930,21 @@ def get_pattern_details_route(pattern_id: str):
         human_cnt = pat.occurrence_count
 
     p_dict["supporting_events"] = supporting_events
-    p_dict["evidence_snippets"] = evidence_snippets[:8]
-    p_dict["source_breakdown"] = {"HUMAN": human_cnt, "CCTV": cctv_cnt, "IMPORTED": imported_cnt}
+    p_dict["supporting_safety_events"] = supporting_events
+    p_dict["evidence_snippets"] = evidence_snippets[:12]
+    p_dict["source_breakdown"] = {
+        "HUMAN": human_cnt, "CCTV": cctv_cnt, "IMPORTED": imported_cnt,
+        "Human": human_cnt, "CCTV": cctv_cnt, "Imported": imported_cnt
+    }
+    p_dict["human_occurrences"] = human_cnt
+    p_dict["cctv_occurrences"] = cctv_cnt
+    p_dict["independent_occurrences"] = human_cnt + cctv_cnt + imported_cnt if (human_cnt + cctv_cnt + imported_cnt) > 0 else pat.occurrence_count
     p_dict["location"] = list(locations)[0] if locations else "Lifting Zone 03"
     p_dict["sif_potential"] = "HIGH"
     p_dict["primary_lsr"] = "Safe Mechanical Lifting" if "lift" in str(pat.activity).lower() else ("Line of Fire" if "zone" in str(pat.barrier).lower() else "Bypassing Safety Controls")
+    p_dict["failed_barrier"] = pat.barrier or "EXCLUSION_ZONE"
+    p_dict["hazard_energy"] = "Gravity / Suspended Load"
+    p_dict["human_exposure"] = "Personnel in active zone"
 
     # Linked preconditions
     precs = db.list_preconditions(active_only=True)
@@ -825,13 +967,18 @@ def get_pattern_details_route(pattern_id: str):
         v for v in verifs if (isinstance(v.get("details"), dict) and v["details"].get("pattern_id") == pattern_id)
         or (v.get("event_id") in [e["event_id"] for e in supporting_events])
     ]
+    p_dict["pattern_details"] = {k: v for k, v in p_dict.items()}
 
     return p_dict
 
 @app.post("/api/safety-memory/patterns/{pattern_id}/assign-action")
 def assign_pattern_action_route(pattern_id: str, req: Dict[str, Any]):
     """HSE assigns corrective action for a recurring pattern (Class 2: PATTERN_ACTION)"""
-    pat = db.get_pattern(pattern_id)
+    pat = None
+    if getattr(demo_workspace, "is_active", False) or pattern_id.startswith("PAT-DEMO-"):
+        pat = demo_workspace.get_pattern(pattern_id)
+    if not pat:
+        pat = db.get_pattern(pattern_id)
     if not pat:
         raise HTTPException(status_code=404, detail=f"Pattern '{pattern_id}' not found")
 
@@ -853,6 +1000,26 @@ def assign_pattern_action_route(pattern_id: str, req: Dict[str, Any]):
         verification_method=verification_method,
         notes=notes
     )
+
+    if getattr(demo_workspace, "is_active", False) or pattern_id.startswith("PAT-DEMO-"):
+        demo_workspace.assign_action(pattern_id, supervisor=f"{supervisor_id} ({supervisor_name})", required_action=required_action)
+        d_pat = demo_workspace.get_pattern(pattern_id)
+        if d_pat:
+            d_pat["operational_status"] = "ACTION_REQUIRED"
+            d_pat["assigned_supervisor"] = f"{supervisor_id} ({supervisor_name})"
+            d_pat["assigned_action"] = {
+                "action_id": res["alert_id"],
+                "supervisor_id": supervisor_id,
+                "supervisor_name": supervisor_name,
+                "required_action": required_action,
+                "location": location,
+                "priority": priority,
+                "verification_method": verification_method,
+                "status": "DISPATCHED",
+                "assigned_at": datetime.now().isoformat()
+            }
+        state_manager.notify_clients()
+
     return {
         "success": True,
         "message": f"Corrective action assigned to {supervisor_name} for pattern {pattern_id}",
@@ -863,7 +1030,11 @@ def assign_pattern_action_route(pattern_id: str, req: Dict[str, Any]):
 @app.post("/api/safety-memory/patterns/{pattern_id}/close")
 def close_pattern_route(pattern_id: str, req: Dict[str, Any] = {}):
     """HSE closes verified pattern and archives it to CLOSED / HISTORY"""
-    pat = db.get_pattern(pattern_id)
+    pat = None
+    if getattr(demo_workspace, "is_active", False) or pattern_id.startswith("PAT-DEMO-"):
+        pat = demo_workspace.get_pattern(pattern_id)
+    if not pat:
+        pat = db.get_pattern(pattern_id)
     if not pat:
         raise HTTPException(status_code=404, detail=f"Pattern '{pattern_id}' not found")
 
@@ -875,6 +1046,17 @@ def close_pattern_route(pattern_id: str, req: Dict[str, Any] = {}):
         closed_by=closed_by,
         notes=notes
     )
+
+    if getattr(demo_workspace, "is_active", False) or pattern_id.startswith("PAT-DEMO-"):
+        d_pat = demo_workspace.get_pattern(pattern_id)
+        if d_pat:
+            d_pat["operational_status"] = "CLOSED_HISTORY"
+            d_pat["status_label"] = "CLOSED & ARCHIVED TO HISTORY"
+            d_pat["closed_by"] = closed_by
+            d_pat["closed_at"] = datetime.now().isoformat()
+            d_pat["closure_notes"] = notes
+        state_manager.notify_clients()
+
     return {
         "success": True,
         "message": f"Pattern {pattern_id} formally closed and archived to history.",

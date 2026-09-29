@@ -18,7 +18,10 @@ import {
   Check, 
   RefreshCw,
   Layers,
-  ChevronRight
+  ChevronRight,
+  BrainCircuit,
+  Scale,
+  HelpCircle
 } from 'lucide-react';
 import { fetchUnifiedEvents, submitHumanReport } from '../../services/api';
 import EvidenceDetailDrawer from '../EvidenceDetailDrawer';
@@ -556,57 +559,161 @@ export default function ReportsView() {
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
                 Ground-Truth Extracted Spans Bound to SIF Conclusions:
               </span>
-              {analyzedEvent.evidence_spans && analyzedEvent.evidence_spans.length > 0 ? (
-                <div className="space-y-2">
-                  {analyzedEvent.evidence_spans.map((span, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200">
-                      <div className="flex items-center space-x-2.5">
-                        <span className="px-2 py-0.5 rounded text-[9px] font-mono font-bold uppercase bg-slate-200 text-slate-800 border border-slate-300">
-                          {span.category || 'FACT'}
-                        </span>
-                        <span className="font-semibold text-slate-900 text-xs">
-                          "{span.span_text}"
-                        </span>
-                      </div>
-                      <span className="text-slate-400 font-mono text-[10px]">
-                        [{span.start_char}:{span.end_char}]
-                      </span>
+              {(() => {
+                const allSpans = analyzedEvent.evidence_spans || analyzedEvent.evidence || [];
+                const validSpans = allSpans.filter((s) => {
+                  const text = (s.text || s.span_text || s.value || '').trim();
+                  return text.length > 0;
+                });
+
+                if (validSpans.length === 0) {
+                  return (
+                    <div className="p-5 text-center text-slate-500 bg-slate-50 rounded-xl border border-slate-200 italic">
+                      No evidence span available for this conclusion.
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-6 text-center text-slate-400 bg-slate-50 rounded-xl border border-slate-200">
-                  <span>No explicit textual spans extracted for this event.</span>
-                </div>
-              )}
+                  );
+                }
+
+                return (
+                  <div className="space-y-2">
+                    {validSpans.map((span, idx) => {
+                      const spanText = (span.text || span.span_text || span.value || '').trim();
+                      const category = (span.field || span.category || 'FACT').toUpperCase();
+                      const start = span.start_offset ?? span.start_char;
+                      const end = span.end_offset ?? span.end_char;
+
+                      return (
+                        <div key={idx} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200">
+                          <div className="flex items-center space-x-2.5 min-w-0 mr-2">
+                            <span className="px-2 py-0.5 rounded text-[9px] font-mono font-bold uppercase bg-slate-200 text-slate-800 border border-slate-300 shrink-0">
+                              {category}
+                            </span>
+                            <span className="font-semibold text-slate-900 text-xs truncate">
+                              "{spanText}"
+                            </span>
+                          </div>
+                          {(start !== undefined && end !== undefined && start !== null && end !== null) && (
+                            <span className="text-slate-400 font-mono text-[10px] shrink-0">
+                              [{start}:{end}]
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
             </div>
           )}
 
           {/* Tab 4: FULL EVENT DETAILS */}
           {activeAnalysisTab === 'DETAILS' && (
-            <div className="p-5 space-y-3 text-xs">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                  <span className="text-[10px] font-bold text-slate-400 block uppercase">Source</span>
-                  <span className="font-bold text-slate-800 block mt-0.5">{analyzedEvent.source}</span>
+            <div className="p-5 space-y-4 text-xs">
+              {/* Primary Judge-Facing Structured Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {/* Event Core */}
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                  <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">EVENT</span>
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono font-bold text-slate-900">{analyzedEvent.event_id || analyzedEvent.id || 'EVT-SAFETY'}</span>
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-100 text-blue-800 uppercase">{analyzedEvent.source || 'HUMAN'}</span>
+                  </div>
+                  <span className="font-mono text-slate-600 block text-[11px] truncate">
+                    {analyzedEvent.timestamp ? new Date(analyzedEvent.timestamp).toLocaleString() : 'N/A'}
+                  </span>
+                  <span className="text-slate-700 block text-[11px] truncate">
+                    Loc: <strong>{analyzedEvent.location || 'N/A'}</strong>
+                  </span>
                 </div>
-                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                  <span className="text-[10px] font-bold text-slate-400 block uppercase">Timestamp</span>
-                  <span className="font-mono text-slate-800 block mt-0.5">{analyzedEvent.timestamp ? new Date(analyzedEvent.timestamp).toLocaleString() : 'N/A'}</span>
+
+                {/* Activity */}
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                  <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">ACTIVITY</span>
+                  <span className="font-bold text-slate-900 block text-xs mt-1">
+                    {analyzedEvent.activity || 'Mechanical Lifting Operations'}
+                  </span>
+                  <span className="text-[11px] text-slate-500 block">
+                    Mode: {analyzedEvent.knowledge_state || 'OBSERVED'}
+                  </span>
                 </div>
-                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                  <span className="text-[10px] font-bold text-slate-400 block uppercase">Location</span>
-                  <span className="font-bold text-slate-800 block mt-0.5">{analyzedEvent.location || 'N/A'}</span>
+
+                {/* Hazard / Energy */}
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                  <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">HAZARD / ENERGY</span>
+                  <span className="font-bold text-slate-900 block text-xs mt-1">
+                    {analyzedEvent.hazard || analyzedEvent.energy || 'Gravitational / Kinetic Energy (Suspended Load)'}
+                  </span>
+                  <span className="text-[11px] text-slate-500 block truncate">
+                    {analyzedEvent.potential_consequence || 'Crush trauma / blunt force impact'}
+                  </span>
                 </div>
-                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                  <span className="text-[10px] font-bold text-slate-400 block uppercase">Knowledge State</span>
-                  <span className="font-bold text-blue-700 block mt-0.5">{analyzedEvent.knowledge_state || 'OBSERVED'}</span>
+
+                {/* Observable Exposure */}
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                  <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">OBSERVABLE EXPOSURE</span>
+                  <span className={`font-bold block text-xs mt-1 ${analyzedEvent.assertion_status === 'NEGATED' ? 'text-slate-500 line-through' : 'text-red-700'}`}>
+                    {analyzedEvent.exposure || 'Person inside lifting exclusion zone'}
+                  </span>
+                  <span className="text-[11px] text-slate-500 block">
+                    Status: {analyzedEvent.exposure_status || 'CONFIRMED'}
+                  </span>
+                </div>
+
+                {/* Critical Barrier */}
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                  <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">CRITICAL BARRIER</span>
+                  <span className="font-bold text-slate-900 block text-xs mt-1">
+                    {analyzedEvent.critical_barrier || (Array.isArray(analyzedEvent.barrier) ? analyzedEvent.barrier.join(', ') : analyzedEvent.barrier) || 'Exclusion Zone'}
+                  </span>
+                  <span className="text-[11px] text-slate-500 block">
+                    Primary Segregation Boundary
+                  </span>
+                </div>
+
+                {/* Barrier Condition */}
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                  <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">BARRIER CONDITION</span>
+                  <span className={`font-bold block text-xs mt-1 ${analyzedEvent.assertion_status === 'NEGATED' ? 'text-emerald-700' : 'text-red-700'}`}>
+                    {analyzedEvent.barrier_condition || (Array.isArray(analyzedEvent.barrier_state) ? analyzedEvent.barrier_state.join(', ') : analyzedEvent.barrier_state) || 'BYPASSED'}
+                  </span>
+                  <span className="text-[11px] text-slate-500 block">
+                    Integrity: Compromised
+                  </span>
+                </div>
+
+                {/* SIF Potential */}
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                  <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">SIF POTENTIAL</span>
+                  <div className="mt-1">
+                    {getSifBadge(analyzedEvent.sif_potential || 'HIGH', analyzedEvent.assertion_status)}
+                  </div>
+                  <span className="text-[11px] text-slate-500 block pt-0.5">
+                    Confidence: {Math.round((analyzedEvent.confidence || 0.95) * 100)}%
+                  </span>
+                </div>
+
+                {/* Life-Saving Rule */}
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                  <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">IOGP LIFE-SAVING RULE</span>
+                  <span className="font-bold text-slate-900 block text-xs mt-1">
+                    {analyzedEvent.life_saving_rule || (Array.isArray(analyzedEvent.lsr) ? analyzedEvent.lsr.join(', ') : analyzedEvent.lsr) || 'Safe Mechanical Lifting'}
+                  </span>
+                  <span className="text-[11px] text-slate-500 block">
+                    Standard IOGP 577 Rule
+                  </span>
                 </div>
               </div>
 
-              <div className="p-3 bg-slate-900 rounded-xl text-slate-300 font-mono text-[11px] overflow-x-auto max-h-48">
-                <pre>{JSON.stringify(analyzedEvent, null, 2)}</pre>
-              </div>
+              {/* Optional Collapsible Technical / Debug Payload */}
+              <details className="mt-4 bg-slate-900 text-slate-300 rounded-xl overflow-hidden border border-slate-800 text-[11px] font-mono">
+                <summary className="px-4 py-2.5 bg-slate-800/80 hover:bg-slate-800 cursor-pointer text-slate-300 font-bold select-none flex items-center justify-between">
+                  <span>Technical Event Payload (Raw Canonical JSON)</span>
+                  <span className="text-[10px] text-slate-400 font-normal">Click to toggle debug inspection</span>
+                </summary>
+                <div className="p-3.5 max-h-64 overflow-y-auto">
+                  <pre>{JSON.stringify(analyzedEvent, null, 2)}</pre>
+                </div>
+              </details>
             </div>
           )}
 

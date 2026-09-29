@@ -99,7 +99,12 @@ class EvidenceSpan:
     source: str = "TEXT_EXTRACTION"
 
     def to_dict(self) -> Dict[str, Any]:
-        return asdict(self)
+        d = asdict(self)
+        d["span_text"] = self.text
+        d["category"] = (self.field or "FACT").upper()
+        d["start_char"] = self.start_offset
+        d["end_char"] = self.end_offset
+        return d
 
     def verify_against(self, raw_text: str) -> bool:
         """Verifies character exactness against original text without fabrication."""

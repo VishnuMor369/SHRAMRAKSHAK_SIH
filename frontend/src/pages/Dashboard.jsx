@@ -43,7 +43,7 @@ export default function Dashboard({ stateData }) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex text-slate-900 font-sans">
+    <div className="min-h-screen bg-slate-50 flex text-slate-900 font-sans overflow-x-hidden w-full max-w-full">
       {/* 1. LEFT SIDEBAR (8 Enterprise Views) */}
       <Sidebar 
         isOpen={isSidebarOpen} 
@@ -54,7 +54,7 @@ export default function Dashboard({ stateData }) {
       />
 
       {/* 2. MAIN APPLICATION CONTENT */}
-      <div className="flex-1 flex flex-col min-w-0 lg:pl-64">
+      <div className="flex-1 flex flex-col min-w-0 lg:pl-64 w-full max-w-full overflow-x-hidden">
         {/* TOP HEADER */}
         <Header 
           status={status} 
@@ -65,16 +65,16 @@ export default function Dashboard({ stateData }) {
         />
 
         {/* ENTERPRISE 8-VIEW ROUTING */}
-        <main className="flex-1">
-          {activeTab === 'OVERVIEW' || activeTab === 'Dashboard' ? (
+        <main className="flex-1 w-full max-w-full overflow-x-hidden">
+          {activeTab === 'HOME' || activeTab === 'OVERVIEW' || activeTab === 'Dashboard' ? (
             <OverviewView 
               status={status}
               onNavigate={(tab) => setActiveTab(tab)}
               onSelectAlert={handleSelectAlert}
             />
-          ) : activeTab === 'REPORTS' ? (
+          ) : activeTab === 'REPORTS' || activeTab === 'SAFETY REPORTS' ? (
             <ReportsView />
-          ) : activeTab === 'SAFETY INTELLIGENCE' || activeTab === 'AI Risk Intelligence' || activeTab === 'AI Safety Analysis' ? (
+          ) : activeTab === 'INTELLIGENCE' || activeTab === 'SAFETY INTELLIGENCE' || activeTab === 'AI Risk Intelligence' || activeTab === 'AI Safety Analysis' ? (
             <SafetyIntelligenceView 
               onNavigate={(tab) => setActiveTab(tab)}
             />
@@ -86,12 +86,12 @@ export default function Dashboard({ stateData }) {
               onSelectAlert={handleSelectAlert}
               onNavigate={(tab) => setActiveTab(tab)}
             />
-          ) : activeTab === 'ACTIONS' || activeTab === 'ACTIONS / VERIFICATION' || activeTab === 'Alerts' ? (
+          ) : activeTab === 'ACTIONS' || activeTab === 'ACTIONS & VERIFICATION' || activeTab === 'ACTIONS / VERIFICATION' || activeTab === 'Alerts' ? (
             <ActionsVerificationView 
               status={status}
               onSelectAlert={handleSelectAlert}
             />
-          ) : activeTab === 'IMPORT DATA' ? (
+          ) : activeTab === 'DATASETS' || activeTab === 'IMPORT DATA' || activeTab === 'DATASET INTELLIGENCE' ? (
             <ImportDataView 
               onNavigate={(tab, runId) => {
                 if (runId) setSelectedRunId(runId);
@@ -111,7 +111,7 @@ export default function Dashboard({ stateData }) {
               }}
               onNavigate={(tab) => setActiveTab(tab)}
             />
-          ) : activeTab === 'SETTINGS / DEMO' ? (
+          ) : activeTab === 'DEMO / SETTINGS' || activeTab === 'SETTINGS / DEMO' || activeTab === 'DEMO' || activeTab === 'SETTINGS' ? (
             <SettingsDemoView 
               onNavigate={(tab) => setActiveTab(tab)}
             />

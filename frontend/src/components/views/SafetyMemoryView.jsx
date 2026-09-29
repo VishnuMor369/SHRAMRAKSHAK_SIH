@@ -62,6 +62,27 @@ const TASK_EVIDENCE_MAP = {
   ]
 };
 
+export const getPatternSourceCounts = (p) => {
+  if (!p) return { human: 0, cctv: 0, imported: 0 };
+  const sb = p.source_breakdown || {};
+  let human = sb.Human ?? sb.HUMAN ?? sb.human ?? 0;
+  let cctv = sb.CCTV ?? sb.cctv ?? 0;
+  let imported = sb.Imported ?? sb.IMPORTED ?? sb.import ?? 0;
+
+  const evts = p.supporting_events || p.supporting_safety_events || [];
+  if (human === 0 && cctv === 0 && evts.length > 0) {
+    human = evts.filter((e) => (e.source || '').toUpperCase() === 'HUMAN').length;
+    cctv = evts.filter((e) => (e.source || '').toUpperCase() === 'CCTV').length;
+    imported = evts.filter((e) => (e.source || '').toUpperCase().includes('IMPORT')).length;
+  }
+
+  if (human === 0 && cctv === 0 && (p.occurrences || p.occurrence_count)) {
+    human = p.occurrences || p.occurrence_count;
+  }
+
+  return { human, cctv, imported };
+};
+
 export default function SafetyMemoryView() {
   const [patterns, setPatterns] = useState([]);
   const [summary, setSummary] = useState(null);
@@ -156,8 +177,11 @@ export default function SafetyMemoryView() {
       setDetailsModalOpen(true);
       setDetailsLoading(true);
       setDetailsTab('breakdown');
+      // Set initial details from clicked pattern so modal displays instantly
+      setSelectedDetails(pattern);
       const res = await fetchPatternDetails(pattern.pattern_id);
-      setSelectedDetails(res?.pattern_details || null);
+      const details = res?.pattern_details || res || pattern;
+      setSelectedDetails(details);
     } catch (err) {
       console.error('Failed to load pattern details:', err);
       showFeedback(`Could not fetch details: ${err.message}`, 'error');
@@ -544,13 +568,15 @@ export default function SafetyMemoryView() {
             const isCandidate = !isValidated && !isRejected;
 
             const opStatus = p.operational_status || 'NONE';
-            const isActionRequired = opStatus === 'ACTION_REQUIRED';
+            const isActionRequired = opStatus === 'ACTION_REQUIRED' || opStatus === 'DISPATCHED';
+            const isActionInProgress = opStatus === 'ACTION_IN_PROGRESS';
             const isAwaitingVerification = opStatus === 'AWAITING_VERIFICATION';
             const isVerified = opStatus === 'VERIFIED';
             const isClosedHistory = opStatus === 'CLOSED_HISTORY';
             const isReopened = opStatus === 'REOPENED';
 
-            const sourceBreakdown = p.source_breakdown || { Human: 0, CCTV: 0, Imported: 0 };
+            const sourceBreakdown = getPatternSourceCounts(p);
+            const totalOccurrences = p.independent_occurrences || (sourceBreakdown.human + sourceBreakdown.cctv + sourceBreakdown.imported) || p.occurrence_count || 1;
 
             return (
               <div 
@@ -607,6 +633,8 @@ export default function SafetyMemoryView() {
                             ? 'bg-yellow-100 text-yellow-900 border-yellow-400 animate-pulse'
                             : isReopened
                             ? 'bg-rose-100 text-rose-900 border-rose-400 font-extrabold'
+                            : isActionInProgress
+                            ? 'bg-blue-100 text-blue-900 border-blue-400 animate-pulse'
                             : isActionRequired
                             ? 'bg-orange-100 text-orange-900 border-orange-400'
                             : 'bg-slate-100 text-slate-800 border-slate-200'
@@ -615,12 +643,13 @@ export default function SafetyMemoryView() {
                           {isVerified && '🟢 VERIFIED (READY TO CLOSE)'}
                           {isAwaitingVerification && '🟡 AWAITING VERIFICATION'}
                           {isReopened && '🔴 REOPENED (RE-BREACH)'}
-                          {isActionRequired && '🟠 ACTION ASSIGNED'}
+                          {isActionInProgress && '🔵 ACTION IN PROGRESS'}
+                          {isActionRequired && '🟠 ACTION DISPATCHED'}
                         </span>
                       )}
 
                       <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-50 text-purple-800 border border-purple-200">
-                        {p.independent_occurrences || p.occurrence_count || 1} INDEPENDENT OCCURRENCES
+                        {totalOccurrences} INDEPENDENT OCCURRENCES
                       </span>
 
                       {p.sif_potential && (
@@ -668,13 +697,14 @@ export default function SafetyMemoryView() {
                     )}
 
                     {/* Validated & Ready for Action */}
-                    {isValidated && (opStatus === 'NONE' || opStatus === 'ACTIVE' || !p.operational_status) && (
+                    {isValidated && !p.assigned_action && (
                       <button
+                        id={`btn-assign-supervisor-${p.pattern_id}`}
                         onClick={() => handleOpenAssignModal(p)}
                         className="px-3.5 py-1.5 bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs rounded-lg shadow-sm transition-colors flex items-center space-x-1"
                       >
                         <Send className="w-3.5 h-3.5" />
-                        <span>ASSIGN CORRECTIVE ACTION</span>
+                        <span>ASSIGN SUPERVISOR / DISPATCH</span>
                       </button>
                     )}
 
@@ -692,6 +722,7 @@ export default function SafetyMemoryView() {
                     {/* Verified & Ready for Final HSE Closure */}
                     {isVerified && (
                       <button
+                        id={`btn-close-${p.pattern_id}`}
                         onClick={() => handleOpenCloseModal(p)}
                         className="px-3.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-black text-xs rounded-lg shadow-sm transition-colors flex items-center space-x-1"
                       >
@@ -736,7 +767,7 @@ export default function SafetyMemoryView() {
                   <div className="p-3 bg-slate-50/70 rounded-lg border border-slate-200/80">
                     <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Recurrence Verification</span>
                     <span className="font-bold text-slate-800 mt-1 block">
-                      {p.independent_occurrences || p.occurrence_count || 1} independent failures
+                      {totalOccurrences} independent failures
                     </span>
                     <span className="text-[10px] text-slate-500 font-mono">
                       {p.duplicate_count || 0} duplicates filtered out
@@ -747,20 +778,20 @@ export default function SafetyMemoryView() {
                     <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Evidence Source Breakdown</span>
                     <div className="mt-1 flex items-center space-x-1.5 text-[10px] font-bold">
                       <span className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-800 border border-blue-200">
-                        Human: {sourceBreakdown.Human || 0}
+                        Human: {sourceBreakdown.human}
                       </span>
                       <span className="px-1.5 py-0.5 rounded bg-purple-50 text-purple-800 border border-purple-200">
-                        CCTV: {sourceBreakdown.CCTV || 0}
+                        CCTV: {sourceBreakdown.cctv}
                       </span>
                       <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-800 border border-slate-200">
-                        Import: {sourceBreakdown.Imported || 0}
+                        Import: {sourceBreakdown.imported}
                       </span>
                     </div>
                   </div>
                 </div>
 
                 {/* Assigned Action / Verification Progress Banner */}
-                {(isActionRequired || isAwaitingVerification || isVerified || isReopened) && (
+                {(isActionRequired || isActionInProgress || isAwaitingVerification || isVerified || isReopened) && (
                   <div className={`p-4 rounded-xl border text-xs flex flex-col md:flex-row md:items-center justify-between gap-3 ${
                     isReopened
                       ? 'bg-rose-50 border-rose-200 text-rose-950'
@@ -768,6 +799,8 @@ export default function SafetyMemoryView() {
                       ? 'bg-yellow-50 border-yellow-200 text-yellow-950'
                       : isVerified
                       ? 'bg-emerald-50 border-emerald-200 text-emerald-950'
+                      : isActionInProgress
+                      ? 'bg-blue-50 border-blue-200 text-blue-950'
                       : 'bg-orange-50 border-orange-200 text-orange-950'
                   }`}>
                     <div className="space-y-1">
@@ -778,6 +811,8 @@ export default function SafetyMemoryView() {
                           <Clock className="w-4 h-4 text-yellow-700 animate-spin flex-shrink-0" />
                         ) : isVerified ? (
                           <CheckCircle2 className="w-4 h-4 text-emerald-700 flex-shrink-0" />
+                        ) : isActionInProgress ? (
+                          <RefreshCw className="w-4 h-4 text-blue-700 animate-spin flex-shrink-0" />
                         ) : (
                           <Send className="w-4 h-4 text-orange-700 flex-shrink-0" />
                         )}
@@ -785,6 +820,7 @@ export default function SafetyMemoryView() {
                           {isReopened && 'Action Reopened: Person re-entered restricted zone during verification'}
                           {isAwaitingVerification && 'Supervisor Reported Completion — Awaiting CCTV Verification'}
                           {isVerified && 'CCTV Objective Verification Passed: Observable Condition Clear'}
+                          {isActionInProgress && `Intervention In Progress by Supervisor (${p.assigned_supervisor || (typeof p.assigned_action === 'object' ? p.assigned_action?.supervisor_name : null) || 'Rajesh Kumar'})`}
                           {isActionRequired && `Corrective Action Dispatched to Supervisor (${p.assigned_supervisor || (typeof p.assigned_action === 'object' ? p.assigned_action?.supervisor_name : null) || 'Rajesh Kumar'})`}
                         </span>
                       </div>
@@ -1034,253 +1070,468 @@ export default function SafetyMemoryView() {
       {/* MODAL 1: VIEW DETAILS (Full 18-Point Evidence Explanation)   */}
       {/* ============================================================ */}
       {detailsModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-200 p-6 space-y-5">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
             
             {/* Header */}
-            <div className="flex items-center justify-between border-b pb-4">
-              <div>
-                <div className="flex items-center gap-2">
+            <div className="p-4 sm:p-5 border-b border-slate-200 flex items-center justify-between shrink-0 bg-slate-50/50">
+              <div className="min-w-0 pr-3">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-100 text-slate-800 border border-slate-200">
                     {selectedDetails?.pattern_id || 'PAT-DETAILS'}
                   </span>
-                  <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-purple-100 text-purple-900">
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-purple-100 text-purple-900 border border-purple-200">
                     Evidence-Grounded Explanation
                   </span>
                 </div>
-                <h2 className="text-lg font-black text-slate-900 mt-1">
-                  {selectedDetails?.pattern_name || 'Safety Pattern Details'}
+                <h2 className="text-base sm:text-lg font-black text-slate-900 mt-1 truncate">
+                  {selectedDetails?.pattern_name || selectedDetails?.pattern_title || selectedDetails?.title || 'Safety Pattern Details'}
                 </h2>
               </div>
               <button 
                 onClick={() => setDetailsModalOpen(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 text-sm font-bold"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 text-sm font-bold transition-colors shrink-0"
               >
                 ✕
               </button>
             </div>
 
             {/* Modal Navigation Tabs */}
-            <div className="flex border-b border-slate-200 gap-4 text-xs font-bold">
-              <button
-                onClick={() => setDetailsTab('breakdown')}
-                className={`pb-2.5 border-b-2 transition-colors flex items-center gap-1.5 ${
-                  detailsTab === 'breakdown'
-                    ? 'border-purple-600 text-purple-700'
-                    : 'border-transparent text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                <span>Control Breakdown</span>
-              </button>
-              <button
-                onClick={() => setDetailsTab('events')}
-                className={`pb-2.5 border-b-2 transition-colors flex items-center gap-1.5 ${
-                  detailsTab === 'events'
-                    ? 'border-purple-600 text-purple-700'
-                    : 'border-transparent text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                <span>Supporting Events</span>
-                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-100 text-slate-600">
-                  {selectedDetails?.supporting_safety_events?.length || 0}
-                </span>
-              </button>
-              <button
-                onClick={() => setDetailsTab('snippets')}
-                className={`pb-2.5 border-b-2 transition-colors flex items-center gap-1.5 ${
-                  detailsTab === 'snippets'
-                    ? 'border-purple-600 text-purple-700'
-                    : 'border-transparent text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                <span>Evidence Snippets</span>
-              </button>
-              <button
-                onClick={() => setDetailsTab('history')}
-                className={`pb-2.5 border-b-2 transition-colors flex items-center gap-1.5 ${
-                  detailsTab === 'history'
-                    ? 'border-purple-600 text-purple-700'
-                    : 'border-transparent text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                <span>Verification History</span>
-              </button>
-            </div>
+            {(() => {
+              const evts = selectedDetails?.supporting_events || selectedDetails?.supporting_safety_events || [];
+              const rawSnippets = selectedDetails?.evidence_snippets || [];
+              const evidenceCount = evts.length > 0 ? evts.length : rawSnippets.length;
+              const historyList = selectedDetails?.verification_history || [];
+
+              return (
+                <div className="flex border-b border-slate-200 px-4 sm:px-5 gap-3 sm:gap-6 text-xs font-bold shrink-0 overflow-x-auto whitespace-nowrap bg-white">
+                  <button
+                    onClick={() => setDetailsTab('breakdown')}
+                    className={`pb-2.5 pt-2 border-b-2 transition-colors flex items-center gap-1.5 shrink-0 ${
+                      detailsTab === 'breakdown'
+                        ? 'border-purple-600 text-purple-700'
+                        : 'border-transparent text-slate-500 hover:text-slate-700'
+                    }`}
+                  >
+                    <span>Control Breakdown</span>
+                  </button>
+                  <button
+                    onClick={() => setDetailsTab('events')}
+                    className={`pb-2.5 pt-2 border-b-2 transition-colors flex items-center gap-1.5 shrink-0 ${
+                      detailsTab === 'events'
+                        ? 'border-purple-600 text-purple-700'
+                        : 'border-transparent text-slate-500 hover:text-slate-700'
+                    }`}
+                  >
+                    <span>Supporting Events</span>
+                    <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-100 text-slate-600 font-bold">
+                      {evts.length}
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => setDetailsTab('snippets')}
+                    className={`pb-2.5 pt-2 border-b-2 transition-colors flex items-center gap-1.5 shrink-0 ${
+                      detailsTab === 'snippets'
+                        ? 'border-purple-600 text-purple-700'
+                        : 'border-transparent text-slate-500 hover:text-slate-700'
+                    }`}
+                  >
+                    <span>Evidence</span>
+                    <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-100 text-slate-600 font-bold">
+                      {evidenceCount}
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => setDetailsTab('history')}
+                    className={`pb-2.5 pt-2 border-b-2 transition-colors flex items-center gap-1.5 shrink-0 ${
+                      detailsTab === 'history'
+                        ? 'border-purple-600 text-purple-700'
+                        : 'border-transparent text-slate-500 hover:text-slate-700'
+                    }`}
+                  >
+                    <span>Verification History</span>
+                    <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-100 text-slate-600 font-bold">
+                      {historyList.length}
+                    </span>
+                  </button>
+                </div>
+              );
+            })()}
 
             {detailsLoading ? (
-              <div className="p-12 text-center text-slate-500 space-y-2">
+              <div className="p-12 text-center text-slate-500 space-y-2 flex-1">
                 <RefreshCw className="w-8 h-8 animate-spin text-purple-600 mx-auto" />
                 <p className="text-xs font-bold">Retrieving evidence-grounded pattern details from SQLite...</p>
               </div>
             ) : selectedDetails ? (
-              <div className="space-y-4 text-xs">
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 text-xs">
                 
-                {detailsTab === 'breakdown' && (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase">1. Activity & Location</span>
-                      <p className="font-bold text-slate-900">{selectedDetails.activity || 'Mechanical Lifting'}</p>
-                      <p className="text-slate-600 flex items-center gap-1">
-                        <MapPin className="w-3 h-3 text-slate-400" />
-                        {selectedDetails.location || 'Lifting Zone 03'}
-                      </p>
-                    </div>
+                {/* 1. CONTROL BREAKDOWN TAB */}
+                {detailsTab === 'breakdown' && (() => {
+                  const counts = getPatternSourceCounts(selectedDetails);
+                  const totalOccurrences = selectedDetails.independent_occurrences || (counts.human + counts.cctv + counts.imported) || 1;
 
-                    <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase">2. Occurrences & Sources</span>
-                      <p className="font-bold text-purple-900">
-                        {selectedDetails.independent_occurrences} Independent Occurrences
-                      </p>
-                      <div className="flex gap-1.5 text-[10px] font-bold mt-0.5">
-                        <span className="px-1.5 py-0.5 bg-blue-100 text-blue-800 rounded">
-                          Human: {selectedDetails.source_breakdown?.Human || 0}
+                  return (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {/* Card 1: Control & Barrier */}
+                      <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                        <span className="text-[10px] font-bold text-slate-500 tracking-wider block">1. Critical Control / Exclusion Zone</span>
+                        <p className="font-bold text-slate-900 text-xs mt-0.5">
+                          Exclusion Zone ({selectedDetails.failed_barrier || selectedDetails.barrier || selectedDetails.critical_barrier || 'EXCLUSION_ZONE'})
+                        </p>
+                        <p className="text-[11px] text-slate-500">
+                          Exclusion Zone perimeter — primary personnel segregation barrier
+                        </p>
+                      </div>
+
+                      {/* Card 2: Failure Mechanism */}
+                      <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                        <span className="text-[10px] font-bold text-slate-500 tracking-wider block">2. Failure Mechanism</span>
+                        <p className="font-bold text-rose-700 text-xs mt-0.5">
+                          {selectedDetails.barrier_condition || selectedDetails.failure_mechanism || 'Restricted-zone barrier breached during active lifting'}
+                        </p>
+                        <p className="text-[11px] text-slate-500">
+                          Restricted-zone barrier breached during active lifting (Status: BYPASSED)
+                        </p>
+                      </div>
+
+                      {/* Card 3: Observed Exposure */}
+                      <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                        <span className="text-[10px] font-bold text-slate-500 tracking-wider block">3. Observed Exposure</span>
+                        <p className="font-semibold text-slate-900 text-xs mt-0.5">
+                          Person inside lifting exclusion zone
+                        </p>
+                        <p className="text-[11px] text-slate-500">
+                          Observed Exposure: {selectedDetails.human_exposure || selectedDetails.exposure || 'Person inside lifting exclusion zone'}
+                        </p>
+                      </div>
+
+                      {/* Card 4: Hazard & Energy */}
+                      <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                        <span className="text-[10px] font-bold text-slate-500 tracking-wider block">4. Hazard / Energy</span>
+                        <p className="font-bold text-slate-900 text-xs mt-0.5">
+                          Gravitational / Kinetic Energy (Suspended Load)
+                        </p>
+                        <p className="text-[11px] text-slate-500">
+                          Hazard / Energy: {selectedDetails.hazard_energy || selectedDetails.hazard || selectedDetails.energy || 'Gravitational / Kinetic Energy'}
+                        </p>
+                      </div>
+
+                      {/* Card 5: Occurrences & Sources */}
+                      <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                        <span className="text-[10px] font-bold text-slate-500 tracking-wider block">5. Occurrences & Sources</span>
+                        <p className="font-bold text-purple-900 text-xs mt-0.5">
+                          {totalOccurrences} Independent Occurrences
+                        </p>
+                        <div className="flex flex-wrap gap-1.5 text-[10px] font-bold mt-1">
+                          <span className="px-1.5 py-0.5 bg-blue-100 text-blue-800 rounded border border-blue-200">
+                            Human: {counts.human}
+                          </span>
+                          <span className="px-1.5 py-0.5 bg-purple-100 text-purple-800 rounded border border-purple-200">
+                            CCTV: {counts.cctv}
+                          </span>
+                          <span className="px-1.5 py-0.5 bg-slate-200 text-slate-800 rounded border border-slate-300">
+                            Import: {counts.imported}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Card 6: SIF Potential & LSR */}
+                      <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                        <span className="text-[10px] font-bold text-slate-500 tracking-wider block">6. SIF Potential & LSR</span>
+                        <p className="font-bold text-rose-700 text-xs mt-0.5">
+                          SIF: {selectedDetails.sif_potential || 'HIGH'}
+                        </p>
+                        <p className="text-slate-700 font-semibold text-[11px]">
+                          Rule: {selectedDetails.iogp_life_saving_rule || selectedDetails.life_saving_rule || selectedDetails.primary_lsr || 'Safe Mechanical Lifting'}
+                        </p>
+                      </div>
+
+                      {/* Card 7: Activity & Location */}
+                      <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                        <span className="text-[10px] font-bold text-slate-500 tracking-wider block">7. Activity & Location</span>
+                        <p className="font-bold text-slate-900 text-xs mt-0.5">{selectedDetails.activity || 'Mechanical Lifting Operations'}</p>
+                        <p className="text-slate-600 flex items-center gap-1 text-[11px]">
+                          <MapPin className="w-3 h-3 text-slate-400" />
+                          {selectedDetails.location || 'Lifting Zone 03'}
+                        </p>
+                      </div>
+
+                      {/* Card 8: HSE Validation State */}
+                      <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                        <span className="text-[10px] font-bold text-slate-500 tracking-wider block">8. HSE Validation State</span>
+                        <span className="inline-block px-2 py-0.5 rounded text-[10px] font-black uppercase bg-emerald-100 text-emerald-800 border border-emerald-300 mt-0.5">
+                          {selectedDetails.validation_status || selectedDetails.hse_validation_state || 'HSE_VALIDATED'}
                         </span>
-                        <span className="px-1.5 py-0.5 bg-purple-100 text-purple-800 rounded">
-                          CCTV: {selectedDetails.source_breakdown?.CCTV || 0}
-                        </span>
-                        <span className="px-1.5 py-0.5 bg-slate-200 text-slate-800 rounded">
-                          Import: {selectedDetails.source_breakdown?.Imported || 0}
-                        </span>
+                        <p className="text-slate-500 text-[10px]">Confirmed by Oil India HSE Lead</p>
+                      </div>
+
+                      {/* Card 9: Operational Lifecycle */}
+                      <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                        <span className="text-[10px] font-bold text-slate-500 tracking-wider block">9. Operational Action Stage</span>
+                        <p className="font-bold text-orange-900 text-xs mt-0.5">
+                          {selectedDetails.operational_status || selectedDetails.action_state || (typeof selectedDetails.assigned_action === 'object' ? selectedDetails.assigned_action?.operational_status : null) || 'ACTIVE'}
+                        </p>
+                        <p className="text-slate-600 text-[11px] truncate">
+                          Supervisor: {selectedDetails.assigned_supervisor || (typeof selectedDetails.assigned_action === 'object' ? selectedDetails.assigned_action?.supervisor_name : null) || 'SUP-01 (Rajesh Kumar)'}
+                        </p>
                       </div>
                     </div>
+                  );
+                })()}
 
-                    <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase">3. SIF Potential & LSR</span>
-                      <p className="font-bold text-rose-700">
-                        SIF: {selectedDetails.sif_potential || 'HIGH'}
-                      </p>
-                      <p className="text-slate-700 font-semibold">
-                        Rule: {selectedDetails.iogp_life_saving_rule || 'Line of Fire'}
-                      </p>
-                    </div>
+                {/* 2. SUPPORTING EVENTS TAB */}
+                {detailsTab === 'events' && (() => {
+                  const evts = selectedDetails?.supporting_events || selectedDetails?.supporting_safety_events || [];
 
-                    <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase">4. Failed Critical Barrier</span>
-                      <p className="font-bold text-rose-700">{selectedDetails.failed_barrier || 'Exclusion Zone Perimeter'}</p>
-                      <p className="text-slate-500 text-[11px]">{selectedDetails.hazard_energy || 'Kinetic / Gravitational Energy'}</p>
-                    </div>
+                  return (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+                          <Layers className="w-4 h-4 text-purple-600" />
+                          <span>Supporting Safety Events ({evts.length})</span>
+                        </h3>
+                        <span className="text-[10px] text-slate-400">Ground-truth canonical SQLite records</span>
+                      </div>
 
-                    <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase">5. Human Exposure</span>
-                      <p className="font-semibold text-slate-800">{selectedDetails.human_exposure || 'Personnel inside active zone under suspended load'}</p>
-                    </div>
-
-                    <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase">6. HSE Validation State</span>
-                      <span className="inline-block px-2 py-0.5 rounded text-[10px] font-black uppercase bg-emerald-100 text-emerald-800 border border-emerald-300">
-                        {selectedDetails.hse_validation_state || 'HSE_VALIDATED'}
-                      </span>
-                      <p className="text-slate-500 text-[10px]">Reviewed by Oil India HSE Lead</p>
-                    </div>
-
-                    <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase">7. Operational Action State</span>
-                      <p className="font-bold text-orange-900">{selectedDetails.action_state || (typeof selectedDetails.assigned_action === 'object' ? selectedDetails.assigned_action?.operational_status : null) || 'ACTION_REQUIRED'}</p>
-                      <p className="text-slate-600 text-[11px]">Supervisor: {selectedDetails.assigned_supervisor || (typeof selectedDetails.assigned_action === 'object' ? selectedDetails.assigned_action?.supervisor_name : null) || 'SUP-01 (Rajesh Kumar)'}</p>
-                      {typeof selectedDetails.assigned_action === 'object' && selectedDetails.assigned_action?.required_action && (
-                        <p className="text-slate-700 text-[11px]"><strong>Action:</strong> {selectedDetails.assigned_action.required_action}</p>
+                      {evts.length > 0 ? (
+                        <div className="max-h-80 overflow-y-auto space-y-2 pr-1">
+                          {evts.map((ev, idx) => (
+                            <div key={idx} className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5 shadow-2xs">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-mono font-bold text-xs text-slate-900">{ev.event_id || `EVT-${idx + 1}`}</span>
+                                  <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
+                                    (ev.source || '').toUpperCase() === 'HUMAN' ? 'bg-blue-100 text-blue-800 border border-blue-200' :
+                                    (ev.source || '').toUpperCase() === 'CCTV' ? 'bg-purple-100 text-purple-800 border border-purple-200' :
+                                    'bg-slate-200 text-slate-800 border border-slate-300'
+                                  }`}>
+                                    {ev.source || 'HUMAN'}
+                                  </span>
+                                </div>
+                                <span className="text-[10px] text-slate-500 font-mono">
+                                  {ev.timestamp ? new Date(ev.timestamp).toLocaleString() : 'Recent'}
+                                </span>
+                              </div>
+                              <p className="text-slate-800 text-xs font-medium leading-relaxed font-serif">
+                                "{ev.narrative || ev.raw_narrative || ev.observed_event || 'No narrative description provided'}"
+                              </p>
+                              <div className="flex flex-wrap items-center gap-2 text-[10px] text-slate-500 pt-1 border-t border-slate-200">
+                                <span>Location: <strong className="text-slate-700">{ev.location || 'Lifting Zone 03'}</strong></span>
+                                <span>•</span>
+                                <span>Hazard: <strong className="text-slate-700">{ev.hazard || ev.energy || 'Gravitational / Kinetic'}</strong></span>
+                                <span>•</span>
+                                <span>Barrier: <strong className="text-rose-700">{ev.barrier || ev.critical_barrier || 'Exclusion Zone'} ({ev.barrier_condition || ev.barrier_state || 'BYPASSED'})</strong></span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="p-8 text-center bg-slate-50 rounded-xl border border-slate-200 space-y-1.5">
+                          <Layers className="w-8 h-8 text-slate-300 mx-auto" />
+                          <p className="text-xs font-bold text-slate-700 uppercase">No Supporting Events Linked</p>
+                          <p className="text-[11px] text-slate-400">No canonical events are currently linked to this pattern.</p>
+                        </div>
                       )}
                     </div>
+                  );
+                })()}
 
-                    <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase">8. Verification Status</span>
-                      <p className="font-bold text-slate-900">{selectedDetails.verification_state || 'PENDING'}</p>
-                      <p className="text-slate-500 text-[10px]">Method: Observable CCTV Stream</p>
-                    </div>
+                {/* 3. EVIDENCE SNIPPETS / GROUND-TRUTH TAB */}
+                {detailsTab === 'snippets' && (() => {
+                  const evts = selectedDetails?.supporting_events || selectedDetails?.supporting_safety_events || [];
+                  const rawSnippets = selectedDetails?.evidence_snippets || [];
+                  const totalEvidence = evts.length > 0 ? evts.length : rawSnippets.length;
 
-                    <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase">9. Lifecycle Stage</span>
-                      <p className="font-bold text-purple-900">{selectedDetails.operational_status || 'ACTIVE'}</p>
-                      <p className="text-slate-500 text-[10px]">Audit trail logged to SQLite</p>
-                    </div>
-                  </div>
-                )}
+                  return (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+                          <FileText className="w-4 h-4 text-blue-600" />
+                          <span>Grounded Evidence Records ({totalEvidence})</span>
+                        </h3>
+                        <span className="text-[10px] text-slate-400">Extracted from Human & CCTV Observations</span>
+                      </div>
 
-                {detailsTab === 'events' && (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
-                        <Layers className="w-4 h-4 text-purple-600" />
-                        <span>Supporting Safety Events ({selectedDetails.supporting_safety_events?.length || 0})</span>
-                      </h3>
-                      <span className="text-[10px] text-slate-400">Ground-truth SQLite records</span>
-                    </div>
+                      {evts.length > 0 ? (
+                        <div className="max-h-80 overflow-y-auto space-y-2.5 pr-1">
+                          {evts.map((ev, idx) => {
+                            const isCctv = (ev.source || '').toUpperCase() === 'CCTV';
+                            const spans = (ev.evidence_spans || ev.evidence || []).map(s => (s.text || s.span_text || s.value || '').trim()).filter(Boolean);
+                            const evidenceFragment = spans.length > 0 
+                              ? spans.join(' • ') 
+                              : (ev.barrier_condition || ev.barrier_state ? `${ev.barrier_condition || ev.barrier_state} barrier in ${ev.location || 'restricted zone'}` : 'entered the lifting exclusion zone');
 
-                    <div className="max-h-80 overflow-y-auto space-y-2 pr-1">
-                      {(selectedDetails.supporting_safety_events || []).map((ev, idx) => (
-                        <div key={idx} className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
-                          <div className="flex items-center justify-between">
-                            <span className="font-mono font-bold text-[10px] text-slate-800">{ev.event_id}</span>
-                            <span className="text-[10px] text-slate-400">{ev.timestamp}</span>
-                          </div>
-                          <p className="text-slate-700 text-xs font-medium leading-relaxed">{ev.narrative}</p>
-                          <div className="flex items-center gap-2 text-[10px] text-slate-500 pt-1">
-                            <span>Source: <strong>{ev.source}</strong></span>
-                            <span>•</span>
-                            <span>Location: <strong>{ev.location}</strong></span>
-                            <span>•</span>
-                            <span>Barrier: <strong className="text-rose-700">{ev.barrier} ({ev.barrier_condition})</strong></span>
-                          </div>
+                            return (
+                              <div key={idx} className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2 shadow-2xs">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-mono font-bold text-xs text-slate-900">
+                                      {ev.event_id || `EVT-${idx + 1}`}
+                                    </span>
+                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                      isCctv ? 'bg-purple-100 text-purple-800 border border-purple-200' : 'bg-blue-100 text-blue-800 border border-blue-200'
+                                    }`}>
+                                      {isCctv ? 'CCTV' : 'HUMAN'}
+                                    </span>
+                                  </div>
+                                  <span className="text-[10px] text-slate-400 font-mono">
+                                    {ev.timestamp ? new Date(ev.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Verified'}
+                                  </span>
+                                </div>
+
+                                <div className="space-y-0.5">
+                                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                                    {isCctv ? 'OBSERVATION' : 'NARRATIVE'}
+                                  </span>
+                                  <p className="text-xs text-slate-900 font-serif leading-relaxed italic bg-white p-2.5 rounded-lg border border-slate-200">
+                                    "{ev.narrative || ev.raw_narrative || ev.observed_event || 'Observation recorded during operations'}"
+                                  </p>
+                                </div>
+
+                                <div className="space-y-0.5">
+                                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                                    EVIDENCE
+                                  </span>
+                                  <div className="p-2 rounded-lg bg-blue-50/70 border border-blue-200 font-mono text-[11px] text-blue-950 font-bold">
+                                    "{evidenceFragment}"
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-2 pt-1 border-t border-slate-200 text-[10px]">
+                                  <span className="text-slate-400 font-bold uppercase">SUPPORTS:</span>
+                                  <span className="px-2 py-0.5 rounded bg-amber-50 text-amber-900 border border-amber-200 font-bold">
+                                    {isCctv ? 'Exposure / Barrier verification' : 'Exposure / Critical Barrier'}
+                                  </span>
+                                  <span className="text-slate-400">•</span>
+                                  <span className="text-slate-600 font-medium truncate">
+                                    {ev.barrier || ev.critical_barrier || 'Exclusion Zone'} ({ev.barrier_condition || ev.barrier_state || 'BYPASSED'})
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {detailsTab === 'snippets' && (
-                  <div className="space-y-2">
-                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
-                      <FileText className="w-4 h-4 text-blue-600" />
-                      <span>Evidence Text Snippets from Reports</span>
-                    </h3>
-                    {selectedDetails.evidence_snippets && selectedDetails.evidence_snippets.length > 0 ? (
-                      <div className="space-y-2">
-                        {selectedDetails.evidence_snippets.map((snip, sIdx) => (
-                          <div key={sIdx} className="p-3 rounded-lg bg-blue-50/60 border border-blue-200 font-mono text-xs text-blue-950">
-                            "{snip}"
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-slate-400 italic text-xs">No direct text snippets available.</p>
-                    )}
-                  </div>
-                )}
-
-                {detailsTab === 'history' && (
-                  <div className="space-y-2">
-                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
-                      <History className="w-4 h-4 text-slate-600" />
-                      <span>Previous Verification & Re-Breach History</span>
-                    </h3>
-                    {selectedDetails.verification_history && selectedDetails.verification_history.length > 0 ? (
-                      <div className="space-y-2">
-                        {selectedDetails.verification_history.map((vh, vIdx) => (
-                          <div key={vIdx} className={`p-3 rounded-lg border text-xs flex items-center justify-between ${
-                            vh.status === 'VERIFIED' ? 'bg-emerald-50 border-emerald-200 text-emerald-950' : 'bg-rose-50 border-rose-200 text-rose-950'
-                          }`}>
-                            <div className="space-y-0.5">
-                              <span className="font-bold uppercase tracking-wider">{vh.status}</span>
-                              <p className="text-[11px]">{vh.details?.message || vh.details?.notes || 'Verification event logged'}</p>
+                      ) : rawSnippets.length > 0 ? (
+                        <div className="max-h-80 overflow-y-auto space-y-2 pr-1">
+                          {rawSnippets.map((snip, sIdx) => (
+                            <div key={sIdx} className="p-3 rounded-lg bg-blue-50/60 border border-blue-200 font-mono text-xs text-blue-950">
+                              "{snip}"
                             </div>
-                            <span className="text-[10px] font-mono opacity-75">{vh.timestamp}</span>
-                          </div>
-                        ))}
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="p-8 text-center bg-slate-50 rounded-xl border border-slate-200 space-y-1.5">
+                          <FileText className="w-8 h-8 text-slate-300 mx-auto" />
+                          <p className="text-xs font-bold text-slate-700 uppercase">NO EVIDENCE AVAILABLE</p>
+                          <p className="text-[11px] text-slate-400">No evidence snippets are currently linked to this pattern.</p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* 4. VERIFICATION HISTORY TIMELINE TAB */}
+                {detailsTab === 'history' && (() => {
+                  const historyList = selectedDetails?.verification_history || [];
+
+                  return (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+                          <History className="w-4 h-4 text-slate-600" />
+                          <span>Chronological Verification History ({historyList.length})</span>
+                        </h3>
+                        <span className="text-[10px] text-slate-400">Audit Trail of Lifecycle Actions</span>
                       </div>
-                    ) : (
-                      <p className="text-slate-400 italic text-xs">No previous verification attempts recorded for this pattern.</p>
-                    )}
-                  </div>
-                )}
+
+                      {historyList.length > 0 ? (
+                        <div className="max-h-80 overflow-y-auto space-y-2 pr-1">
+                          {historyList.map((vh, vIdx) => {
+                            const status = (vh.status || vh.stage || '').toUpperCase();
+                            const isVerified = status.includes('VERIFIED');
+                            const isRebreach = status.includes('REBREACH') || status.includes('RE-BREACH') || status.includes('REOPEN') || status.includes('FAILED');
+                            const isDispatched = status.includes('DISPATCH');
+                            const isInProgress = status.includes('PROGRESS');
+                            const isAwaiting = status.includes('AWAIT');
+                            const isClose = status.includes('CLOSE');
+                            const isValidated = status.includes('VALIDATE');
+
+                            const badgeStyle = isVerified 
+                              ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                              : isRebreach
+                              ? 'bg-rose-100 text-rose-900 border-rose-300'
+                              : isDispatched
+                              ? 'bg-orange-100 text-orange-900 border-orange-300'
+                              : isInProgress
+                              ? 'bg-blue-100 text-blue-900 border-blue-300'
+                              : isAwaiting
+                              ? 'bg-yellow-100 text-yellow-900 border-yellow-300'
+                              : isClose
+                              ? 'bg-slate-200 text-slate-800 border-slate-300'
+                              : isValidated
+                              ? 'bg-purple-100 text-purple-900 border-purple-300'
+                              : 'bg-slate-100 text-slate-700 border-slate-300';
+
+                            const detailsText = typeof vh.details === 'object' && vh.details !== null
+                              ? (vh.details.message || vh.details.notes || JSON.stringify(vh.details))
+                              : (vh.details || vh.title || 'Operational lifecycle event logged');
+
+                            let formattedTime = 'Recent';
+                            if (vh.timestamp) {
+                              try {
+                                const d = new Date(vh.timestamp);
+                                formattedTime = !isNaN(d.getTime())
+                                  ? `${d.toLocaleDateString([], { day: '2-digit', month: 'short' })} ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                                  : vh.timestamp;
+                              } catch {
+                                formattedTime = vh.timestamp;
+                              }
+                            }
+
+                            return (
+                              <div key={vIdx} className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider border ${badgeStyle}`}>
+                                      {vh.stage || vh.status || 'EVENT'}
+                                    </span>
+                                    {vh.actor && (
+                                      <span className="text-[11px] font-semibold text-slate-600">
+                                        • {vh.actor}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span className="text-[10px] font-mono font-bold text-slate-500">
+                                    {formattedTime}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-slate-800 font-medium pl-2 border-l-2 border-slate-300">
+                                  {detailsText}
+                                </p>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="p-8 text-center bg-slate-50 rounded-xl border border-slate-200 space-y-1.5">
+                          <History className="w-8 h-8 text-slate-300 mx-auto" />
+                          <p className="text-xs font-bold text-slate-700 uppercase">NO VERIFICATION HISTORY</p>
+                          <p className="text-[11px] text-slate-400">No previous verification attempts recorded for this pattern.</p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
 
               </div>
             ) : null}
 
             {/* Footer */}
-            <div className="flex justify-end pt-3 border-t">
+            <div className="flex justify-end p-4 border-t border-slate-200 bg-slate-50/50 shrink-0">
               <button
                 onClick={() => setDetailsModalOpen(false)}
-                className="px-4 py-2 bg-slate-900 hover:bg-black text-white text-xs font-bold rounded-lg transition-colors"
+                className="px-4 py-2 bg-slate-900 hover:bg-black text-white text-xs font-bold rounded-lg transition-colors shadow-sm"
               >
                 Close Details
               </button>
@@ -1400,11 +1651,12 @@ export default function SafetyMemoryView() {
                 </button>
                 <button
                   type="submit"
+                  id="btn-submit-assignment"
                   disabled={assignSubmitting}
                   className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-lg shadow-sm transition-colors flex items-center space-x-1.5 disabled:opacity-50"
                 >
                   {assignSubmitting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-                  <span>{assignSubmitting ? 'Dispatching...' : 'Dispatch to Supervisor'}</span>
+                  <span>{assignSubmitting ? 'Dispatching...' : 'Confirm & Dispatch / DISPATCH TO SUPERVISOR'}</span>
                 </button>
               </div>
             </form>
@@ -1480,6 +1732,7 @@ export default function SafetyMemoryView() {
                 </button>
                 <button
                   type="submit"
+                  id="btn-confirm-close-pattern"
                   disabled={closeSubmitting}
                   className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-black rounded-lg shadow-sm transition-colors flex items-center space-x-1.5 disabled:opacity-50"
                 >
